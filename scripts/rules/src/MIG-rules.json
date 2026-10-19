@@ -9,10 +9,10 @@
    "scope": "code",
    "match": {
     "type": "regex",
-    "pattern": "\\bhandleError\\s*:\\s*(?:async\\s*)?(?:\\(|function\\b)|\\b(?:init|cleanup)\\s*:\\s*(?:async\\s*)?(?:\\(|function\\b)|\\b(?:toolTask|ai\\.tool)\\s*\\(|\\bmetadata\\.stream\\s*\\(|\\bonStart\\s*:"
+    "pattern": "\\bhandleError\\s*:\\s*(?:async\\s*)?(?:\\(|function\\b)|\\b(?:init|cleanup)\\s*:\\s*(?:async\\s*)?(?:\\(|function\\b)|\\b(?:toolTask|ai\\.tool)\\s*\\(|\\bmetadata\\.stream\\s*\\("
    },
-   "message": "uses a task API that SDK 4 renamed or deprecated (handleError, init, cleanup, toolTask, ai.tool, metadata.stream, onStart)",
-   "fix": "catchError instead of handleError; middleware and locals instead of init/cleanup; schemaTask with ai.toolExecute instead of toolTask/ai.tool; streams.pipe instead of metadata.stream; onStartAttempt instead of onStart",
+   "message": "uses a task API that SDK 4 renamed or deprecated (handleError, init, cleanup, toolTask, ai.tool, metadata.stream)",
+   "fix": "catchError instead of handleError; middleware and locals instead of init/cleanup; schemaTask with ai.toolExecute instead of toolTask/ai.tool; streams.pipe instead of metadata.stream",
    "fix_mode": "flag-only",
    "doc": "https://trigger.dev/docs/migrating-from-v3",
    "examples": {
@@ -22,13 +22,13 @@
      "import { toolTask } from \"@trigger.dev/sdk\";\nexport const lookup = toolTask({\n  id: \"lookup\",\n  description: \"Look up a record\",\n  run: async () => {},\n});",
      "import { ai, schemaTask } from \"@trigger.dev/sdk\";\nexport const lookup = schemaTask({ id: \"lookup\", run: async () => {} });\nexport const tool = ai.tool(lookup);",
      "import { task, metadata } from \"@trigger.dev/sdk\";\nexport const a = task({\n  id: \"a\",\n  run: async () => {\n    await metadata.stream(\"logs\", readable);\n  },\n});",
-     "import { task } from \"@trigger.dev/sdk\";\nexport const a = task({\n  id: \"a\",\n  onStart: async ({ payload, ctx }) => {},\n  run: async () => {},\n});",
      "import { task } from \"@trigger.dev/sdk\";\nexport const a = task({\n  id: \"a\",\n  cleanup: async () => {},\n  run: async () => {},\n});"
     ],
     "good": [
      "import { task } from \"@trigger.dev/sdk\";\nexport const a = task({\n  id: \"a\",\n  catchError: async ({ error }) => {},\n  run: async () => {},\n});",
      "import { ai, schemaTask } from \"@trigger.dev/sdk\";\nexport const lookup = schemaTask({\n  id: \"lookup\",\n  run: async (payload) => ai.toolExecute(payload),\n});",
-     "import { task, streams } from \"@trigger.dev/sdk\";\n// handleError, init, cleanup, toolTask, ai.tool(, metadata.stream(, onStart: were removed in v4\nexport const a = task({\n  id: \"a\",\n  onStartAttempt: async ({ ctx }) => {},\n  run: async () => {\n    await streams.pipe(\"logs\", readable);\n  },\n});"
+     "import { task, streams } from \"@trigger.dev/sdk\";\n// handleError, init, cleanup, toolTask, ai.tool(, metadata.stream(, onStart: were removed in v4\nexport const a = task({\n  id: \"a\",\n  onStartAttempt: async ({ ctx }) => {},\n  run: async () => {\n    await streams.pipe(\"logs\", readable);\n  },\n});",
+     "import { task } from \"@trigger.dev/sdk\";\nexport const a = task({ id: \"a\", onStart: ({ payload, ctx }) => {}, run: async () => {} });"
     ]
    }
   },
@@ -136,31 +136,21 @@
    "severity": "warning",
    "tier": "audit",
    "detect": "S",
-   "scope": "any-text",
-   "prefilter": "@trigger\\.dev/",
+   "scope": "package-json",
+   "prefilter": "@opentelemetry/",
    "applies_when": "sdk>=4",
    "match": {
-    "type": "any",
-    "of": [
-     {
-      "type": "regex",
-      "pattern": "\"@opentelemetry/exporter-[\\w-]+\"\\s*:\\s*\"[\\^~]?0\\.52\\.(?:\\d+|x)\"",
-      "mask": "none"
-     },
-     {
-      "type": "regex",
-      "pattern": "\\bOTEL_(?:EXPORTER_|TRACES_EXPORTER|LOGS_EXPORTER|METRICS_EXPORTER)"
-     }
-    ]
+    "type": "regex",
+    "pattern": "\"@opentelemetry/exporter-[\\w-]+\"\\s*:\\s*\"[\\^~]?0\\.52\\.(?:\\d+|x)\"",
+    "mask": "none"
    },
-   "message": "OTEL exporters are pinned to 0.52.x, or configured through OTEL_* env vars; with SDK 4 exporters take constructor arguments in trigger.config",
+   "message": "an OpenTelemetry exporter pinned to 0.52.x; SDK 4 uses 0.203.x",
    "fix": "move the @opentelemetry exporter packages to 0.203.x and pass endpoint and headers as constructor arguments instead of OTEL_* env vars",
    "fix_mode": "flag-only",
    "doc": "https://trigger.dev/docs/config/config-file",
    "examples": {
     "bad": [
-     "{\n  \"name\": \"app\",\n  \"dependencies\": {\n    \"@trigger.dev/sdk\": \"4.1.0\",\n    \"@opentelemetry/exporter-trace-otlp-http\": \"0.52.1\"\n  }\n}",
-     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nconst endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;\n\nexport default defineConfig({\n  project: \"proj_example\",\n  dirs: [\"./src/trigger\"],\n});"
+     "{\n  \"name\": \"app\",\n  \"dependencies\": {\n    \"@trigger.dev/sdk\": \"4.1.0\",\n    \"@opentelemetry/exporter-trace-otlp-http\": \"0.52.1\"\n  }\n}"
     ],
     "good": [
      "{\n  \"name\": \"app\",\n  \"dependencies\": {\n    \"@trigger.dev/sdk\": \"4.1.0\",\n    \"@opentelemetry/exporter-trace-otlp-http\": \"0.203.0\"\n  }\n}",

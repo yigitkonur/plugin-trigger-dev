@@ -38,7 +38,8 @@
      "'use client';\n\nimport { useRealtimeRun } from '@trigger.dev/react-hooks';\n\nexport function RunStatus({ runId }: { runId: string }) {\n  const { run } = useRealtimeRun(runId);\n  return run?.status ?? 'loading';\n}\n",
      "\"use client\";\n\nimport { useRealtimeRun } from '@trigger.dev/react-hooks';\n\nexport function RunStatus({ runId }: { runId: string }) {\n  const { run } = useRealtimeRun(runId);\n  return run?.status ?? 'loading';\n}\n"
     ]
-   }
+   },
+   "frontend": "next-app"
   },
   {
    "id": "RT-05",
@@ -217,7 +218,8 @@
      "import { task } from '@trigger.dev/sdk';\nimport { sendMail } from '~/trigger/mail';\n\nexport const emailSequence = task({ id: 'email-sequence', run: async (payload: { email: string }) => { await sendMail(payload.email); } });\n"
     ]
    },
-   "judge": "Confirm the importing file is app or client code. A task file importing a sibling task by value is fine; an app route, page or client component importing task modules by value pulls task code into the app bundle."
+   "judge": "Confirm the importing file is app or client code. A task file importing a sibling task by value is fine; an app route, page or client component importing task modules by value pulls task code into the app bundle.",
+   "skip_paths": "(^|/)trigger/|(^|/)(__tests__|tests?)/|\\.(test|spec)\\."
   }
  ]
 }

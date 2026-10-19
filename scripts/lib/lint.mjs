@@ -239,7 +239,9 @@ function runMatcher(m, ctx) {
       if (m.check === "dep-lt") {
         for (const s of sections) {
           const v = j[s]?.[m.dep];
-          if (v && /\d/.test(v) && cmpVersion(String(v).replace(/^[^\d]*/, ""), m.version) === -1) push(ctx.text.indexOf(`"${m.dep}"`) >= 0 ? ctx.text.indexOf(`"${m.dep}"`) : 0);
+          // a caret range in the same major resolves to the newest release, so only exact pins and tilde ranges can stay below the floor
+          const caretOk = typeof v === "string" && /^\^/.test(v) && majorOf(v.replace(/^[^\d]*/, "")) === majorOf(m.version);
+          if (v && !caretOk && /\d/.test(v) && cmpVersion(String(v).replace(/^[^\d]*/, ""), m.version) === -1) push(ctx.text.indexOf(`"${m.dep}"`) >= 0 ? ctx.text.indexOf(`"${m.dep}"`) : 0);
         }
       } else if (m.check === "dep-in") {
         for (const s of m.in || ["dependencies"]) {
@@ -276,7 +278,7 @@ function ctxFor(file, text) {
 
 /* ---------- rule evaluation ---------- */
 
-export function evalFile(file, text, rules, { rel = file, projectStop = null, tiers = ["hook"], target = null } = {}) {
+export function evalFile(file, text, rules, { rel = file, projectStop = null, tiers = ["hook"], target = null, frontend = null } = {}) {
   const kinds = fileKinds(rel);
   if (!kinds.size || text.length > MAX_FILE) return [];
   const ctx = ctxFor(rel, text);
@@ -285,6 +287,8 @@ export function evalFile(file, text, rules, { rel = file, projectStop = null, ti
   for (const rule of rules) {
     if (!rule.match || !tiers.includes(rule.tier)) continue;
     if (rule.target && target && rule.target !== target) continue; // cloud-only or self-host-only rules
+    if (rule.skip_paths && re(rule.skip_paths).test(rel)) continue; // e.g. task directories, tests
+    if (rule.frontend === "next-app" && frontend && !(frontend.framework === "next" && frontend.router === "app")) continue; // Server Components exist only in the Next.js App Router
     const scope = rule.scope || "code";
     if (!kinds.has(scope)) continue;
     if (rule.prefilter ? !re(rule.prefilter).test(text) : scope === "code" && !/@trigger\.dev\//.test(text)) continue;
@@ -419,7 +423,7 @@ export function scan(root, { focus, tier, rulesFile } = {}) {
       for (const [d, r] of Object.entries(DOMAINS)) if (r.test(text)) relevance[d]++;
     }
     if (kinds.has("package-json")) pkgs.push({ rel, json: readJson(f) });
-    hits.push(...evalFile(f, text, active, { rel, projectStop: root, tiers, target }));
+    hits.push(...evalFile(f, text, active, { rel, projectStop: root, tiers, target, frontend: fp.frontend }));
   }
   if (tiers.includes("audit")) hits.push(...runBuiltins(active, codeFiles, fp.roots, root));
   // cross-file builtin: version skew across package.json files, or any 3.x pin (MIG-08)

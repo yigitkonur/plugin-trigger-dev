@@ -211,7 +211,7 @@
    "family": "TSK",
    "severity": "warning",
    "tier": "audit",
-   "detect": "S",
+   "detect": "S+J",
    "scope": "code",
    "match": {
     "type": "any",
@@ -242,7 +242,8 @@
      "import { createClient } from \"redis\";\nimport { task } from \"@trigger.dev/sdk\";\n\nconst redis = createClient({ url: process.env.REDIS_URL });\nredis.on(\"error\", (err) => console.error(err));\n\nexport const cache = task({\n  id: \"cache\",\n  run: async () => {\n    await redis.connect();\n    await redis.set(\"k\", \"v\");\n  },\n});\n",
      "import { Pool } from \"pg\";\nimport { task } from \"@trigger.dev/sdk\";\n\nconst pool = new Pool({ connectionString: process.env.DATABASE_URL });\npool.on(\"error\", (err) => console.error(err));\n\nexport const query = task({\n  id: \"query\",\n  run: async () => {\n    await pool.query(\"select 1\");\n  },\n});\n"
     ]
-   }
+   },
+   "judge": "Confirm the client is created inside task code and is long-lived (module scope or reused across attempts). A client created and closed inside one request handler is fine; one created in a task without an error listener can crash the run with TASK_RUN_UNCAUGHT_EXCEPTION."
   },
   {
    "id": "TSK-25",
@@ -322,7 +323,8 @@
    "match": {
     "type": "regex",
     "mask": "comments+strings",
-    "pattern": "(?:\\bfor\\b|\\bwhile\\b|\\.forEach\\s*\\(|\\.map\\s*\\()[^}]{0,300}?\\bruns\\s*\\.\\s*list\\s*\\("
+    "pattern": "(?:\\bfor\\b|\\bwhile\\b|\\.forEach\\s*\\(|\\.map\\s*\\()[^}]{0,300}?\\bruns\\s*\\.\\s*list\\s*\\(",
+    "notNear": "\\bof\\s+(?:await\\s+)?runs\\s*\\.\\s*list"
    },
    "message": "runs.list is called inside a loop",
    "fix": "replace polling with idempotency keys, waits or realtime subscriptions",

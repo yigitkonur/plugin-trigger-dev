@@ -6,7 +6,7 @@ import { loadRules, evalFile, DEFAULT_RULES } from "../scripts/lib/lint.mjs";
 
 const rulesFile = process.argv[2] ? path.resolve(process.argv[2]) : DEFAULT_RULES;
 const rules = loadRules(rulesFile);
-const FILE = { code: "src/trigger/example.ts", config: "trigger.config.ts", "package-json": "package.json", workflow: ".github/workflows/ci.yml", "any-text": "notes.txt" };
+const FILE = { code: "src/app/example.ts", config: "trigger.config.ts", "package-json": "package.json", workflow: ".github/workflows/ci.yml", "any-text": "notes.txt" };
 let fail = 0;
 let checked = 0;
 for (const r of rules) {

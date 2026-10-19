@@ -1490,10 +1490,10 @@
    "scope": "code",
    "match": {
     "type": "regex",
-    "pattern": "\\bhandleError\\s*:\\s*(?:async\\s*)?(?:\\(|function\\b)|\\b(?:init|cleanup)\\s*:\\s*(?:async\\s*)?(?:\\(|function\\b)|\\b(?:toolTask|ai\\.tool)\\s*\\(|\\bmetadata\\.stream\\s*\\(|\\bonStart\\s*:"
+    "pattern": "\\bhandleError\\s*:\\s*(?:async\\s*)?(?:\\(|function\\b)|\\b(?:init|cleanup)\\s*:\\s*(?:async\\s*)?(?:\\(|function\\b)|\\b(?:toolTask|ai\\.tool)\\s*\\(|\\bmetadata\\.stream\\s*\\("
    },
-   "message": "uses a task API that SDK 4 renamed or deprecated (handleError, init, cleanup, toolTask, ai.tool, metadata.stream, onStart)",
-   "fix": "catchError instead of handleError; middleware and locals instead of init/cleanup; schemaTask with ai.toolExecute instead of toolTask/ai.tool; streams.pipe instead of metadata.stream; onStartAttempt instead of onStart",
+   "message": "uses a task API that SDK 4 renamed or deprecated (handleError, init, cleanup, toolTask, ai.tool, metadata.stream)",
+   "fix": "catchError instead of handleError; middleware and locals instead of init/cleanup; schemaTask with ai.toolExecute instead of toolTask/ai.tool; streams.pipe instead of metadata.stream",
    "fix_mode": "flag-only",
    "doc": "https://trigger.dev/docs/migrating-from-v3",
    "examples": {
@@ -1503,13 +1503,13 @@
      "import { toolTask } from \"@trigger.dev/sdk\";\nexport const lookup = toolTask({\n  id: \"lookup\",\n  description: \"Look up a record\",\n  run: async () => {},\n});",
      "import { ai, schemaTask } from \"@trigger.dev/sdk\";\nexport const lookup = schemaTask({ id: \"lookup\", run: async () => {} });\nexport const tool = ai.tool(lookup);",
      "import { task, metadata } from \"@trigger.dev/sdk\";\nexport const a = task({\n  id: \"a\",\n  run: async () => {\n    await metadata.stream(\"logs\", readable);\n  },\n});",
-     "import { task } from \"@trigger.dev/sdk\";\nexport const a = task({\n  id: \"a\",\n  onStart: async ({ payload, ctx }) => {},\n  run: async () => {},\n});",
      "import { task } from \"@trigger.dev/sdk\";\nexport const a = task({\n  id: \"a\",\n  cleanup: async () => {},\n  run: async () => {},\n});"
     ],
     "good": [
      "import { task } from \"@trigger.dev/sdk\";\nexport const a = task({\n  id: \"a\",\n  catchError: async ({ error }) => {},\n  run: async () => {},\n});",
      "import { ai, schemaTask } from \"@trigger.dev/sdk\";\nexport const lookup = schemaTask({\n  id: \"lookup\",\n  run: async (payload) => ai.toolExecute(payload),\n});",
-     "import { task, streams } from \"@trigger.dev/sdk\";\n// handleError, init, cleanup, toolTask, ai.tool(, metadata.stream(, onStart: were removed in v4\nexport const a = task({\n  id: \"a\",\n  onStartAttempt: async ({ ctx }) => {},\n  run: async () => {\n    await streams.pipe(\"logs\", readable);\n  },\n});"
+     "import { task, streams } from \"@trigger.dev/sdk\";\n// handleError, init, cleanup, toolTask, ai.tool(, metadata.stream(, onStart: were removed in v4\nexport const a = task({\n  id: \"a\",\n  onStartAttempt: async ({ ctx }) => {},\n  run: async () => {\n    await streams.pipe(\"logs\", readable);\n  },\n});",
+     "import { task } from \"@trigger.dev/sdk\";\nexport const a = task({ id: \"a\", onStart: ({ payload, ctx }) => {}, run: async () => {} });"
     ]
    }
   },
@@ -1728,31 +1728,21 @@
    "severity": "warning",
    "tier": "audit",
    "detect": "S",
-   "scope": "any-text",
-   "prefilter": "@trigger\\.dev/",
+   "scope": "package-json",
+   "prefilter": "@opentelemetry/",
    "applies_when": "sdk>=4",
    "match": {
-    "type": "any",
-    "of": [
-     {
-      "type": "regex",
-      "pattern": "\"@opentelemetry/exporter-[\\w-]+\"\\s*:\\s*\"[\\^~]?0\\.52\\.(?:\\d+|x)\"",
-      "mask": "none"
-     },
-     {
-      "type": "regex",
-      "pattern": "\\bOTEL_(?:EXPORTER_|TRACES_EXPORTER|LOGS_EXPORTER|METRICS_EXPORTER)"
-     }
-    ]
+    "type": "regex",
+    "pattern": "\"@opentelemetry/exporter-[\\w-]+\"\\s*:\\s*\"[\\^~]?0\\.52\\.(?:\\d+|x)\"",
+    "mask": "none"
    },
-   "message": "OTEL exporters are pinned to 0.52.x, or configured through OTEL_* env vars; with SDK 4 exporters take constructor arguments in trigger.config",
+   "message": "an OpenTelemetry exporter pinned to 0.52.x; SDK 4 uses 0.203.x",
    "fix": "move the @opentelemetry exporter packages to 0.203.x and pass endpoint and headers as constructor arguments instead of OTEL_* env vars",
    "fix_mode": "flag-only",
    "doc": "https://trigger.dev/docs/config/config-file",
    "examples": {
     "bad": [
-     "{\n  \"name\": \"app\",\n  \"dependencies\": {\n    \"@trigger.dev/sdk\": \"4.1.0\",\n    \"@opentelemetry/exporter-trace-otlp-http\": \"0.52.1\"\n  }\n}",
-     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nconst endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;\n\nexport default defineConfig({\n  project: \"proj_example\",\n  dirs: [\"./src/trigger\"],\n});"
+     "{\n  \"name\": \"app\",\n  \"dependencies\": {\n    \"@trigger.dev/sdk\": \"4.1.0\",\n    \"@opentelemetry/exporter-trace-otlp-http\": \"0.52.1\"\n  }\n}"
     ],
     "good": [
      "{\n  \"name\": \"app\",\n  \"dependencies\": {\n    \"@trigger.dev/sdk\": \"4.1.0\",\n    \"@opentelemetry/exporter-trace-otlp-http\": \"0.203.0\"\n  }\n}",
@@ -2107,7 +2097,8 @@
      "'use client';\n\nimport { useRealtimeRun } from '@trigger.dev/react-hooks';\n\nexport function RunStatus({ runId }: { runId: string }) {\n  const { run } = useRealtimeRun(runId);\n  return run?.status ?? 'loading';\n}\n",
      "\"use client\";\n\nimport { useRealtimeRun } from '@trigger.dev/react-hooks';\n\nexport function RunStatus({ runId }: { runId: string }) {\n  const { run } = useRealtimeRun(runId);\n  return run?.status ?? 'loading';\n}\n"
     ]
-   }
+   },
+   "frontend": "next-app"
   },
   {
    "id": "RT-05",
@@ -2286,7 +2277,8 @@
      "import { task } from '@trigger.dev/sdk';\nimport { sendMail } from '~/trigger/mail';\n\nexport const emailSequence = task({ id: 'email-sequence', run: async (payload: { email: string }) => { await sendMail(payload.email); } });\n"
     ]
    },
-   "judge": "Confirm the importing file is app or client code. A task file importing a sibling task by value is fine; an app route, page or client component importing task modules by value pulls task code into the app bundle."
+   "judge": "Confirm the importing file is app or client code. A task file importing a sibling task by value is fine; an app route, page or client component importing task modules by value pulls task code into the app bundle.",
+   "skip_paths": "(^|/)trigger/|(^|/)(__tests__|tests?)/|\\.(test|spec)\\."
   },
   {
    "id": "SCH-01",
@@ -2348,11 +2340,11 @@
    "scope": "code",
    "match": {
     "type": "regex",
-    "pattern": "\\bcron\\s*:\\s*[\"'\\x60][^\"'\\x60\\n]+[\"'\\x60]",
+    "pattern": "\\bcron\\s*:\\s*[\"'\\x60]\\s*\\S+\\s+\\d[\\d,\\-]*\\s+\\S+\\s+\\S+\\s+\\S+\\s*[\"'\\x60]",
     "notNear": "\\btimezone\\s*:"
    },
    "judge": "The matcher found a string cron, which always runs in UTC. Decide whether the time of day was meant as a business or user local time: read the comment above it, the task id and name, and nearby docs (words like local, office, Berlin, customer, 9am). Report when it is local time: the UTC hour stays fixed while the local clock moves with the zone offset and with DST changes. Dismiss when the schedule is meant in UTC (system jobs, every N hours, midnight UTC) or when a timezone is set in the same call.",
-   "message": "string cron has no timezone, so it runs at this UTC time of day (a string cron is always UTC)",
+   "message": "string cron with a fixed hour is evaluated in UTC; business-local times need { pattern, timezone }",
    "fix": "use { pattern, timezone } with an IANA name, e.g. cron: { pattern: \"0 9 * * 1-5\", timezone: \"Europe/Berlin\" }",
    "fix_mode": "flag-only",
    "doc": "https://trigger.dev/docs/tasks/scheduled",
@@ -2555,7 +2547,7 @@
    "match": {
     "type": "regex",
     "pattern": "\\.(?:triggerAndWait|batchTriggerAndWait)\\s*\\(|\\bwait\\.(?:for|until|forToken)\\s*\\(",
-    "unless": "\\btask\\s*\\("
+    "unless": "\\b(?:schemaTask|task|schedules\\.task|chat\\.agent|chat\\.customAgent)\\s*\\("
    },
    "message": "triggerAndWait or a wait.* call is in a file that defines no task(); this looks like a route handler, outside task code",
    "fix": "move the wait into a task and trigger that task from the app with tasks.trigger",
@@ -2569,7 +2561,8 @@
      "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const reminder = task({\n  id: \"reminder\",\n  run: async (payload) => {\n    await wait.for({ hours: 1 });\n    return { sent: payload.userId };\n  },\n});"
     ]
    },
-   "judge": "Confirm the file is route, page or server-action code and not task code. A helper that is only ever called from inside a task() is fine; a Next.js route handler, an Express handler or a server action that awaits triggerAndWait or a wait.* call is the bug."
+   "judge": "Confirm the file is route, page or server-action code and not task code. A helper that is only ever called from inside a task() is fine; a Next.js route handler, an Express handler or a server action that awaits triggerAndWait or a wait.* call is the bug.",
+   "skip_paths": "(^|/)trigger/|(^|/)(__tests__|tests?)/|\\.(test|spec)\\."
   },
   {
    "id": "TSK-05",
@@ -2659,11 +2652,11 @@
     "of": [
      {
       "type": "regex",
-      "pattern": "\\b(?:const|let|var)\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*await\\s+import\\s*\\((?:[^()]|\\([^()]*\\))*\\)[\\s\\S]*?\\b\\1(?:\\.[A-Za-z_$][\\w$]*)?\\.(?:trigger|batchTrigger)\\s*\\("
+      "pattern": "\\b(?:const|let|var)\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*await\\s+import\\s*\\(\\s*[\"'\\x60](?:\\.{1,2}/|[@~]/|[^\"'\\x60)]*/trigger/)[^)]*\\)[\\s\\S]*?\\b\\1(?:\\.[A-Za-z_$][\\w$]*)?\\.(?:trigger|batchTrigger)\\s*\\("
      },
      {
       "type": "regex",
-      "pattern": "\\b(?:const|let|var)\\s*\\{\\s*([A-Za-z_$][\\w$]*)[^}]*\\}\\s*=\\s*await\\s+import\\s*\\((?:[^()]|\\([^()]*\\))*\\)[\\s\\S]*?\\b\\1\\.(?:trigger|batchTrigger)\\s*\\("
+      "pattern": "\\b(?:const|let|var)\\s*\\{\\s*([A-Za-z_$][\\w$]*)[^}]*\\}\\s*=\\s*await\\s+import\\s*\\(\\s*[\"'\\x60](?:\\.{1,2}/|[@~]/|[^\"'\\x60)]*/trigger/)[^)]*\\)[\\s\\S]*?\\b\\1\\.(?:trigger|batchTrigger)\\s*\\("
      }
     ]
    },
@@ -3040,7 +3033,7 @@
    "family": "TSK",
    "severity": "warning",
    "tier": "audit",
-   "detect": "S",
+   "detect": "S+J",
    "scope": "code",
    "match": {
     "type": "any",
@@ -3071,7 +3064,8 @@
      "import { createClient } from \"redis\";\nimport { task } from \"@trigger.dev/sdk\";\n\nconst redis = createClient({ url: process.env.REDIS_URL });\nredis.on(\"error\", (err) => console.error(err));\n\nexport const cache = task({\n  id: \"cache\",\n  run: async () => {\n    await redis.connect();\n    await redis.set(\"k\", \"v\");\n  },\n});\n",
      "import { Pool } from \"pg\";\nimport { task } from \"@trigger.dev/sdk\";\n\nconst pool = new Pool({ connectionString: process.env.DATABASE_URL });\npool.on(\"error\", (err) => console.error(err));\n\nexport const query = task({\n  id: \"query\",\n  run: async () => {\n    await pool.query(\"select 1\");\n  },\n});\n"
     ]
-   }
+   },
+   "judge": "Confirm the client is created inside task code and is long-lived (module scope or reused across attempts). A client created and closed inside one request handler is fine; one created in a task without an error listener can crash the run with TASK_RUN_UNCAUGHT_EXCEPTION."
   },
   {
    "id": "TSK-25",
@@ -3151,7 +3145,8 @@
    "match": {
     "type": "regex",
     "mask": "comments+strings",
-    "pattern": "(?:\\bfor\\b|\\bwhile\\b|\\.forEach\\s*\\(|\\.map\\s*\\()[^}]{0,300}?\\bruns\\s*\\.\\s*list\\s*\\("
+    "pattern": "(?:\\bfor\\b|\\bwhile\\b|\\.forEach\\s*\\(|\\.map\\s*\\()[^}]{0,300}?\\bruns\\s*\\.\\s*list\\s*\\(",
+    "notNear": "\\bof\\s+(?:await\\s+)?runs\\s*\\.\\s*list"
    },
    "message": "runs.list is called inside a loop",
    "fix": "replace polling with idempotency keys, waits or realtime subscriptions",

@@ -99,7 +99,12 @@ export function configChecks(rules, files, roots, base) {
       const gi = readText(path.join(rootAbs, ".gitignore")) || readText(path.join(base, ".gitignore")) || "";
       if (!/^\/?\.trigger\/?$/m.test(gi)) out.push(hit(r08, ".gitignore", 1, ".trigger (the CLI's local build output) is not listed in .gitignore"));
       const ts = readText(path.join(rootAbs, "tsconfig.json"));
-      if (ts && !/trigger\.config/.test(ts) && !/"include"\s*:\s*\[\s*"\*\*\/\*"/.test(ts)) out.push(hit(r08, path.relative(base, path.join(rootAbs, "tsconfig.json")), 1, "trigger.config.ts is not covered by the tsconfig include"));
+      if (ts) {
+        const include = (/"include"\s*:\s*\[([^\]]*)\]/.exec(ts) || [])[1];
+        const entries = include == null ? null : [...include.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+        const covers = (e) => /^(?:\.|\.\/|\*\*\/\*(?:\.m?tsx?)?|\.\/\*\*\/\*(?:\.m?tsx?)?|\*\.m?ts|trigger\.config(?:\.\w+)?)$/.test(e);
+        if (entries && !entries.some(covers)) out.push(hit(r08, path.relative(base, path.join(rootAbs, "tsconfig.json")), 1, "trigger.config.ts is not covered by the tsconfig include"));
+      }
     }
   }
   return out;

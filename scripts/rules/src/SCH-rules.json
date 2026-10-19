@@ -9,11 +9,11 @@
    "scope": "code",
    "match": {
     "type": "regex",
-    "pattern": "\\bcron\\s*:\\s*[\"'\\x60][^\"'\\x60\\n]+[\"'\\x60]",
+    "pattern": "\\bcron\\s*:\\s*[\"'\\x60]\\s*\\S+\\s+\\d[\\d,\\-]*\\s+\\S+\\s+\\S+\\s+\\S+\\s*[\"'\\x60]",
     "notNear": "\\btimezone\\s*:"
    },
    "judge": "The matcher found a string cron, which always runs in UTC. Decide whether the time of day was meant as a business or user local time: read the comment above it, the task id and name, and nearby docs (words like local, office, Berlin, customer, 9am). Report when it is local time: the UTC hour stays fixed while the local clock moves with the zone offset and with DST changes. Dismiss when the schedule is meant in UTC (system jobs, every N hours, midnight UTC) or when a timezone is set in the same call.",
-   "message": "string cron has no timezone, so it runs at this UTC time of day (a string cron is always UTC)",
+   "message": "string cron with a fixed hour is evaluated in UTC; business-local times need { pattern, timezone }",
    "fix": "use { pattern, timezone } with an IANA name, e.g. cron: { pattern: \"0 9 * * 1-5\", timezone: \"Europe/Berlin\" }",
    "fix_mode": "flag-only",
    "doc": "https://trigger.dev/docs/tasks/scheduled",

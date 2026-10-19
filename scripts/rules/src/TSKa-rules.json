@@ -75,7 +75,7 @@
    "match": {
     "type": "regex",
     "pattern": "\\.(?:triggerAndWait|batchTriggerAndWait)\\s*\\(|\\bwait\\.(?:for|until|forToken)\\s*\\(",
-    "unless": "\\btask\\s*\\("
+    "unless": "\\b(?:schemaTask|task|schedules\\.task|chat\\.agent|chat\\.customAgent)\\s*\\("
    },
    "message": "triggerAndWait or a wait.* call is in a file that defines no task(); this looks like a route handler, outside task code",
    "fix": "move the wait into a task and trigger that task from the app with tasks.trigger",
@@ -89,7 +89,8 @@
      "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const reminder = task({\n  id: \"reminder\",\n  run: async (payload) => {\n    await wait.for({ hours: 1 });\n    return { sent: payload.userId };\n  },\n});"
     ]
    },
-   "judge": "Confirm the file is route, page or server-action code and not task code. A helper that is only ever called from inside a task() is fine; a Next.js route handler, an Express handler or a server action that awaits triggerAndWait or a wait.* call is the bug."
+   "judge": "Confirm the file is route, page or server-action code and not task code. A helper that is only ever called from inside a task() is fine; a Next.js route handler, an Express handler or a server action that awaits triggerAndWait or a wait.* call is the bug.",
+   "skip_paths": "(^|/)trigger/|(^|/)(__tests__|tests?)/|\\.(test|spec)\\."
   },
   {
    "id": "TSK-05",
@@ -179,11 +180,11 @@
     "of": [
      {
       "type": "regex",
-      "pattern": "\\b(?:const|let|var)\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*await\\s+import\\s*\\((?:[^()]|\\([^()]*\\))*\\)[\\s\\S]*?\\b\\1(?:\\.[A-Za-z_$][\\w$]*)?\\.(?:trigger|batchTrigger)\\s*\\("
+      "pattern": "\\b(?:const|let|var)\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*await\\s+import\\s*\\(\\s*[\"'\\x60](?:\\.{1,2}/|[@~]/|[^\"'\\x60)]*/trigger/)[^)]*\\)[\\s\\S]*?\\b\\1(?:\\.[A-Za-z_$][\\w$]*)?\\.(?:trigger|batchTrigger)\\s*\\("
      },
      {
       "type": "regex",
-      "pattern": "\\b(?:const|let|var)\\s*\\{\\s*([A-Za-z_$][\\w$]*)[^}]*\\}\\s*=\\s*await\\s+import\\s*\\((?:[^()]|\\([^()]*\\))*\\)[\\s\\S]*?\\b\\1\\.(?:trigger|batchTrigger)\\s*\\("
+      "pattern": "\\b(?:const|let|var)\\s*\\{\\s*([A-Za-z_$][\\w$]*)[^}]*\\}\\s*=\\s*await\\s+import\\s*\\(\\s*[\"'\\x60](?:\\.{1,2}/|[@~]/|[^\"'\\x60)]*/trigger/)[^)]*\\)[\\s\\S]*?\\b\\1\\.(?:trigger|batchTrigger)\\s*\\("
      }
     ]
    },
