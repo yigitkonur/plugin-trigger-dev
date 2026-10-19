@@ -1,0 +1,8 @@
+#!/bin/sh
+# Shim: puts the engine on the Bash tool's PATH. Resolves its own location, so it works from any directory.
+here=$(cd "$(dirname "$0")" 2>/dev/null && pwd -P)
+if ! command -v node >/dev/null 2>&1; then
+  echo "trigger-ctx needs Node >= 18 (not found on PATH)"
+  exit 0
+fi
+exec node "$here/../scripts/trigger-ctx.mjs" "$@"

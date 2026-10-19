@@ -1,0 +1,1666 @@
+{
+ "count": 49,
+ "tools": [
+  {
+   "name": "cancel_run",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "runId": {
+     "type": "string",
+     "required": true
+    }
+   }
+  },
+  {
+   "name": "close_agent_chat",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "chatId": {
+     "type": "string",
+     "required": true
+    }
+   }
+  },
+  {
+   "name": "create_project_in_org",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "orgParam": {
+     "type": "string",
+     "required": true
+    },
+    "name": {
+     "type": "string",
+     "required": true
+    }
+   }
+  },
+  {
+   "name": "create_prompt_override",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "slug": {
+     "type": "string",
+     "required": true
+    },
+    "textContent": {
+     "type": "string",
+     "required": true
+    },
+    "model": {
+     "type": "string",
+     "required": false
+    },
+    "commitMessage": {
+     "type": "string",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "deploy",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "prod",
+     "required": false
+    },
+    "skipPromotion": {
+     "type": "boolean",
+     "required": false
+    },
+    "skipSyncEnvVars": {
+     "type": "boolean",
+     "required": false
+    },
+    "skipUpdateCheck": {
+     "type": "boolean",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "dev_server_status",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "lines": {
+     "type": "integer",
+     "default": 50,
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "generate_webhook_secret",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "endpointId": {
+     "type": "string",
+     "required": true
+    }
+   }
+  },
+  {
+   "name": "get_current_worker",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "get_prompt_versions",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "slug": {
+     "type": "string",
+     "required": true
+    }
+   }
+  },
+  {
+   "name": "get_query_schema",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "table": {
+     "type": "string",
+     "required": true
+    }
+   }
+  },
+  {
+   "name": "get_report",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "key": {
+     "type": "string",
+     "enum": [
+      "health"
+     ],
+     "required": true
+    },
+    "period": {
+     "type": "string",
+     "required": false
+    },
+    "color": {
+     "type": "boolean",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "get_run_details",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "runId": {
+     "type": "string",
+     "required": true
+    },
+    "maxTraceLines": {
+     "type": "integer",
+     "default": 200,
+     "required": false
+    },
+    "cursor": {
+     "type": "string",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "get_span_details",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "runId": {
+     "type": "string",
+     "required": true
+    },
+    "spanId": {
+     "type": "string",
+     "required": true
+    }
+   }
+  },
+  {
+   "name": "get_task_schema",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "taskSlug": {
+     "type": "string",
+     "required": true
+    }
+   }
+  },
+  {
+   "name": "get_webhook_delivery",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "deliveryId": {
+     "type": "string",
+     "required": true
+    }
+   }
+  },
+  {
+   "name": "get_webhook_endpoint_details",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "endpointId": {
+     "type": "string",
+     "required": true
+    }
+   }
+  },
+  {
+   "name": "initialize_project",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "orgParam": {
+     "type": "string",
+     "required": true
+    },
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "projectName": {
+     "type": "string",
+     "required": true
+    },
+    "cwd": {
+     "type": "string",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "list_agents",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "list_dashboards",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "list_deploys",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "prod",
+     "required": false
+    },
+    "from": {
+     "type": "string",
+     "required": false
+    },
+    "to": {
+     "type": "string",
+     "required": false
+    },
+    "period": {
+     "type": "string",
+     "required": false
+    },
+    "status": {
+     "type": "string",
+     "enum": [
+      "PENDING",
+      "BUILDING",
+      "DEPLOYING",
+      "DEPLOYED",
+      "FAILED",
+      "CANCELED",
+      "TIMED_OUT"
+     ],
+     "required": false
+    },
+    "cursor": {
+     "type": "string",
+     "required": false
+    },
+    "limit": {
+     "type": "number",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "list_orgs",
+   "readOnly": true,
+   "destructive": false,
+   "params": {}
+  },
+  {
+   "name": "list_preview_branches",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "list_profiles",
+   "readOnly": true,
+   "destructive": false,
+   "params": {}
+  },
+  {
+   "name": "list_projects",
+   "readOnly": true,
+   "destructive": false,
+   "params": {}
+  },
+  {
+   "name": "list_prompts",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "list_runs",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "cursor": {
+     "type": "string",
+     "required": false
+    },
+    "limit": {
+     "type": "integer",
+     "required": false
+    },
+    "status": {
+     "type": "string",
+     "enum": [
+      "PENDING_VERSION",
+      "QUEUED",
+      "DEQUEUED",
+      "EXECUTING",
+      "WAITING",
+      "COMPLETED",
+      "CANCELED",
+      "FAILED",
+      "CRASHED",
+      "SYSTEM_FAILURE",
+      "DELAYED",
+      "EXPIRED",
+      "TIMED_OUT"
+     ],
+     "required": false
+    },
+    "taskIdentifier": {
+     "type": "string",
+     "required": false
+    },
+    "version": {
+     "type": "string",
+     "required": false
+    },
+    "tag": {
+     "type": "string",
+     "required": false
+    },
+    "from": {
+     "type": "string",
+     "required": false
+    },
+    "to": {
+     "type": "string",
+     "required": false
+    },
+    "period": {
+     "type": "string",
+     "required": false
+    },
+    "machine": {
+     "type": "string",
+     "enum": [
+      "micro",
+      "small-1x",
+      "small-2x",
+      "medium-1x",
+      "medium-2x",
+      "large-1x",
+      "large-2x"
+     ],
+     "required": false
+    },
+    "region": {
+     "type": "string",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "list_webhook_deliveries",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "endpointId": {
+     "type": "string",
+     "required": false
+    },
+    "status": {
+     "type": "array",
+     "required": false
+    },
+    "period": {
+     "type": "string",
+     "required": false
+    },
+    "limit": {
+     "type": "integer",
+     "required": false
+    },
+    "cursor": {
+     "type": "string",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "list_webhook_endpoints",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "promote_prompt_version",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "slug": {
+     "type": "string",
+     "required": true
+    },
+    "version": {
+     "type": "integer",
+     "required": true
+    }
+   }
+  },
+  {
+   "name": "query",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "query": {
+     "type": "string",
+     "required": true
+    },
+    "scope": {
+     "type": "string",
+     "enum": [
+      "environment",
+      "project",
+      "organization"
+     ],
+     "default": "environment",
+     "required": false
+    },
+    "period": {
+     "type": "string",
+     "required": false
+    },
+    "from": {
+     "type": "string",
+     "required": false
+    },
+    "to": {
+     "type": "string",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "reactivate_prompt_override",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "slug": {
+     "type": "string",
+     "required": true
+    },
+    "version": {
+     "type": "integer",
+     "required": true
+    }
+   }
+  },
+  {
+   "name": "read_session_channel",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "sessionId": {
+     "type": "string",
+     "required": true
+    },
+    "channel": {
+     "type": "string",
+     "required": false
+    },
+    "io": {
+     "type": "string",
+     "enum": [
+      "out",
+      "in"
+     ],
+     "default": "out",
+     "required": false
+    },
+    "afterEventId": {
+     "type": "string",
+     "required": false
+    },
+    "maxRecords": {
+     "type": "integer",
+     "default": 100,
+     "required": false
+    },
+    "timeoutInSeconds": {
+     "type": "integer",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "remove_prompt_override",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "slug": {
+     "type": "string",
+     "required": true
+    }
+   }
+  },
+  {
+   "name": "replay_run",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "runId": {
+     "type": "string",
+     "required": true
+    },
+    "payload": {
+     "type": null,
+     "required": false
+    },
+    "metadata": {
+     "type": "object",
+     "required": false
+    },
+    "tags": {
+     "type": "array",
+     "required": false
+    },
+    "queue": {
+     "type": "string",
+     "required": false
+    },
+    "concurrencyKey": {
+     "type": "string",
+     "required": false
+    },
+    "machine": {
+     "type": "string",
+     "enum": [
+      "micro",
+      "small-1x",
+      "small-2x",
+      "medium-1x",
+      "medium-2x",
+      "large-1x",
+      "large-2x"
+     ],
+     "required": false
+    },
+    "version": {
+     "type": "string",
+     "required": false
+    },
+    "region": {
+     "type": "string",
+     "required": false
+    },
+    "delay": {
+     "type": null,
+     "required": false
+    },
+    "ttl": {
+     "type": null,
+     "required": false
+    },
+    "idempotencyKey": {
+     "type": "string",
+     "required": false
+    },
+    "maxAttempts": {
+     "type": "integer",
+     "required": false
+    },
+    "maxDuration": {
+     "type": "number",
+     "required": false
+    },
+    "priority": {
+     "type": "number",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "replay_webhook_delivery",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "deliveryId": {
+     "type": "string",
+     "required": true
+    },
+    "targetId": {
+     "type": "string",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "run_dashboard_query",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "dashboardKey": {
+     "type": "string",
+     "required": true
+    },
+    "widgetId": {
+     "type": "string",
+     "required": true
+    },
+    "period": {
+     "type": "string",
+     "required": false
+    },
+    "from": {
+     "type": "string",
+     "required": false
+    },
+    "to": {
+     "type": "string",
+     "required": false
+    },
+    "scope": {
+     "type": "string",
+     "enum": [
+      "environment",
+      "project",
+      "organization"
+     ],
+     "default": "environment",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "search_docs",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "query": {
+     "type": "string",
+     "required": true
+    }
+   }
+  },
+  {
+   "name": "send_agent_message",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "chatId": {
+     "type": "string",
+     "required": true
+    },
+    "message": {
+     "type": "string",
+     "required": true
+    }
+   }
+  },
+  {
+   "name": "set_webhook_secret",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "endpointId": {
+     "type": "string",
+     "required": true
+    },
+    "secret": {
+     "type": "string",
+     "required": true
+    }
+   }
+  },
+  {
+   "name": "start_agent_chat",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "agentId": {
+     "type": "string",
+     "required": true
+    },
+    "chatId": {
+     "type": "string",
+     "required": false
+    },
+    "clientData": {
+     "type": "object",
+     "required": false
+    },
+    "preload": {
+     "type": "boolean",
+     "default": true,
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "start_dev_server",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "configPath": {
+     "type": "string",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "stop_dev_server",
+   "readOnly": true,
+   "destructive": false,
+   "params": {}
+  },
+  {
+   "name": "submit_feedback",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "message": {
+     "type": "string",
+     "required": true
+    },
+    "toolName": {
+     "type": "string",
+     "required": false
+    },
+    "projectRef": {
+     "type": "string",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "switch_profile",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "profile": {
+     "type": "string",
+     "required": true
+    }
+   }
+  },
+  {
+   "name": "trigger_task",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "taskId": {
+     "type": "string",
+     "required": true
+    },
+    "payload": {
+     "type": null,
+     "required": true
+    },
+    "options": {
+     "type": "object",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "update_prompt_override",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "slug": {
+     "type": "string",
+     "required": true
+    },
+    "textContent": {
+     "type": "string",
+     "required": false
+    },
+    "model": {
+     "type": "string",
+     "required": false
+    },
+    "commitMessage": {
+     "type": "string",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "wait_for_run_to_complete",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "runId": {
+     "type": "string",
+     "required": true
+    },
+    "timeoutInSeconds": {
+     "type": "number",
+     "default": 60,
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "whoami",
+   "readOnly": true,
+   "destructive": false,
+   "params": {}
+  },
+  {
+   "name": "write_session_channel",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "sessionId": {
+     "type": "string",
+     "required": true
+    },
+    "channel": {
+     "type": "string",
+     "required": true
+    },
+    "value": {
+     "type": null,
+     "required": true
+    }
+   }
+  }
+ ]
+}

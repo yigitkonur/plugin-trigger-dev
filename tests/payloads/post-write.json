@@ -1,0 +1,26 @@
+{
+  "session_id": "00000000-0000-0000-0000-000000000000",
+  "transcript_path": "__TRANSCRIPT__",
+  "cwd": "__CWD__",
+  "prompt_id": "00000000-0000-0000-0000-000000000000",
+  "permission_mode": "default",
+  "effort": {
+    "level": "xhigh"
+  },
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Write",
+  "tool_input": {
+    "file_path": "__CWD__/src/trigger/spike.ts",
+    "content": "export const a = 1;\n"
+  },
+  "tool_response": {
+    "type": "create",
+    "filePath": "__CWD__/src/trigger/spike.ts",
+    "content": "export const a = 1;\n",
+    "structuredPatch": [],
+    "originalFile": null,
+    "userModified": false
+  },
+  "tool_use_id": "toolu_01L2wyxgXzyc81tqLLnpn7Y9",
+  "duration_ms": 3
+}

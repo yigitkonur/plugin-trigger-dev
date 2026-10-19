@@ -1,0 +1,19 @@
+{
+  "name": "trigger-dev",
+  "displayName": "Trigger.dev",
+  "version": "0.1.0",
+  "description": "Scenario-first Trigger.dev guidance for Claude Code: project fingerprint, discovery, doc-linked answers, edit tripwires, prod guard, audits and the official MCP server.",
+  "author": { "name": "yigitkonur", "url": "https://github.com/yigitkonur" },
+  "homepage": "https://github.com/yigitkonur/plugin-trigger-dev",
+  "repository": "https://github.com/yigitkonur/plugin-trigger-dev",
+  "license": "MIT",
+  "keywords": ["trigger.dev", "background-jobs", "ai-agents", "mcp"],
+  "userConfig": {
+    "steering": {
+      "type": "string",
+      "title": "Steering level",
+      "description": "full = fingerprint + edit tripwires + prod guard; quiet = prod guard only; off = no hooks",
+      "default": "full"
+    }
+  }
+}

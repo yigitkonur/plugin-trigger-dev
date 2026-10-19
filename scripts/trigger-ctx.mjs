@@ -1,0 +1,83 @@
+#!/usr/bin/env node
+// trigger-ctx: deterministic engine for the trigger-dev plugin. Zero dependencies, Node >= 18. Always exits 0.
+//   detect [--brief|--json|--hook] [--dir <path>]   project fingerprint (--hook: SessionStart output + marker)
+//   guard [--alias]                                 PreToolUse prod guard (hook stdin -> decision JSON or nothing)
+//   lint --hook | lint <files...> [--all]           tripwire rules (hook tier by default, --all adds audit tier)
+//   scan [path] [--focus <d>] [--json]              relevance per domain + all located hits
+//   docs <topic|path>                               resolve a doc page (local pinned copy -> web .md)
+//   links-check [--anchors]                         status/anchor check of every cited doc URL
+import { envelope, emit, readStdinJson, steering, projectDir } from "./lib/util.mjs";
+
+const argv = process.argv.slice(2);
+const cmd = argv[0];
+const flag = (n) => argv.includes(n);
+const opt = (n) => {
+  const i = argv.indexOf(n);
+  return i >= 0 ? argv[i + 1] : undefined;
+};
+const positional = argv.slice(1).filter((a, i, arr) => !a.startsWith("--") && !(i > 0 && arr[i - 1].startsWith("--") && ["--dir", "--focus", "--rules"].includes(arr[i - 1])));
+
+async function main() {
+  switch (cmd) {
+    case "detect": {
+      const { detect, brief, sessionStart } = await import("./lib/detect.mjs");
+      if (flag("--hook")) {
+        const out = sessionStart(process.env.CLAUDE_PROJECT_DIR ? {} : readStdinJson());
+        if (out) emit(out);
+        return;
+      }
+      const fp = detect(opt("--dir") || projectDir());
+      if (flag("--brief")) {
+        const b = brief(fp);
+        process.stdout.write(b ? `${b}\n` : "No Trigger.dev signals found in this project.\n");
+        return;
+      }
+      emit(envelope(fp, { next_actions: fp.relevant ? [] : [{ cmd: "/trigger-dev:init", why: "no Trigger.dev setup detected" }] }));
+      return;
+    }
+    case "guard": {
+      if (steering() === "off") return;
+      const { guard } = await import("./lib/guard.mjs");
+      const out = guard(readStdinJson(), { alias: flag("--alias") });
+      if (out) emit(out);
+      return;
+    }
+    case "lint": {
+      const { lintHook, lintFiles } = await import("./lib/lint.mjs");
+      if (flag("--hook")) {
+        if (steering() !== "full") return;
+        const out = lintHook(readStdinJson());
+        if (out) emit(out);
+        return;
+      }
+      emit(envelope(lintFiles(positional, { all: flag("--all"), rulesFile: opt("--rules") })));
+      return;
+    }
+    case "scan": {
+      const { scan } = await import("./lib/lint.mjs");
+      emit(envelope(scan(positional[0] || projectDir(), { focus: opt("--focus"), tier: opt("--tier") })));
+      return;
+    }
+    case "docs": {
+      const { docs } = await import("./lib/docs.mjs");
+      emit(envelope(docs(positional.join(" "), projectDir())));
+      return;
+    }
+    case "links-check": {
+      const { linksCheck } = await import("./lib/links.mjs");
+      const r = await linksCheck({ anchors: flag("--anchors") });
+      emit(envelope(r, { ok: r.failed === 0 }));
+      return;
+    }
+    default:
+      process.stdout.write("usage: trigger-ctx detect|guard|lint|scan|docs|links-check\n");
+  }
+}
+
+try {
+  await main();
+} catch (e) {
+  if (process.env.TRIGGER_CTX_DEBUG) console.error(e);
+  if (cmd && !["guard", "lint", "detect"].includes(cmd)) emit(envelope(null, { ok: false, error: String(e?.message || e) }));
+}
+process.exitCode = 0;

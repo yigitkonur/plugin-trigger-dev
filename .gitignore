@@ -1,0 +1,7 @@
+node_modules/
+evals/results/
+trigger-audit/
+.DS_Store
+# the plugin manifest dir must ship even though a global gitignore may hide dot-dirs
+!.claude-plugin/
+!.github/

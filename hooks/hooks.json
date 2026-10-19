@@ -1,0 +1,193 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh\"",
+            "timeout": 5,
+            "onFailure": "continue"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(Edit|Write|MultiEdit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/marker-gate.sh\" lint --hook",
+            "timeout": 10,
+            "onFailure": "continue"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "^(Bash|PowerShell)$",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(*trigger.dev*)",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs",
+              "guard"
+            ],
+            "timeout": 5,
+            "onFailure": "continue"
+          },
+          {
+            "type": "command",
+            "if": "Bash(*trigger deploy*)",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs",
+              "guard"
+            ],
+            "timeout": 5,
+            "onFailure": "continue"
+          },
+          {
+            "type": "command",
+            "if": "Bash(*trigger promote*)",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs",
+              "guard"
+            ],
+            "timeout": 5,
+            "onFailure": "continue"
+          },
+          {
+            "type": "command",
+            "if": "Bash(*trigger env *)",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs",
+              "guard"
+            ],
+            "timeout": 5,
+            "onFailure": "continue"
+          },
+          {
+            "type": "command",
+            "if": "Bash(*trigger runs *)",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs",
+              "guard"
+            ],
+            "timeout": 5,
+            "onFailure": "continue"
+          },
+          {
+            "type": "command",
+            "if": "PowerShell(*trigger*)",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs",
+              "guard"
+            ],
+            "timeout": 5,
+            "onFailure": "continue"
+          },
+          {
+            "type": "command",
+            "if": "Bash(npm run *)",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/marker-gate.sh\" guard --alias",
+            "timeout": 5,
+            "onFailure": "continue"
+          },
+          {
+            "type": "command",
+            "if": "Bash(pnpm *)",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/marker-gate.sh\" guard --alias",
+            "timeout": 5,
+            "onFailure": "continue"
+          },
+          {
+            "type": "command",
+            "if": "Bash(yarn *)",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/marker-gate.sh\" guard --alias",
+            "timeout": 5,
+            "onFailure": "continue"
+          },
+          {
+            "type": "command",
+            "if": "Bash(bun *)",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/marker-gate.sh\" guard --alias",
+            "timeout": 5,
+            "onFailure": "continue"
+          },
+          {
+            "type": "command",
+            "if": "PowerShell(npm run *)",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs",
+              "guard",
+              "--alias"
+            ],
+            "timeout": 5,
+            "onFailure": "continue"
+          },
+          {
+            "type": "command",
+            "if": "PowerShell(pnpm *)",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs",
+              "guard",
+              "--alias"
+            ],
+            "timeout": 5,
+            "onFailure": "continue"
+          },
+          {
+            "type": "command",
+            "if": "PowerShell(yarn *)",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs",
+              "guard",
+              "--alias"
+            ],
+            "timeout": 5,
+            "onFailure": "continue"
+          },
+          {
+            "type": "command",
+            "if": "PowerShell(bun *)",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs",
+              "guard",
+              "--alias"
+            ],
+            "timeout": 5,
+            "onFailure": "continue"
+          }
+        ]
+      },
+      {
+        "matcher": "^mcp__(plugin_trigger-dev_)?trigger__(deploy|trigger_task|cancel_run|replay_run|promote_prompt_version|create_prompt_override|update_prompt_override|remove_prompt_override|reactivate_prompt_override|start_agent_chat|write_session_channel|replay_webhook_delivery|initialize_project|create_project_in_org|submit_feedback|generate_webhook_secret|set_webhook_secret)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs",
+              "guard"
+            ],
+            "timeout": 5,
+            "onFailure": "continue"
+          }
+        ]
+      }
+    ]
+  }
+}
