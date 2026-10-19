@@ -1,0 +1,111 @@
+{
+ "rules": [
+  {
+   "id": "WH-01",
+   "family": "WH",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does a webhooks.waiter.create(...) call in this file run after the provider call that makes the provider send the webhook (for example the API request that starts a payment or a build)? Report only when the provider call comes first in the same flow. Silent when the waiter is created first, or when the file creates no waiter.",
+   "message": "webhooks.waiter.create() is called after the provider call that makes the provider send the webhook; a waiter only matches deliveries that arrive after it was created.",
+   "fix": "Create the waiter before the provider call, then wait on it after. Without the beta waiter: create a waitpoint token before the call and complete it from your webhook route.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/webhooks/waiters"
+  },
+  {
+   "id": "WH-02",
+   "family": "WH",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "\\bwebhooks\\.waiter\\.create\\b",
+      "lacks": "\\bidempotencyKey\\b"
+     },
+     {
+      "type": "call",
+      "callee": "\\bwebhooks\\.custom\\b",
+      "lacks": "\\bidempotencyField\\b"
+     }
+    ]
+   },
+   "message": "webhooks.waiter.create() has no idempotencyKey (a retried attempt creates a new waiter that can miss an event already delivered), or webhooks.custom() has no idempotencyField (deduplication falls back to a key derived from the raw body, timestamp and signature).",
+   "fix": "Pass idempotencyKey to webhooks.waiter.create() and idempotencyField (for example { from: \"body\", name: \"id\" }) to webhooks.custom(). Without the beta: dedupe the route's tasks.trigger() on the provider event id (WH-06).",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/webhooks/deliveries#deduplication",
+   "examples": {
+    "bad": [
+     "import { task, webhooks } from '@trigger.dev/sdk';\nimport { stripe } from './stripe';\n\nexport const payOrder = task({\n  id: 'pay-order',\n  run: async ({ orderId }: { orderId: string }) => {\n    const waiter = await webhooks.waiter.create(stripe, {\n      match: { 'event.data.object.metadata.orderId': orderId },\n    });\n    const { event } = await webhooks.waiter.wait(waiter).unwrap();\n    return event;\n  },\n});\n",
+     "import { webhooks } from '@trigger.dev/sdk';\n\nexport const internal = webhooks.endpoint.define({\n  id: 'internal',\n  source: webhooks.custom<{ id: string; message: string }>(\n    {\n      scheme: 'hmac',\n      algorithm: 'sha256',\n      encoding: 'hex',\n      signatureHeader: 'x-webhook-signature',\n      signingString: 'raw',\n    },\n    { setupPrompt: 'Paste the signing secret under Settings > Webhooks.' }\n  ),\n});\n"
+    ],
+    "good": [
+     "import { task, webhooks } from '@trigger.dev/sdk';\nimport { stripe } from './stripe';\n\nexport const payOrder = task({\n  id: 'pay-order',\n  run: async ({ orderId }: { orderId: string }) => {\n    const waiter = await webhooks.waiter.create(stripe, {\n      match: { 'event.data.object.metadata.orderId': orderId },\n      idempotencyKey: `payment-${orderId}`,\n    });\n    const { event } = await webhooks.waiter.wait(waiter).unwrap();\n    return event;\n  },\n});\n",
+     "import { webhooks } from '@trigger.dev/sdk';\n\nexport const internal = webhooks.endpoint.define({\n  id: 'internal',\n  source: webhooks.custom<{ id: string; message: string }>(\n    {\n      scheme: 'hmac',\n      algorithm: 'sha256',\n      encoding: 'hex',\n      signatureHeader: 'x-webhook-signature',\n      signingString: 'raw',\n      idempotencyField: { from: 'body', name: 'id' },\n    },\n    { setupPrompt: 'Paste the signing secret under Settings > Webhooks.' }\n  ),\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "WH-03",
+   "family": "WH",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "code",
+   "match": null,
+   "live": "MCP list_webhook_endpoints (environment-level, not per file): report each endpoint whose signing secret status is \"Needs secret\" instead of \"Ready\".",
+   "message": "Endpoint shows \"Needs secret\" in the Signing secret column; every delivery to it is rejected until the secret is set.",
+   "fix": "Set the endpoint's signing secret until its status reads Ready. Without hosted endpoints: verify the signature in your own route, then trigger the task with the provider event id as idempotencyKey (WH-06).",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/webhooks/connect"
+  },
+  {
+   "id": "WH-04",
+   "family": "WH",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does a webhook() subscriber in this file read fields of the incoming event (for example event.data.x, or a body or form field) without checking them at runtime (schema parse, type guard, explicit field check)? The type parameter of webhooks.custom<T>() and of provider sources is compile-time only. Silent when every field read is checked first, or when the handler reads no event fields.",
+   "message": "The handler reads event fields that are typed only at compile time; the request body is not checked against that type at runtime.",
+   "fix": "Validate the event at runtime (schema parse or type guard) before reading its fields. Without the beta: validate the request body in your own route before tasks.trigger().",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/webhooks/filters"
+  },
+  {
+   "id": "WH-05",
+   "family": "WH",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "message": "An exported chat.event() is not in any chat.agent events list, or two agents compute the same session key.",
+   "fix": "List each chat.event() in the events array of the agent that should receive it, and give each agent its own key with a constant prefix (for example \"billing-{event.data.object.customer}\"). Without the beta: keep one agent per endpoint.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/webhooks/session-routing",
+   "judge": "Check that each exported chat.event() appears in some chat.agent events list, and that no two agents compute the same session key."
+  },
+  {
+   "id": "WH-06",
+   "family": "WH",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Is this a route handler that receives a provider webhook (it reads the request body or headers the provider sent) and calls tasks.trigger(...) with that payload? If yes, is an idempotencyKey derived from the provider's event id passed in the options? Report when no key is passed. Silent when the key is present, or when the trigger is not fed by a webhook request.",
+   "message": "tasks.trigger() in a webhook route passes no idempotencyKey from the provider event id; a redelivery of the same event starts another run.",
+   "fix": "Pass an idempotencyKey derived from the provider event id to tasks.trigger().",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/idempotency"
+  }
+ ]
+}

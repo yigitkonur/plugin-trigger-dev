@@ -1,0 +1,125 @@
+{
+ "rules": [
+  {
+   "id": "COST-01",
+   "family": "COST",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "code",
+   "match": null,
+   "judge": "Is this task's machine preset larger than its work needs? Only flag when the task sets a machine (in the task definition or the trigger call) and the measured CPU or memory stays well below that preset, or usage_duration is short, or the work is mostly waiting on I/O. Presets are listed in machines.mdx; the default is small-1x.",
+   "live": "TRQL via the MCP query tool, run both: (1) SELECT task_identifier, machine_name, avg(metric_value) AS avg_memory FROM metrics WHERE metric_name = 'process.memory.usage' AND bucket_start BETWEEN '<from>' AND '<to>' GROUP BY task_identifier, machine_name; (2) SELECT task_identifier, count() AS runs, avg(usage_duration) AS avg_ms FROM runs WHERE triggered_at BETWEEN '<from>' AND '<to>' GROUP BY task_identifier ORDER BY runs DESC LIMIT 20",
+   "message": "Measured memory or usage duration for this task leaves most of its machine preset unused.",
+   "fix": "Use the smallest preset that fits (presets in machines.mdx), override the machine per trigger only for heavy payloads, or raise the preset on an OOM retry rather than for every run.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/how-to-reduce-your-spend"
+  },
+  {
+   "id": "COST-02",
+   "family": "COST",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "code",
+   "match": null,
+   "judge": "Does the task throw a permanent error (invalid input, a validation failure, a 4xx that retrying cannot change) and lack an AbortTaskRunError guard for it? Retries of a permanent failure only repeat the same work.",
+   "live": "TRQL via the MCP query tool: SELECT task_identifier, count() AS runs, avg(attempt_count) AS avg_attempts, sum(compute_cost) AS cost FROM runs WHERE triggered_at BETWEEN '<from>' AND '<to>' AND attempt_count >= 3 GROUP BY task_identifier ORDER BY cost DESC LIMIT 20",
+   "message": "Runs of this task reach three or more attempts, and each retry bills compute again.",
+   "fix": "Throw AbortTaskRunError for permanent errors so the attempt is not retried, and cap maxAttempts for the rest.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/errors-retrying"
+  },
+  {
+   "id": "COST-03",
+   "family": "COST",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "code",
+   "match": null,
+   "judge": "Is this task triggered in bursts for the same key (the same user, document or entity), where the latest or a consolidated run is enough? If each trigger is independent work, do not flag. A trigger call that already passes a debounce option is not a hit.",
+   "live": "TRQL via the MCP query tool: SELECT task_identifier, toStartOfMinute(triggered_at) AS minute, count() AS runs FROM runs WHERE triggered_at BETWEEN '<from>' AND '<to>' GROUP BY task_identifier, minute ORDER BY runs DESC LIMIT 20",
+   "message": "Several runs of this task start within the same minute.",
+   "fix": "Pass { debounce: { key, delay } } on the trigger call so triggers for one key collapse into one run, and set maxDelay so a constant stream still runs.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/triggering"
+  },
+  {
+   "id": "COST-04",
+   "family": "COST",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "call",
+    "callee": "\\bwait\\.for",
+    "contains": "\\bseconds\\s*:\\s*0*[0-5](?![\\d.])",
+    "lacks": "\\b(?:minutes|hours|days)\\s*:"
+   },
+   "message": "A wait.for of 5 seconds or less is billed as compute; waits longer than 5 seconds are not.",
+   "fix": "Use a wait longer than 5 seconds (wait.for or wait.until), or a waitpoint token (wait.createToken) when an external event ends the wait; replace polling loops with one of these.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/wait",
+   "examples": {
+    "bad": [
+     "import { task, wait } from \"@trigger.dev/sdk\";\n\nexport const pollJob = task({\n  id: \"poll-job\",\n  run: async (payload: { id: string }) => {\n    await wait.for({ seconds: 5 });\n    return { id: payload.id };\n  },\n});\n",
+     "import { task, wait } from \"@trigger.dev/sdk\";\n\nexport const pollJob = task({\n  id: \"poll-job\",\n  run: async (payload: { id: string }) => {\n    for (let i = 0; i < 10; i++) {\n      await wait.for({ seconds: 2 });\n    }\n    return { id: payload.id };\n  },\n});\n"
+    ],
+    "good": [
+     "import { task, wait } from \"@trigger.dev/sdk\";\n\nexport const pollJob = task({\n  id: \"poll-job\",\n  run: async (payload: { id: string }) => {\n    await wait.for({ minutes: 5 });\n    return { id: payload.id };\n  },\n});\n",
+     "import { task, wait } from \"@trigger.dev/sdk\";\n\nexport const pollJob = task({\n  id: \"poll-job\",\n  run: async (payload: { id: string }) => {\n    await wait.for({ seconds: 30 });\n    return { id: payload.id };\n  },\n});\n",
+     "import { task, wait } from \"@trigger.dev/sdk\";\n\n// await wait.for({ seconds: 5 });\nexport const pollJob = task({\n  id: \"poll-job\",\n  run: async () => ({ ok: true }),\n});\n",
+     "import { task, wait } from \"@trigger.dev/sdk\";\n\nexport const pollJob = task({\n  id: \"poll-job\",\n  run: async (payload: { date: string }) => {\n    await wait.until({ date: new Date(payload.date) });\n    const token = await wait.createToken({ timeout: \"10m\" });\n    return { token };\n  },\n});\n",
+     "import { task, wait } from \"@trigger.dev/sdk\";\n\nexport const pollJob = task({\n  id: \"poll-job\",\n  run: async (payload: { id: string }) => {\n    await wait.for({ seconds: 60 });\n    return { id: payload.id };\n  },\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "COST-05",
+   "family": "COST",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "code",
+   "match": null,
+   "judge": "For each declarative schedule (a cron on schedules.task, or schedules.create), compare its cron interval with how often the data it reads or writes can change. Flag only when the cron fires clearly more often than that data changes. The per-day run counts show the actual firing rate.",
+   "live": "TRQL via the MCP query tool: SELECT task_identifier, toStartOfDay(triggered_at) AS day, count() AS runs FROM runs WHERE triggered_at BETWEEN '<from>' AND '<to>' GROUP BY task_identifier, day ORDER BY runs DESC LIMIT 50",
+   "message": "This scheduled task's cron fires more often than the data it reads changes.",
+   "fix": "Reduce the cron frequency to the interval at which the data actually changes.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/tasks/scheduled"
+  },
+  {
+   "id": "COST-06",
+   "family": "COST",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "code",
+   "match": null,
+   "judge": "Is the average usage_duration tiny compared with the number of runs, and are these separate triggers of items that could share one run?",
+   "live": "TRQL via the MCP query tool: SELECT task_identifier, count() AS runs, avg(usage_duration) AS avg_ms FROM runs WHERE triggered_at BETWEEN '<from>' AND '<to>' GROUP BY task_identifier ORDER BY runs DESC LIMIT 20",
+   "message": "This task starts many runs, and each run uses very little compute time.",
+   "fix": "Do more work per run: batch items into one payload (batchTrigger, or a loop inside the task) instead of one run per item.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/how-to-reduce-your-spend"
+  },
+  {
+   "id": "COST-07",
+   "family": "COST",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "config",
+   "match": null,
+   "judge": "Applies to Trigger.dev Cloud organizations only; billing limits do not apply to self-hosted instances. Flag when no billing limit or billing alert is set (the default is no limit).",
+   "live": "No MCP or CLI query covers billing limits. Dashboard check, for a human: Organization menu, then Settings, then Billing limits. Report the setting; do not change it.",
+   "message": "This Cloud organization has no billing limit or billing alert configured.",
+   "fix": "A human sets a monthly billing limit (plan maximum or a custom cap) and billing alerts under Organization, Settings, Billing limits.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/billing-limits"
+  }
+ ]
+}

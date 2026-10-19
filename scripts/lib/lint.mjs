@@ -5,6 +5,8 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { SKIP_DIRS, CONFIG_RE, readText, readJson, git, majorOf, cmpVersion, exists } from "./util.mjs";
+import { detect } from "./detect.mjs";
+import { runBuiltins } from "./builtins.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const DEFAULT_RULES = path.join(HERE, "..", "rules", "rules.json");
@@ -274,7 +276,7 @@ function ctxFor(file, text) {
 
 /* ---------- rule evaluation ---------- */
 
-export function evalFile(file, text, rules, { rel = file, projectStop = null, tiers = ["hook"] } = {}) {
+export function evalFile(file, text, rules, { rel = file, projectStop = null, tiers = ["hook"], target = null } = {}) {
   const kinds = fileKinds(rel);
   if (!kinds.size || text.length > MAX_FILE) return [];
   const ctx = ctxFor(rel, text);
@@ -282,6 +284,7 @@ export function evalFile(file, text, rules, { rel = file, projectStop = null, ti
   let version;
   for (const rule of rules) {
     if (!rule.match || !tiers.includes(rule.tier)) continue;
+    if (rule.target && target && rule.target !== target) continue; // cloud-only or self-host-only rules
     const scope = rule.scope || "code";
     if (!kinds.has(scope)) continue;
     if (rule.prefilter ? !re(rule.prefilter).test(text) : scope === "code" && !/@trigger\.dev\//.test(text)) continue;
@@ -393,9 +396,14 @@ export function scan(root, { focus, tier, rulesFile } = {}) {
   const rules = loadRules(rulesFile || DEFAULT_RULES);
   const tiers = tier === "hook" ? ["hook"] : ["hook", "audit"];
   const families = focus && FOCUS_FAMILIES[focus];
-  const active = families ? rules.filter((r) => families.includes(r.family || r.id.split("-")[0])) : rules;
+  const inFocus = (r) => !families || families.includes(r.family || r.id.split("-")[0]);
+  const active = rules.filter(inFocus);
+  const fp = detect(root);
+  const target = fp.target?.kind || null;
   const relevance = Object.fromEntries(Object.keys(DOMAINS).concat(["config", "ci"]).map((k) => [k, 0]));
   const hits = [];
+  const codeFiles = [];
+  const pkgs = [];
   let scanned = 0;
   for (const f of listFiles(root)) {
     const rel = path.relative(root, f);
@@ -406,24 +414,30 @@ export function scan(root, { focus, tier, rulesFile } = {}) {
     scanned++;
     if (kinds.has("config")) relevance.config++;
     if (kinds.has("workflow") && /trigger/i.test(text)) relevance.ci++;
-    if (kinds.has("code") && /@trigger\.dev\//.test(text)) for (const [d, r] of Object.entries(DOMAINS)) if (r.test(text)) relevance[d]++;
-    hits.push(...evalFile(f, text, active, { rel, projectStop: root, tiers }));
+    if (kinds.has("code") && /@trigger\.dev\//.test(text)) {
+      codeFiles.push({ rel, abs: f, text });
+      for (const [d, r] of Object.entries(DOMAINS)) if (r.test(text)) relevance[d]++;
+    }
+    if (kinds.has("package-json")) pkgs.push({ rel, json: readJson(f) });
+    hits.push(...evalFile(f, text, active, { rel, projectStop: root, tiers, target }));
   }
-  // cross-file builtin: version skew across package.json files (MIG-08)
-  const versions = new Map();
-  for (const f of listFiles(root)) {
-    if (path.basename(f) !== "package.json") continue;
-    const pj = readJson(f);
-    if (!pj) continue;
-    for (const sec of ["dependencies", "devDependencies"]) for (const [k, v] of Object.entries(pj[sec] || {})) {
-      if ((k.startsWith("@trigger.dev/") || k === "trigger.dev") && /^[\^~]?\d/.test(v)) versions.set(`${path.relative(root, f)}|${k}`, String(v).replace(/^[\^~]/, ""));
+  if (tiers.includes("audit")) hits.push(...runBuiltins(active, codeFiles, fp.roots, root));
+  // cross-file builtin: version skew across package.json files, or any 3.x pin (MIG-08)
+  const mig08 = rules.find((r) => r.id === "MIG-08");
+  if (mig08 && inFocus(mig08) && tiers.includes("audit")) {
+    const versions = new Map();
+    for (const { rel, json } of pkgs) {
+      for (const sec of ["dependencies", "devDependencies"]) for (const [k, v] of Object.entries(json?.[sec] || {})) {
+        if ((k.startsWith("@trigger.dev/") || k === "trigger.dev") && /^[\^~]?\d/.test(v)) versions.set(`${rel}|${k}`, String(v).replace(/^[\^~]/, ""));
+      }
+    }
+    const distinct = new Set(versions.values());
+    const v3 = [...distinct].filter((v) => majorOf(v) === 3);
+    if (distinct.size > 1 || v3.length) {
+      hits.push({ rule: "MIG-08", severity: mig08.severity, tier: mig08.tier, file: pkgs.find((p) => p.json && Object.keys({ ...p.json.dependencies, ...p.json.devDependencies }).some((k) => k.startsWith("@trigger.dev/")))?.rel || "package.json", line: 1, message: distinct.size > 1 ? `@trigger.dev/* and trigger.dev versions differ (${[...distinct].join(", ")})` : `a 3.x version is pinned (${v3.join(", ")})`, fix: mig08.fix, fix_mode: "flag-only", doc: mig08.doc, detect: mig08.detect });
     }
   }
-  const distinct = new Set(versions.values());
-  if (distinct.size > 1 && (!families || families.includes("MIG"))) {
-    hits.push({ rule: "MIG-08", severity: "error", tier: "audit", file: "package.json", line: 1, message: `@trigger.dev/* and trigger.dev versions differ (${[...distinct].join(", ")})`, fix: "align every @trigger.dev/* package and trigger.dev to one version (npx trigger.dev@latest update)", fix_mode: "flag-only", doc: "https://trigger.dev/docs/upgrading-packages", detect: "S" });
-  }
-  return { root, filesScanned: scanned, relevance, hits };
+  return { root, filesScanned: scanned, target, relevance, hits };
 }
 
 export const _internal = { mask, importsOf, runMatcher, ctxFor, exists };

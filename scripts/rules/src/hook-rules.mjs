@@ -179,3 +179,19 @@ export const hookRules = [
     },
   },
 ];
+
+// Audit-tier rule written by hand (the drafting run skipped it).
+export const handRules = [
+  {
+    id: "SCH-06", family: "SCH", severity: "info", tier: "audit", detect: "S", scope: "code", target: "cloud",
+    match: { type: "regex", pattern: R`\bcron\s*:\s*(?:\{[^{}]*?\bpattern\s*:\s*)?["'\x60]\s*(?:\*|\*/(?:[1-9]|[1-5]\d)|\d+(?:,\d+)+)\s+\S+\s+\S+\s+\S+\s+\S+\s*["'\x60]` },
+    message: "cron fires more often than hourly; Trigger.dev Cloud Free rejects schedules more frequent than once an hour",
+    fix: "use an hourly or slower cron, or a paid plan", fix_mode: "flag-only", doc: "https://trigger.dev/docs/tasks/scheduled",
+    examples: {
+      bad: ['import { schedules } from "@trigger.dev/sdk";\nexport const t = schedules.task({ id: "t", cron: "*/15 * * * *", run: async () => {} });',
+            'import { schedules } from "@trigger.dev/sdk";\nexport const t = schedules.task({ id: "t", cron: { pattern: "0,30 * * * *", timezone: "UTC" }, run: async () => {} });'],
+      good: ['import { schedules } from "@trigger.dev/sdk";\nexport const t = schedules.task({ id: "t", cron: "0 * * * *", run: async () => {} });',
+             'import { schedules } from "@trigger.dev/sdk";\nexport const t = schedules.task({ id: "t", cron: "30 9 * * 1-5", run: async () => {} });'],
+    },
+  },
+];

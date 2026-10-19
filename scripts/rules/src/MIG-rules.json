@@ -1,0 +1,172 @@
+{
+ "rules": [
+  {
+   "id": "MIG-03",
+   "family": "MIG",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bhandleError\\s*:\\s*(?:async\\s*)?(?:\\(|function\\b)|\\b(?:init|cleanup)\\s*:\\s*(?:async\\s*)?(?:\\(|function\\b)|\\b(?:toolTask|ai\\.tool)\\s*\\(|\\bmetadata\\.stream\\s*\\(|\\bonStart\\s*:"
+   },
+   "message": "uses a task API that SDK 4 renamed or deprecated (handleError, init, cleanup, toolTask, ai.tool, metadata.stream, onStart)",
+   "fix": "catchError instead of handleError; middleware and locals instead of init/cleanup; schemaTask with ai.toolExecute instead of toolTask/ai.tool; streams.pipe instead of metadata.stream; onStartAttempt instead of onStart",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/migrating-from-v3",
+   "examples": {
+    "bad": [
+     "import { task } from \"@trigger.dev/sdk\";\nexport const a = task({\n  id: \"a\",\n  handleError: async (payload, error) => {},\n  run: async () => {},\n});",
+     "import { task } from \"@trigger.dev/sdk\";\nexport const a = task({\n  id: \"a\",\n  init: async () => ({ client: 1 }),\n  run: async (payload, { init }) => {},\n});",
+     "import { toolTask } from \"@trigger.dev/sdk\";\nexport const lookup = toolTask({\n  id: \"lookup\",\n  description: \"Look up a record\",\n  run: async () => {},\n});",
+     "import { ai, schemaTask } from \"@trigger.dev/sdk\";\nexport const lookup = schemaTask({ id: \"lookup\", run: async () => {} });\nexport const tool = ai.tool(lookup);",
+     "import { task, metadata } from \"@trigger.dev/sdk\";\nexport const a = task({\n  id: \"a\",\n  run: async () => {\n    await metadata.stream(\"logs\", readable);\n  },\n});",
+     "import { task } from \"@trigger.dev/sdk\";\nexport const a = task({\n  id: \"a\",\n  onStart: async ({ payload, ctx }) => {},\n  run: async () => {},\n});",
+     "import { task } from \"@trigger.dev/sdk\";\nexport const a = task({\n  id: \"a\",\n  cleanup: async () => {},\n  run: async () => {},\n});"
+    ],
+    "good": [
+     "import { task } from \"@trigger.dev/sdk\";\nexport const a = task({\n  id: \"a\",\n  catchError: async ({ error }) => {},\n  run: async () => {},\n});",
+     "import { ai, schemaTask } from \"@trigger.dev/sdk\";\nexport const lookup = schemaTask({\n  id: \"lookup\",\n  run: async (payload) => ai.toolExecute(payload),\n});",
+     "import { task, streams } from \"@trigger.dev/sdk\";\n// handleError, init, cleanup, toolTask, ai.tool(, metadata.stream(, onStart: were removed in v4\nexport const a = task({\n  id: \"a\",\n  onStartAttempt: async ({ ctx }) => {},\n  run: async () => {\n    await streams.pipe(\"logs\", readable);\n  },\n});"
+    ]
+   }
+  },
+  {
+   "id": "MIG-08",
+   "family": "MIG",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "package-json",
+   "match": null,
+   "needs_builtin": "version-skew",
+   "message": "@trigger.dev/* and trigger.dev versions differ across package.json files, or a 3.x version is pinned",
+   "fix": "align every @trigger.dev/* package and trigger.dev to one version, then run npx trigger.dev@latest update",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/upgrading-packages",
+   "examples": {
+    "bad": [],
+    "good": []
+   }
+  },
+  {
+   "id": "MIG-09",
+   "family": "MIG",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "any-text",
+   "prefilter": "\\bzod\\b",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "json",
+      "check": "dep-lt",
+      "dep": "zod",
+      "version": "3.25.56",
+      "sections": [
+       "dependencies",
+       "devDependencies",
+       "overrides",
+       "resolutions"
+      ]
+     },
+     {
+      "type": "regex",
+      "pattern": "\\binstanceof\\s+z\\.ZodError\\b"
+     }
+    ]
+   },
+   "message": "zod is pinned below 3.25.56 (unsupported by Trigger.dev), or an instanceof z.ZodError check is used, which does not match Zod 4 errors",
+   "fix": "upgrade zod to ^3.25.56 || ^4.0.0 (including overrides/resolutions); read errors from result.error.issues instead of instanceof z.ZodError; import zod/v4 for composed schemas",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/troubleshooting-zod",
+   "examples": {
+    "bad": [
+     "import { z } from \"zod\";\n\nexport function explain(err: unknown) {\n  if (err instanceof z.ZodError) {\n    return err.issues;\n  }\n  return [];\n}",
+     "import { z } from \"zod\";\nexport const schema = z.object({ id: z.string() });\nconst result = schema.safeParse({});\nif (!result.success && result.error instanceof z.ZodError) console.log(result.error.issues);"
+    ],
+    "good": [
+     "import { z } from \"zod\";\n\nexport function explain(result: { success: false; error: z.ZodError }) {\n  return result.error.issues;\n}",
+     "import { z } from \"zod\";\n// err instanceof z.ZodError was replaced by result.error.issues\nexport const schema = z.object({ id: z.string() });"
+    ]
+   }
+  },
+  {
+   "id": "MIG-10",
+   "family": "MIG",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "config",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\\bruntime\\s*:\\s*[\"']node[\"']"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bdefineConfig\\s*\\(",
+      "unless": "\\bruntime\\s*:"
+     }
+    ]
+   },
+   "message": "trigger.config leaves runtime unset or set to node, so tasks follow the current Node.js LTS",
+   "fix": "pin a runtime such as node-24 (node-22 and node-26 are also available) when reproducible builds matter",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/config-file",
+   "examples": {
+    "bad": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  dirs: [\"./src/trigger\"],\n});",
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  runtime: \"node\",\n  dirs: [\"./src/trigger\"],\n});"
+    ],
+    "good": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  runtime: \"node-24\",\n  dirs: [\"./src/trigger\"],\n});",
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  runtime: \"bun\",\n  dirs: [\"./src/trigger\"],\n});"
+    ]
+   }
+  },
+  {
+   "id": "MIG-11",
+   "family": "MIG",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "any-text",
+   "prefilter": "@trigger\\.dev/",
+   "applies_when": "sdk>=4",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\"@opentelemetry/exporter-[\\w-]+\"\\s*:\\s*\"[\\^~]?0\\.52\\.(?:\\d+|x)\"",
+      "mask": "none"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bOTEL_(?:EXPORTER_|TRACES_EXPORTER|LOGS_EXPORTER|METRICS_EXPORTER)"
+     }
+    ]
+   },
+   "message": "OTEL exporters are pinned to 0.52.x, or configured through OTEL_* env vars; with SDK 4 exporters take constructor arguments in trigger.config",
+   "fix": "move the @opentelemetry exporter packages to 0.203.x and pass endpoint and headers as constructor arguments instead of OTEL_* env vars",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/config-file",
+   "examples": {
+    "bad": [
+     "{\n  \"name\": \"app\",\n  \"dependencies\": {\n    \"@trigger.dev/sdk\": \"4.1.0\",\n    \"@opentelemetry/exporter-trace-otlp-http\": \"0.52.1\"\n  }\n}",
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nconst endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;\n\nexport default defineConfig({\n  project: \"proj_example\",\n  dirs: [\"./src/trigger\"],\n});"
+    ],
+    "good": [
+     "{\n  \"name\": \"app\",\n  \"dependencies\": {\n    \"@trigger.dev/sdk\": \"4.1.0\",\n    \"@opentelemetry/exporter-trace-otlp-http\": \"0.203.0\"\n  }\n}",
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\n// OTEL_EXPORTER_OTLP_ENDPOINT is not read here: pass the endpoint to the exporter\nexport default defineConfig({\n  project: \"proj_example\",\n  dirs: [\"./src/trigger\"],\n});"
+    ]
+   }
+  }
+ ]
+}

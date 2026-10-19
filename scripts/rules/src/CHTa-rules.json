@@ -1,0 +1,312 @@
+{
+ "rules": [
+  {
+   "id": "CHT-02",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "call",
+    "callee": "\\bstreamText",
+    "require": "\\bchat\\.agent\\s*\\(",
+    "lacks": "\\babortSignal\\b|\\.\\.\\.\\s*chat\\.toStreamTextOptions"
+   },
+   "message": "a streamText call in a chat.agent file passes no abortSignal, so a stop or cancel does not reach the model request",
+   "fix": "pass abortSignal: signal (from run's argument) to streamText",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/backend",
+   "examples": {
+    "bad": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { streamText } from \"ai\";\nexport const a = chat.agent({ id: \"a\", run: async ({ messages }) => streamText({ model, messages }) });"
+    ],
+    "good": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nexport const a = chat.agent({ id: \"a\", run: async ({ messages, signal, streamText }) => streamText({ model, messages, abortSignal: signal }) });",
+     "import { streamText } from \"ai\";\nexport async function summarise(text) { return streamText({ model, prompt: text }); }"
+    ]
+   }
+  },
+  {
+   "id": "CHT-03",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\btoModelOutput\\s*:",
+    "require": "\\bchat\\.agent\\s*\\(",
+    "unless": "\\bchat\\.agent\\s*\\(\\s*\\{[^{}]*?\\btools\\s*[:,}]"
+   },
+   "judge": "Does a tool in this file define toModelOutput and get passed only at the streamText call site inside run(), while the chat.agent({ ... }) config declares no tools? Hits where chat.agent declares tools, or where the toModelOutput tool is not used by the agent, are not real.",
+   "message": "a tool defines toModelOutput but chat.agent declares no tools, so earlier turns are re-converted without the transform",
+   "fix": "declare the same tools on chat.agent({ tools }) as well as on the streamText call",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/tools",
+   "examples": {
+    "bad": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { streamText, tool } from \"ai\";\nconst lookup = tool({ description: \"lookup\", inputSchema: schema, execute: async ({ id }) => ({ id }), toModelOutput: ({ output }) => ({ type: \"text\", value: output.id }) });\nexport const a = chat.agent({ id: \"a\", run: async ({ messages }) => streamText({ model, messages, tools: { lookup } }) });"
+    ],
+    "good": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { streamText, tool } from \"ai\";\nconst lookup = tool({ description: \"lookup\", inputSchema: schema, execute: async ({ id }) => ({ id }), toModelOutput: ({ output }) => ({ type: \"text\", value: output.id }) });\nexport const a = chat.agent({ id: \"a\", tools: { lookup }, run: async ({ messages }) => streamText({ model, messages }) });"
+    ]
+   }
+  },
+  {
+   "id": "CHT-05",
+   "family": "CHT",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "\\bchat\\.createStartSessionAction",
+      "unless": "\\b(?:getSession|getServerSession|currentUser|requireUser|requireAuth|verifySession|require\\w*Owner\\w*|assert\\w*Owner\\w*|check\\w*Owner\\w*|authori[sz]e\\w*|require\\w*Access\\w*|assert\\w*Access\\w*)\\s*\\("
+     },
+     {
+      "type": "call",
+      "callee": "\\bauth\\.createPublicToken",
+      "require": "\\bchat\\.(?:agent|createStartSessionAction)\\s*\\(",
+      "unless": "\\b(?:getSession|getServerSession|currentUser|requireUser|requireAuth|verifySession|require\\w*Owner\\w*|assert\\w*Owner\\w*|check\\w*Owner\\w*|authori[sz]e\\w*|require\\w*Access\\w*|assert\\w*Access\\w*)\\s*\\("
+     }
+    ]
+   },
+   "judge": "Does every server action that calls this startSession, or mints a chat token, first authenticate the caller and check that the caller owns the chatId? Look in the enclosing function and the helpers it calls; a hit with such a check is not real.",
+   "message": "chat.createStartSessionAction or a chat token mint has no authentication or chat-ownership call in this file",
+   "fix": "authorise chatId in both actions: an auth check and an ownership check before startSession or the token mint",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/quick-start",
+   "examples": {
+    "bad": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nconst startSession = chat.createStartSessionAction(\"my-chat\");\nexport async function startChatSession({ chatId }: { chatId: string }) {\n  return startSession({ chatId });\n}"
+    ],
+    "good": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { requireChatOwner } from \"@/lib/chat-access\";\nconst startSession = chat.createStartSessionAction(\"my-chat\");\nexport async function startChatSession({ chatId }: { chatId: string }) {\n  await requireChatOwner(chatId);\n  return startSession({ chatId });\n}"
+    ]
+   }
+  },
+  {
+   "id": "CHT-06",
+   "family": "CHT",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\\bchat\\.createAccessToken\\b|\\bgetStartToken\\b|\\btransport\\.preload\\s*\\(\\s*[^,()]+,"
+     },
+     {
+      "type": "call",
+      "callee": "\\buseTriggerChatTransport",
+      "contains": "\\btrigger(?:Config|Options)\\s*:"
+     }
+    ]
+   },
+   "message": "uses a pre-upgrade chat API (createAccessToken, getStartToken, triggerConfig/triggerOptions on the transport, or transport.preload with options)",
+   "fix": "use the two-callback transport: accessToken refreshes the PAT, startSession wraps chat.createStartSessionAction, and trigger config moves into createStartSessionAction",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/upgrade-guide",
+   "examples": {
+    "bad": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nexport const myChat = chat.agent({ id: \"my-chat\", run: async () => {} });\nexport async function mintToken(chatId: string) {\n  return chat.createAccessToken<typeof myChat>(\"my-chat\");\n}",
+     "import { useTriggerChatTransport } from \"@trigger.dev/sdk/chat/react\";\nexport function useChatTransport(chatId: string) {\n  return useTriggerChatTransport<typeof myChat>({\n    accessToken: () => mintToken(chatId),\n    triggerOptions: { tags: [\"chat\"] },\n  });\n}",
+     "import { useTriggerChatTransport } from \"@trigger.dev/sdk/chat/react\";\nconst transport = useTriggerChatTransport<typeof myChat>({ accessToken: () => mintToken(\"c1\") });\ntransport.preload(\"c1\", { idleTimeoutInSeconds: 60 });"
+    ],
+    "good": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { useTriggerChatTransport } from \"@trigger.dev/sdk/chat/react\";\nexport const myChat = chat.agent({ id: \"my-chat\", run: async () => {} });\nexport const startChatSession = chat.createStartSessionAction(\"my-chat\", { triggerConfig: { basePayload: {} } });\nexport function useChatTransport(chatId: string) {\n  return useTriggerChatTransport<typeof myChat>({\n    accessToken: () => mintToken(chatId),\n    startSession: ({ chatId }) => startChatSession({ chatId }),\n  });\n}"
+    ]
+   }
+  },
+  {
+   "id": "CHT-07",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "\\buseTriggerChatTransport",
+      "lacks": "\\bstartSession\\b"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bstartSession\\s*:\\s*\\(\\s*\\{\\s*chatId\\s*\\}\\s*\\)",
+      "require": "\\bclientData\\s*:"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bstartSession\\s*:\\s*\\(\\s*\\{[^}]*\\bclientData\\b[^}]*\\}\\s*\\)\\s*=>\\s*[\\w$.]+\\s*\\(\\s*\\{(?![^}]*\\bclientData\\b)[^}]*\\}\\s*\\)"
+     }
+    ]
+   },
+   "message": "useTriggerChatTransport has no startSession, or its startSession drops the clientData the transport carries",
+   "fix": "add a startSession that calls a server action wrapping chat.createStartSessionAction, and forward clientData into it",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/frontend",
+   "examples": {
+    "bad": [
+     "import { useTriggerChatTransport } from \"@trigger.dev/sdk/chat/react\";\nexport function useChatTransport(chatId: string) {\n  return useTriggerChatTransport<typeof myChat>({\n    accessToken: () => mintToken(chatId),\n  });\n}",
+     "import { useTriggerChatTransport } from \"@trigger.dev/sdk/chat/react\";\nexport function useChatTransport(userId: string) {\n  return useTriggerChatTransport<typeof myChat>({\n    accessToken: () => mintToken(userId),\n    startSession: ({ chatId }) => startChatSession({ chatId }),\n    clientData: { userId },\n  });\n}"
+    ],
+    "good": [
+     "import { useTriggerChatTransport } from \"@trigger.dev/sdk/chat/react\";\nexport function useChatTransport(chatId: string) {\n  return useTriggerChatTransport<typeof myChat>({\n    accessToken: () => mintToken(chatId),\n    startSession: ({ chatId, clientData }) => startChatSession({ chatId, clientData }),\n    clientData: { userId: \"u_1\" },\n  });\n}",
+     "import { useTriggerChatTransport } from \"@trigger.dev/sdk/chat/react\";\nexport function useChatTransport(chatId: string) {\n  return useTriggerChatTransport<typeof myChat>({\n    accessToken: () => mintToken(chatId),\n    startSession: ({ chatId }) => startChatSession({ chatId }),\n  });\n}"
+    ]
+   }
+  },
+  {
+   "id": "CHT-08",
+   "family": "CHT",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bhydrateMessages\\s*[:,}][\\s\\S]*\\bstorage\\s*:|\\bstorage\\s*:[\\s\\S]*\\bhydrateMessages\\s*[:,}]",
+    "require": "\\bchat\\.agent\\s*\\("
+   },
+   "message": "chat.agent sets both hydrateMessages and storage, which the runtime rejects at start (a hydrateMessages hook alone is the deprecated W form and is not reported by this entry)",
+   "fix": "delete hydrateMessages and keep storage: TranscriptStorage",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/migrating-from-hydrate-messages",
+   "examples": {
+    "bad": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nexport const a = chat.agent({\n  id: \"a\",\n  hydrateMessages: async ({ chatId }) => loadRows(chatId),\n  storage: transcriptStorage,\n  run: async () => {},\n});"
+    ],
+    "good": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nexport const a = chat.agent({\n  id: \"a\",\n  storage: transcriptStorage,\n  run: async () => {},\n});",
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nexport const a = chat.agent({\n  id: \"a\",\n  hydrateMessages: async ({ chatId }) => loadRows(chatId),\n  run: async () => {},\n});"
+    ]
+   }
+  },
+  {
+   "id": "CHT-09",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "handler",
+    "name": "onTurnStart",
+    "contains": "\\bchat\\.defer\\s*\\(\\s*(?:await\\s+)?[\\w$.]*(?:[Mm]essage|[Tt]ranscript|[Pp]ersist)[\\w$.]*\\s*\\("
+   },
+   "message": "chat.defer wraps a message write in onTurnStart; chat.defer only guarantees completion before onTurnComplete, so a reload can read the transcript before the write lands",
+   "fix": "use chat.deferBeforeOutput for the message write, or await it if the code reads it back",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/background-injection#chat-deferbeforeoutput",
+   "examples": {
+    "bad": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { db } from \"./db\";\nexport const a = chat.agent({\n  id: \"a\",\n  onTurnStart: async ({ chatId, uiMessages }) => {\n    chat.defer(db.chatMessage.create({ data: { chatId, parts: uiMessages } }));\n  },\n  run: async () => {},\n});"
+    ],
+    "good": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { db } from \"./db\";\nexport const a = chat.agent({\n  id: \"a\",\n  onTurnStart: async ({ chatId, uiMessages }) => {\n    chat.deferBeforeOutput(db.chatMessage.create({ data: { chatId, parts: uiMessages } }));\n    chat.defer(analytics.track(\"turn_started\", { chatId }));\n  },\n  run: async () => {},\n});",
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { db } from \"./db\";\nexport const a = chat.agent({\n  id: \"a\",\n  onTurnComplete: async ({ chatId, uiMessages }) => {\n    chat.defer(db.chatMessage.create({ data: { chatId, parts: uiMessages } }));\n  },\n  run: async () => {},\n});"
+    ]
+   }
+  },
+  {
+   "id": "CHT-10",
+   "family": "CHT",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\.\\.\\.\\s*chat\\.toStreamTextOptions\\s*\\([\\s\\S]*?\\)[\\s\\S]*?\\bprepareStep\\s*[:,}]",
+    "require": "\\bchat\\.agent\\s*\\("
+   },
+   "message": "prepareStep is set after ...chat.toStreamTextOptions() in a chat.agent, which replaces the managed prepareStep, so steering, compaction and injection stop running",
+   "fix": "destructure streamText from run's argument (it composes your prepareStep) instead of spreading, or remove the custom prepareStep",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/compaction",
+   "examples": {
+    "bad": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { streamText } from \"ai\";\nexport const a = chat.agent({\n  id: \"a\",\n  run: async ({ messages }) =>\n    streamText({\n      model,\n      messages,\n      ...chat.toStreamTextOptions(),\n      prepareStep: async ({ messages }) => ({ messages }),\n    }),\n});"
+    ],
+    "good": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nexport const a = chat.agent({\n  id: \"a\",\n  run: async ({ messages, streamText }) =>\n    streamText({\n      model,\n      messages,\n      prepareStep: async ({ messages }) => ({ messages }),\n    }),\n});"
+    ]
+   }
+  },
+  {
+   "id": "CHT-12",
+   "family": "CHT",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bexport\\s+const\\s+\\w+\\s*=\\s*chat\\.createLoadTranscriptAction\\s*\\("
+   },
+   "message": "createLoadTranscriptAction is exported bare, so the transcript read has no ownership check of its own",
+   "fix": "wrap the exported action with an ownership check on chatId; the storage's clientData check is only a backstop",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/transcript-storage#reading-the-transcript",
+   "examples": {
+    "bad": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { defaultStorage } from \"./transcript-storage\";\nexport const loadTranscript = chat.createLoadTranscriptAction(defaultStorage, { limit: 50 });"
+    ],
+    "good": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { defaultStorage } from \"./transcript-storage\";\nimport { requireChatOwner } from \"@/lib/chat-access\";\nconst load = chat.createLoadTranscriptAction(defaultStorage, { limit: 50 });\nexport const loadTranscript = async (chatId: string) => {\n  await requireChatOwner(chatId);\n  return load(chatId);\n};"
+    ]
+   }
+  },
+  {
+   "id": "CHT-13",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Are the message write and the lastEventId (or session token) write issued as separate awaited statements instead of one transaction (for example, two awaited db calls rather than a single db.$transaction)? Confirm both writes happen in the same turn handler.",
+   "message": "messages and lastEventId are written in separate awaits, so a page load between the two writes can read a conversation and a session that disagree",
+   "fix": "write messages and lastEventId in one transaction",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/patterns/database-persistence"
+  },
+  {
+   "id": "CHT-14",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "call",
+    "callee": "\\bchat\\.agent",
+    "lacks": "\\buiMessageStreamOptions\\b[\\s\\S]*?\\bonError\\b"
+   },
+   "message": "chat.agent sets no uiMessageStreamOptions.onError, so model errors are not converted before they reach the browser",
+   "fix": "add uiMessageStreamOptions: { onError } that returns a sanitised message",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/error-handling",
+   "examples": {
+    "bad": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nexport const a = chat.agent({\n  id: \"a\",\n  run: async ({ messages, streamText }) => streamText({ model, messages }),\n});"
+    ],
+    "good": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nexport const a = chat.agent({\n  id: \"a\",\n  uiMessageStreamOptions: {\n    onError: () => \"The model request failed. Try again.\",\n  },\n  run: async ({ messages, streamText }) => streamText({ model, messages }),\n});"
+    ]
+   }
+  }
+ ]
+}

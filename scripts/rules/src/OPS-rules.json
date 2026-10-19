@@ -1,0 +1,79 @@
+{
+ "rules": [
+  {
+   "id": "OPS-01",
+   "family": "OPS",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "any-text",
+   "match": null,
+   "judge": "Decide which dimension (Flow, Execution or Liveness) drives the headline verdict and whether the finding is a current incident or a stale reading. A failing (✕) dimension is the error case; a degraded (⚠) dimension is the warning case (W).",
+   "live": "MCP get_report with key 'health', period '24h', and environment passed explicitly as the production environment; repeat with the staging environment. Do not omit environment: the tool reports on dev by default. Read the Flow, Execution and Liveness severities.",
+   "message": "get_report health reports a dimension (Flow, Execution or Liveness) as failing for this environment; a degraded dimension is the warning case (W).",
+   "fix": "Start from the headline dimension: Flow points at concurrency, throttle or trigger-spike causes; Execution points at failing task code, so open its failed runs.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/reports"
+  },
+  {
+   "id": "OPS-02",
+   "family": "OPS",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "any-text",
+   "match": null,
+   "judge": "Decide whether a task's failure share or retry count is a storm. A handful of runs is noise; a high failed share over many runs, or many runs above 3 attempts, is a storm. Crashed counts as a failure.",
+   "live": "TRQL through the query MCP tool (call get_query_schema first) with the production secret key, so the scope is the production environment (query scope 'environment' is the default), time range 24h: SELECT task_identifier, count() AS total, countIf(status IN ('Failed', 'Crashed')) AS failed, countIf(attempt_count > 3) AS retried FROM runs GROUP BY task_identifier ORDER BY failed DESC LIMIT 20",
+   "message": "Task has runs that failed or crashed in the 24h window and runs that needed more than 3 attempts (counts from the runs table).",
+   "fix": "Fix the cause in the task (read the error on its failed runs) before retrying; for retry storms, review the task's retry settings so one bad input does not re-run many attempts.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/observability/query"
+  },
+  {
+   "id": "OPS-03",
+   "family": "OPS",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "any-text",
+   "match": null,
+   "judge": "Decide whether the peak is near the preset ceiling. The monitoring example in machines.mdx uses 80% of memory as its warning cut-off. A task at or above 80% of its preset on repeated runs is near the ceiling; a single spike may be one large payload.",
+   "live": "TRQL through the query MCP tool with the production secret key (scope 'environment'), time range 24h: SELECT task_identifier, machine_name, max(metric_value) AS peak_bytes FROM metrics WHERE metric_name = 'process.memory.usage' GROUP BY task_identifier, machine_name ORDER BY peak_bytes DESC LIMIT 20. process.memory.usage is in bytes and is emitted by SDK 4.4.1 or later (logging.mdx). Compare peak_bytes with the Memory column of the machines table for machine_name (0.25 GB for micro up to 16 GB for large-2x).",
+   "message": "Task peak process memory in the window is recorded against its machine preset (peak_bytes from process.memory.usage).",
+   "fix": "Move the task to a larger machine preset (the machine option in the task definition), or reduce the payload or memory use that drives the peak.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/machines"
+  },
+  {
+   "id": "OPS-04",
+   "family": "OPS",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "any-text",
+   "match": null,
+   "judge": "Decide whether the 429s are a sustained pattern or a single burst. A few denials in one minute is a burst; denials across many minutes mean the caller's request rate is above the limit. Identify which caller sends the requests (a trigger loop, a polling job or a batch).",
+   "live": "TRQL through the query MCP tool with the production secret key (rate-limit rows are recorded against the environment whose secret key made the request), time range 24h: SELECT toStartOfMinute(bucket_start) AS minute, sumIf(metric_value, metric_name = 'api.rate_limit.denied') AS denied, sumIf(metric_value, metric_name IN ('api.rate_limit.allowed', 'api.rate_limit.denied')) AS attempts FROM metrics WHERE metric_name LIKE 'api.rate_limit.%' GROUP BY minute ORDER BY minute LIMIT 1000. Self-host: these rows exist only when API_RATE_LIMIT_METRICS_ENABLED=1 is set on the server.",
+   "message": "API requests were answered with 429 (api.rate_limit.denied above 0) in the window for the production environment's secret key.",
+   "fix": "Batch or space out the calls that hit the API (for example batchTrigger instead of one trigger per item); the sustained limit is api.rate_limit.limit.per_second in the same metrics rows.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/observability/query#api-rate-limit-metrics"
+  },
+  {
+   "id": "OPS-05",
+   "family": "OPS",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "any-text",
+   "match": null,
+   "judge": "Ask the user whether a run-fails alert exists for the production environment. If one exists the rule clears; if not, report it. An error-group alert on the Errors page complements a run-fails alert but does not replace it.",
+   "live": "No query: mcp-tools.mdx lists no alert tool and no TRQL table holds alert configuration, so ask the user, or have them check the dashboard Alerts page for the production environment for a 'run fails' alert (troubleshooting-alerts.mdx, 'Which alert type should I use?').",
+   "message": "No run-fails alert is configured for the production environment (answered by the user or seen on the dashboard Alerts page).",
+   "fix": "On the Alerts page, add a run-fails alert for the production environment; add an error-group alert on the Errors page for new breakages.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/troubleshooting-alerts#which-alert-type-should-i-use"
+  }
+ ]
+}

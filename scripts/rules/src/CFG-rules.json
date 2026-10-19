@@ -1,0 +1,295 @@
+{
+ "rules": [
+  {
+   "id": "CFG-01",
+   "family": "CFG",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": null,
+   "needs_builtin": "config-extensions",
+   "message": "calls launch() on a browser library, but trigger.config build.extensions has no browser extension (connect() to a remote browser needs none)",
+   "fix": "add the puppeteer or playwright build extension to build.extensions; for a remote browser use connect() and set runtime: \"node\"",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/extensions/puppeteer"
+  },
+  {
+   "id": "CFG-02",
+   "family": "CFG",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "config",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "prismaExtension",
+      "lacks": "\\bmode\\s*:"
+     },
+     {
+      "type": "call",
+      "callee": "prismaExtension",
+      "contains": "\\bmigrate\\s*:\\s*true\\b",
+      "lacks": "\\bmode\\s*:\\s*[\"']legacy[\"']"
+     }
+    ]
+   },
+   "message": "prismaExtension() is called without a mode, or sets migrate: true outside mode \"legacy\"",
+   "fix": "set mode to the one that matches the Prisma version and generator; keep migrate only in legacy mode",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/extensions/prismaExtension",
+   "examples": {
+    "bad": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { prismaExtension } from \"@trigger.dev/build/extensions/prisma\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [prismaExtension({ migrate: true })],\n  },\n});\n",
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { prismaExtension } from \"@trigger.dev/build/extensions/prisma\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [prismaExtension({ mode: \"modern\", migrate: true })],\n  },\n});\n"
+    ],
+    "good": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { prismaExtension } from \"@trigger.dev/build/extensions/prisma\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [prismaExtension({ mode: \"legacy\", migrate: true })],\n  },\n});\n",
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { prismaExtension } from \"@trigger.dev/build/extensions/prisma\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [prismaExtension({ mode: \"engine-only\", version: \"6.19.0\" })],\n  },\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "CFG-03",
+   "family": "CFG",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": null,
+   "needs_builtin": "config-extensions",
+   "message": "uses ffmpeg (spawn or fluent-ffmpeg), but trigger.config has no ffmpeg() build extension, or fluent-ffmpeg is not in build.external",
+   "fix": "add ffmpeg() from @trigger.dev/build/extensions/core to build.extensions and fluent-ffmpeg to build.external",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/extensions/ffmpeg"
+  },
+  {
+   "id": "CFG-04",
+   "family": "CFG",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "config",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "pythonExtension",
+      "contains": "\\brequirementsFile\\s*:",
+      "containsAlso": "\\brequirements\\s*:"
+     },
+     {
+      "type": "import",
+      "from": "^@trigger\\.dev/build(?:/|$)",
+      "named": "^pythonExtension$"
+     }
+    ]
+   },
+   "message": "pythonExtension() sets both requirementsFile and requirements, or pythonExtension is imported from @trigger.dev/build",
+   "fix": "use either requirementsFile or requirements, and import pythonExtension from @trigger.dev/python/extension",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/extensions/pythonExtension",
+   "examples": {
+    "bad": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { pythonExtension } from \"@trigger.dev/python/extension\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [\n      pythonExtension({ requirementsFile: \"./requirements.txt\", requirements: [\"pandas\"] }),\n    ],\n  },\n});\n",
+     "import { pythonExtension } from \"@trigger.dev/build/extensions/python\";\nimport { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [pythonExtension({ scripts: [\"./python/**/*.py\"] })],\n  },\n});\n"
+    ],
+    "good": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { pythonExtension } from \"@trigger.dev/python/extension\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [pythonExtension({ requirementsFile: \"./requirements.txt\", scripts: [\"./python/**/*.py\"] })],\n  },\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "CFG-05",
+   "family": "CFG",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "message": "imports a native or WASM package (sharp, re2, sqlite3 or similar) that trigger.config build.external does not list and that is not auto-detected",
+   "fix": "add the package to build.external in trigger.config.ts",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/config-file#external",
+   "judge": "Look for imports of native addons (re2, sqlite3, better-sqlite3, node-gyp-built packages) or WebAssembly packages. Most native modules are auto-detected as external; WASM packages must be listed in build.external. Confirm against trigger.config build.external, and against a deploy error such as: No loader is configured for \".node\" files."
+  },
+  {
+   "id": "CFG-06",
+   "family": "CFG",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "import",
+      "from": "^(?:typeorm(?:/.*)?|@nestjs/.+)$"
+     },
+     {
+      "type": "regex",
+      "pattern": "^\\s*@[A-Za-z_$][\\w$.]*\\s*\\(",
+      "flags": "m"
+     }
+    ]
+   },
+   "judge": "Does the project use TypeScript decorators (TypeORM, NestJS or other decorator-based code) AND does trigger.config.* lack emitDecoratorMetadata() from @trigger.dev/build/extensions/typescript, or is typescript missing from devDependencies? Flag only when that holds; a file with no decorators is not a hit.",
+   "message": "uses decorator syntax (typeorm, @nestjs or @Name(...)); trigger.config enables decorator metadata only through emitDecoratorMetadata()",
+   "fix": "add emitDecoratorMetadata() from @trigger.dev/build/extensions/typescript to build.extensions and typescript to devDependencies",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/extensions/emitDecoratorMetadata",
+   "examples": {
+    "bad": [
+     "import { task } from \"@trigger.dev/sdk\";\nimport { Entity, Column } from \"typeorm\";\n\n@Entity()\nexport class Order {\n  @Column()\n  total!: number;\n}\n\nexport const orderTask = task({ id: \"order\", run: async () => new Order() });\n",
+     "import { task } from \"@trigger.dev/sdk\";\nimport { Injectable } from \"@nestjs/common\";\n\n@Injectable()\nexport class Mailer {\n  send(): void {}\n}\n\nexport const mailTask = task({ id: \"mail\", run: async () => new Mailer().send() });\n"
+    ],
+    "good": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const hello = task({ id: \"hello\", run: async () => ({ ok: true }) });\n"
+    ]
+   }
+  },
+  {
+   "id": "CFG-07",
+   "family": "CFG",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does this task read a non-JS file at runtime by path (json, html, sql, wasm, template, certificate or model files) that must exist in the deployed build, and is that file not matched by a build.extensions additionalFiles({ files }) glob in trigger.config.*? If the path is relative to process.cwd(), also check that legacyDevProcessCwdBehaviour is false. Flag only when the file is missing from the build; files pulled in through an import are bundled and do not count.",
+   "message": "reads a non-JS file at runtime by path; trigger.config additionalFiles may not copy that file into the build",
+   "fix": "add the file or glob to additionalFiles({ files }) in build.extensions and set legacyDevProcessCwdBehaviour: false",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/extensions/additionalFiles"
+  },
+  {
+   "id": "CFG-08",
+   "family": "CFG",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "any-text",
+   "match": null,
+   "needs_builtin": "gitignore-tsconfig",
+   "message": ".trigger is not listed in .gitignore, or trigger.config.* is outside the tsconfig include",
+   "fix": "add .trigger to .gitignore and include trigger.config.* in the tsconfig include",
+   "fix_mode": "auto",
+   "doc": "https://trigger.dev/docs/manual-setup"
+  },
+  {
+   "id": "CFG-09",
+   "family": "CFG",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "package-json",
+   "match": {
+    "type": "json",
+    "check": "dep-in",
+    "dep": "^@trigger\\.dev/build$"
+   },
+   "message": "@trigger.dev/build is listed under dependencies, not devDependencies",
+   "fix": "move @trigger.dev/build to devDependencies",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/extensions/overview",
+   "examples": {
+    "bad": [
+     "{\"name\":\"app\",\"dependencies\":{\"@trigger.dev/sdk\":\"4.0.0\",\"@trigger.dev/build\":\"4.0.0\"}}"
+    ],
+    "good": [
+     "{\"name\":\"app\",\"dependencies\":{\"@trigger.dev/sdk\":\"4.0.0\"},\"devDependencies\":{\"@trigger.dev/build\":\"4.0.0\"}}"
+    ]
+   }
+  },
+  {
+   "id": "CFG-10",
+   "family": "CFG",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "config",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bextraCACerts\\s*:\\s*[\"'](?!\\./)"
+   },
+   "message": "extraCACerts is set to a path that does not start with \"./\"",
+   "fix": "use a path relative to the project root that starts with ./",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/config-file",
+   "examples": {
+    "bad": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  extraCACerts: \"/etc/ssl/certs/corp-ca.crt\",\n});\n"
+    ],
+    "good": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  extraCACerts: \"./certs/corp-ca.crt\",\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "CFG-11",
+   "family": "CFG",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "config",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bpackages\\s*:\\s*\\[\\s*(?:[\"'][^\"']*[\"']\\s*,\\s*)*[\"'](?:@[\\w.-]+/)?[\\w.-]+[\"']",
+    "require": "\\badditionalPackages\\s*\\("
+   },
+   "message": "additionalPackages lists a package without a version",
+   "fix": "pin an exact version, for example name@X.Y.Z",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/extensions/additionalPackages",
+   "examples": {
+    "bad": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { additionalPackages } from \"@trigger.dev/build/extensions/core\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [additionalPackages({ packages: [\"wrangler\"] })],\n  },\n});\n",
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { additionalPackages } from \"@trigger.dev/build/extensions/core\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [additionalPackages({ packages: [\"wrangler@4.1.0\", \"esbuild\"] })],\n  },\n});\n"
+    ],
+    "good": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { additionalPackages } from \"@trigger.dev/build/extensions/core\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [additionalPackages({ packages: [\"wrangler@4.1.0\"] })],\n  },\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "CFG-12",
+   "family": "CFG",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "config",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\\bname\\s*:\\s*[\"'][A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|_KEY)[\"']\\s*,\\s*value\\s*:\\s*[\"'][^\"'\\s]+[\"']"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\b[A-Z][A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|_KEY)\\s*:\\s*[\"'][^\"'\\s$]{8,}[\"']"
+     }
+    ]
+   },
+   "message": "trigger.config sets a literal value for a secret-looking name (syncEnvVars entry or a *_SECRET, *_TOKEN, *_PASSWORD or *_KEY key)",
+   "fix": "read the value from process.env or the secret store instead of a literal",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/extensions/syncEnvVars",
+   "examples": {
+    "bad": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { syncEnvVars } from \"@trigger.dev/build/extensions/core\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [\n      syncEnvVars(async () => [{ name: \"STRIPE_SECRET_KEY\", value: \"sk_live_1234567890\" }]),\n    ],\n  },\n});\n",
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  API_TOKEN: \"tok_live_1234567890abcdef\",\n});\n"
+    ],
+    "good": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { syncEnvVars } from \"@trigger.dev/build/extensions/core\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [\n      syncEnvVars(async () => [{ name: \"STRIPE_SECRET_KEY\", value: process.env.STRIPE_SECRET_KEY ?? \"\" }]),\n    ],\n  },\n});\n",
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  retries: { enabled: true },\n});\n"
+    ]
+   }
+  }
+ ]
+}

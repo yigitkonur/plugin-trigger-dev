@@ -1,0 +1,74 @@
+{
+ "rules": [
+  {
+   "id": "SCH-03",
+   "family": "SCH",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bcron\\s*:\\s*[\"'\\x60][^\"'\\x60\\n]+[\"'\\x60]",
+    "notNear": "\\btimezone\\s*:"
+   },
+   "judge": "The matcher found a string cron, which always runs in UTC. Decide whether the time of day was meant as a business or user local time: read the comment above it, the task id and name, and nearby docs (words like local, office, Berlin, customer, 9am). Report when it is local time: the UTC hour stays fixed while the local clock moves with the zone offset and with DST changes. Dismiss when the schedule is meant in UTC (system jobs, every N hours, midnight UTC) or when a timezone is set in the same call.",
+   "message": "string cron has no timezone, so it runs at this UTC time of day (a string cron is always UTC)",
+   "fix": "use { pattern, timezone } with an IANA name, e.g. cron: { pattern: \"0 9 * * 1-5\", timezone: \"Europe/Berlin\" }",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/tasks/scheduled",
+   "examples": {
+    "bad": [
+     "import { schedules } from \"@trigger.dev/sdk\";\nexport const digest = schedules.task({\n  id: \"morning-digest\",\n  // 9am Berlin time\n  cron: \"0 9 * * 1-5\",\n  run: async () => {},\n});",
+     "import { schedules } from \"@trigger.dev/sdk\";\nawait schedules.create({\n  task: \"morning-digest\",\n  cron: \"0 9 * * 1-5\",\n  deduplicationKey: \"morning-digest-berlin\",\n});"
+    ],
+    "good": [
+     "import { schedules } from \"@trigger.dev/sdk\";\nexport const digest = schedules.task({\n  id: \"morning-digest\",\n  cron: { pattern: \"0 9 * * 1-5\", timezone: \"Europe/Berlin\" },\n  run: async () => {},\n});",
+     "import { schedules } from \"@trigger.dev/sdk\";\nawait schedules.create({\n  task: \"morning-digest\",\n  cron: \"0 9 * * 1-5\",\n  timezone: \"Europe/Berlin\",\n  deduplicationKey: \"morning-digest-berlin\",\n});"
+    ]
+   }
+  },
+  {
+   "id": "SCH-04",
+   "family": "SCH",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Find schedules.create(...) calls and any code that builds their deduplicationKey. Report when the key does not name the environment: it is a fixed string or built only from user or task data, with no environment value and no literal environment segment such as prod or dev, and the same code runs against more than one environment. Deduplication keys are unique per project, not per environment, so the same key in dev, staging and production points at the same schedule slot. Dismiss when the key already includes the environment, or when the call only runs in a single environment.",
+   "message": "deduplicationKey has no environment part; keys are unique per project, so every environment that runs this code shares the same key",
+   "fix": "include the environment name in deduplicationKey (one key per schedule and environment)",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/tasks/scheduled"
+  },
+  {
+   "id": "SCH-05",
+   "family": "SCH",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Find schedules.task(...) definitions that have a cron (declarative, or attached in code with schedules.create) and no ttl option. Estimate whether one run can last longer than the interval between two fires: long waits, batch triggers, AI or network calls with retries, or a loop over many items on a frequent cron. Report when a run can outlast its interval. Dismiss when ttl is already set on the task, or when the run is short and bounded.",
+   "message": "scheduled task has no ttl; when a schedule fires while the previous run is still executing, the new run is queued with no expiry",
+   "fix": "set ttl on the schedules.task, e.g. ttl: \"5m\", so runs not dequeued in time expire",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/tasks/scheduled"
+  },
+  {
+   "id": "SCH-07",
+   "family": "SCH",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Find schedules.task(...) definitions that have no cron property. Then search the repo for a schedules.create(...) call whose task argument names this task id, and for a cron set on this task in another file. Report when neither exists. Dismiss when a comment or doc in the repo says the schedule is attached in the dashboard, because schedules can be attached there without any code.",
+   "message": "schedules.task has no cron and no schedules.create() in this repo targets it, so no schedule fires it",
+   "fix": "attach a schedule: add cron to schedules.task, call schedules.create() with this task id, or attach one in the dashboard",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/tasks/scheduled"
+  }
+ ]
+}

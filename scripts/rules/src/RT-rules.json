@@ -1,0 +1,223 @@
+{
+ "rules": [
+  {
+   "id": "RT-03",
+   "family": "RT",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does a trigger hook (useTaskTrigger, useRealtimeTaskTrigger or useRealtimeTaskTriggerWithStreams from @trigger.dev/react-hooks) receive as accessToken a Public Access Token created with read scopes (auth.createPublicToken), or a read-only token passed through from the backend, instead of a trigger token from auth.createTriggerPublicToken? Report only when the token's origin is visible in the code or the same component; if the origin is unknown, do not report.",
+   "message": "a trigger hook is given a read-scoped public access token; trigger hooks need a trigger token",
+   "fix": "create the token on the backend with auth.createTriggerPublicToken(taskId) and pass it as accessToken",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/realtime/auth#trigger-tokens-for-frontend-triggering-only"
+  },
+  {
+   "id": "RT-04",
+   "family": "RT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "import",
+    "from": "^@trigger\\.dev/react-hooks(?:/|$)",
+    "unless": "^\\s*[\"']use client[\"']"
+   },
+   "message": "imports @trigger.dev/react-hooks and has no \"use client\" directive; in an App Router tree this file is a Server Component, where these hooks cannot run",
+   "fix": "add \"use client\"; as the first line if this file is in a Next.js App Router (RSC) tree",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/realtime/react-hooks/subscribe",
+   "examples": {
+    "bad": [
+     "import { useRealtimeRun } from '@trigger.dev/react-hooks';\n\nexport function RunStatus({ runId }: { runId: string }) {\n  const { run } = useRealtimeRun(runId);\n  return run?.status ?? 'loading';\n}\n"
+    ],
+    "good": [
+     "'use client';\n\nimport { useRealtimeRun } from '@trigger.dev/react-hooks';\n\nexport function RunStatus({ runId }: { runId: string }) {\n  const { run } = useRealtimeRun(runId);\n  return run?.status ?? 'loading';\n}\n",
+     "\"use client\";\n\nimport { useRealtimeRun } from '@trigger.dev/react-hooks';\n\nexport function RunStatus({ runId }: { runId: string }) {\n  const { run } = useRealtimeRun(runId);\n  return run?.status ?? 'loading';\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "RT-05",
+   "family": "RT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "call",
+    "callee": "\\buseRun",
+    "argsMatch": "refreshInterval\\s*:\\s*(?:[1-9]|0?\\.0*[1-9])"
+   },
+   "message": "useRun() polls on refreshInterval > 0; useRealtimeRun() subscribes to the run by ID instead",
+   "fix": "use useRealtimeRun(runId) for live updates",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/realtime/react-hooks/swr",
+   "examples": {
+    "bad": [
+     "import { useRun } from '@trigger.dev/react-hooks';\n\nexport function RunStatus({ runId }: { runId: string }) {\n  const { run } = useRun(runId, { refreshInterval: 1000 });\n  return run?.status ?? 'loading';\n}\n"
+    ],
+    "good": [
+     "import { useRun } from '@trigger.dev/react-hooks';\n\nexport function RunStatus({ runId }: { runId: string }) {\n  const { run } = useRun(runId, { refreshInterval: 0 });\n  return run?.status ?? 'loading';\n}\n",
+     "import { useRealtimeRun } from '@trigger.dev/react-hooks';\n\nexport function RunStatus({ runId }: { runId: string }) {\n  const { run } = useRealtimeRun(runId);\n  return run?.status ?? 'loading';\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "RT-06",
+   "family": "RT",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Is this a component or hook that subscribes to a run (useRealtimeRun or useRealtimeTaskTrigger) and reads only status-like fields (status, a progress or completion badge), never run.payload or run.output, while the hook options have no skipColumns? Report only when no payload or output field is read from the returned run.",
+   "message": "subscribes to the full run for status only; payload and output are streamed without being read",
+   "fix": "pass skipColumns: [\"payload\", \"output\"] in the hook options",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/realtime/react-hooks/subscribe"
+  },
+  {
+   "id": "RT-07",
+   "family": "RT",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does a realtime hook (useRealtimeRun, useRealtimeTaskTrigger) receive an id that can be undefined at first render, such as handle?.id from a trigger whose handle does not exist yet, with no enabled option in its options? Report only when the id can be undefined.",
+   "message": "a realtime hook is given an id that is undefined until the trigger returns, and has no enabled option",
+   "fix": "pass enabled: !!handle in the hook options",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/realtime/react-hooks/triggering"
+  },
+  {
+   "id": "RT-08",
+   "family": "RT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Is there a for-await loop over runs.subscribeToRunsWithTag(...) or runs.subscribeToBatch(...) whose body contains no break and no return? Report only when no break or return can exit the loop.",
+   "message": "for-await loop over runs.subscribeToRunsWithTag / runs.subscribeToBatch has no break; the iterator never completes by itself",
+   "fix": "break (or return) once the completion condition is met",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/realtime/backend/subscribe"
+  },
+  {
+   "id": "RT-09",
+   "family": "RT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "prefilter": "\\.url\\b",
+   "match": {
+    "type": "call",
+    "callee": "\\bfetch",
+    "contains": "\\b\\w*[Tt]oken\\w*\\.url\\b",
+    "require": "[\"']use client[\"']|@trigger\\.dev/react-hooks|from\\s+[\"']react[\"']"
+   },
+   "message": "client-side code calls fetch() on a wait token's token.url; that webhook URL is for server-to-server use and has no CORS headers",
+   "fix": "complete from the browser with the token's publicAccessToken (CORS-enabled endpoint), or use useWaitToken",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/wait-for-token",
+   "examples": {
+    "bad": [
+     "'use client';\n\nimport { useEffect } from 'react';\n\nexport function Approve({ token }: { token: { url: string } }) {\n  useEffect(() => {\n    fetch(token.url, { method: 'POST' });\n  }, [token]);\n  return null;\n}\n"
+    ],
+    "good": [
+     "import { wait } from '@trigger.dev/sdk';\n\nexport async function notify(token: { url: string }) {\n  await fetch(token.url, { method: 'POST' });\n}\n",
+     "'use client';\n\nexport function Approve({ id }: { id: string }) {\n  fetch('/api/approve/' + id, { method: 'POST' });\n  return null;\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "RT-10",
+   "family": "RT",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "call",
+    "callee": "\\bwait\\.createToken",
+    "lacks": "\\btimeout\\b|\\.\\.\\.|^\\s*[A-Za-z_$][\\w$.]*\\s*$"
+   },
+   "message": "wait.createToken() is called without a timeout, so the token has none",
+   "fix": "pass a timeout, e.g. wait.createToken({ timeout: '10m' })",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/wait-for-token",
+   "examples": {
+    "bad": [
+     "import { wait } from '@trigger.dev/sdk';\n\nexport async function requestApproval() {\n  const token = await wait.createToken({ tags: ['approval'] });\n  return token;\n}\n",
+     "import { wait } from '@trigger.dev/sdk';\n\nexport async function requestApproval() {\n  const token = await wait.createToken();\n  return token;\n}\n"
+    ],
+    "good": [
+     "import { wait } from '@trigger.dev/sdk';\n\nexport async function requestApproval() {\n  const token = await wait.createToken({ timeout: '10m' });\n  return token;\n}\n",
+     "import { wait } from '@trigger.dev/sdk';\n\nexport async function requestApproval(opts: { timeout: string }) {\n  return wait.createToken(opts);\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "RT-11",
+   "family": "RT",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "prefilter": "api\\.trigger\\.dev",
+   "match": {
+    "type": "regex",
+    "pattern": "https://api\\.trigger\\.dev",
+    "notNear": "TRIGGER_API_URL|process\\.env|import\\.meta\\.env"
+   },
+   "message": "hard-codes https://api.trigger.dev as the API base URL; self-hosted installs set TRIGGER_API_URL instead",
+   "fix": "read the base URL from TRIGGER_API_URL (or pass baseURL to configure) instead of a literal",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/apikeys",
+   "examples": {
+    "bad": [
+     "export async function ping() {\n  const res = await fetch('https://api.trigger.dev/', { method: 'GET' });\n  return res.status;\n}\n"
+    ],
+    "good": [
+     "const base = process.env.TRIGGER_API_URL ?? 'https://api.trigger.dev';\n\nexport async function ping() {\n  return fetch(base, { method: 'GET' });\n}\n",
+     "// Cloud default is https://api.trigger.dev; self-hosters set TRIGGER_API_URL.\nimport { tasks } from '@trigger.dev/sdk';\n\nexport const run = () => tasks.trigger('a', {});\n"
+    ]
+   }
+  },
+  {
+   "id": "RT-12",
+   "family": "RT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "prefilter": "/trigger(?:/|['\"])",
+   "match": {
+    "type": "import",
+    "from": "(?:^|/)trigger(?:/|$)",
+    "skipTypeOnly": true,
+    "unless": "\\btask\\s*\\(\\s*\\{|\\bschedules\\.task\\s*\\(|\\bschemaTask\\s*\\("
+   },
+   "message": "app code imports a task module as a value; only its type is needed to trigger it",
+   "fix": "import type { task } from the module and call tasks.trigger<typeof task>(\"task-id\", payload)",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/triggering",
+   "examples": {
+    "bad": [
+     "import { emailSequence } from '~/trigger/emails';\n\nexport async function signup(email: string) {\n  return emailSequence.trigger({ email });\n}\n"
+    ],
+    "good": [
+     "import type { emailSequence } from '~/trigger/emails';\nimport { tasks } from '@trigger.dev/sdk';\n\nexport async function signup(email: string) {\n  return tasks.trigger<typeof emailSequence>('email-sequence', { email });\n}\n",
+     "import { task } from '@trigger.dev/sdk';\nimport { sendMail } from '~/trigger/mail';\n\nexport const emailSequence = task({ id: 'email-sequence', run: async (payload: { email: string }) => { await sendMail(payload.email); } });\n"
+    ]
+   },
+   "judge": "Confirm the importing file is app or client code. A task file importing a sibling task by value is fine; an app route, page or client component importing task modules by value pulls task code into the app bundle."
+  }
+ ]
+}

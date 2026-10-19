@@ -1,0 +1,353 @@
+{
+ "rules": [
+  {
+   "id": "TSK-02",
+   "family": "TSK",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\\b(?:const|let|var)\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*await\\s+[\\w$.]*\\.(?:triggerAndWait|batchTriggerAndWait)\\s*\\((?:(?!\\b\\1\\.(?:ok|unwrap)\\b)[\\s\\S])*?\\b\\1\\.output\\b"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\.(?:triggerAndWait|batchTriggerAndWait)\\s*\\((?:[^()]|\\([^()]*\\))*\\)\\s*\\)?\\s*\\.output\\b"
+     }
+    ]
+   },
+   "judge": "Is .output of a triggerAndWait or batchTriggerAndWait result read on a path where .ok was never checked and .unwrap() was not called? Report only that case. A read after an .ok check, or a result that is only passed on, is not a hit.",
+   "message": "reads .output of a triggerAndWait result before any .ok check or .unwrap() call; the child run may have failed",
+   "fix": "check result.ok before reading result.output, or call .unwrap() to get the output or a throw",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/triggering",
+   "examples": {
+    "bad": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\nimport { childTask } from \"./child\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload) => {\n    const result = await childTask.triggerAndWait({ id: payload.id });\n    return result.output;\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\nimport { childTask } from \"./child\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload) => {\n    const output = (await childTask.triggerAndWait({ id: payload.id })).output;\n    return output;\n  },\n});"
+    ],
+    "good": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\nimport { childTask } from \"./child\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload) => {\n    const result = await childTask.triggerAndWait({ id: payload.id });\n    if (!result.ok) {\n      throw new Error(\"child failed\");\n    }\n    return result.output;\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\nimport { childTask } from \"./child\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload) => {\n    const output = await childTask.triggerAndWait({ id: payload.id }).unwrap();\n    return output;\n  },\n});"
+    ]
+   }
+  },
+  {
+   "id": "TSK-03",
+   "family": "TSK",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "(?<=[;{}]\\s*)^[ \\t]*(?!(?:await|return|const|let|var|yield)\\b)[\\w$.]+\\.(?:trigger|batchTrigger)\\s*\\(",
+    "flags": "m",
+    "require": "\\btask\\s*\\("
+   },
+   "message": "trigger() or batchTrigger() runs as a bare statement, without await or return, inside a task; the parent can finish before the child is queued",
+   "fix": "await the trigger call (or return it)",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/troubleshooting#when-triggering-subtasks-the-parent-task-finishes-too-soon",
+   "examples": {
+    "bad": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload) => {\n    tasks.trigger(\"child\", { ids: payload.ids });\n    return { queued: true };\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload) => {\n    tasks.batchTrigger(\"child\", payload.ids.map((id) => ({ payload: { id } })));\n    return { queued: true };\n  },\n});"
+    ],
+    "good": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload) => {\n    await tasks.trigger(\"child\", payload);\n    return { queued: true };\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload) => {\n    return tasks.trigger(\"child\", payload);\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload) => {\n    const handles = await Promise.all(\n      tasks.trigger(\"child\", payload)\n    );\n    return handles.length;\n  },\n});"
+    ]
+   }
+  },
+  {
+   "id": "TSK-04",
+   "family": "TSK",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\.(?:triggerAndWait|batchTriggerAndWait)\\s*\\(|\\bwait\\.(?:for|until|forToken)\\s*\\(",
+    "unless": "\\btask\\s*\\("
+   },
+   "message": "triggerAndWait or a wait.* call is in a file that defines no task(); this looks like a route handler, outside task code",
+   "fix": "move the wait into a task and trigger that task from the app with tasks.trigger",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/triggering",
+   "examples": {
+    "bad": [
+     "import { tasks } from \"@trigger.dev/sdk\";\nimport { childTask } from \"@/src/trigger/child\";\n\nexport async function POST(req: Request) {\n  const body = await req.json();\n  const result = await childTask.triggerAndWait({ id: body.id });\n  return Response.json({ ok: result.ok });\n}"
+    ],
+    "good": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const reminder = task({\n  id: \"reminder\",\n  run: async (payload) => {\n    await wait.for({ hours: 1 });\n    return { sent: payload.userId };\n  },\n});"
+    ]
+   },
+   "judge": "Confirm the file is route, page or server-action code and not task code. A helper that is only ever called from inside a task() is fine; a Next.js route handler, an Express handler or a server action that awaits triggerAndWait or a wait.* call is the bug."
+  },
+  {
+   "id": "TSK-05",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "\\.(?:map|forEach)",
+      "contains": "\\.trigger\\s*\\("
+     },
+     {
+      "type": "regex",
+      "pattern": "\\b(?:for|while)\\s*\\([^)]*\\)\\s*\\{[^}]*\\.trigger\\s*\\("
+     }
+    ]
+   },
+   "message": "trigger() runs once per loop, map or forEach item; batchTrigger sends the same items as one batch call",
+   "fix": "collect the payloads and call batchTrigger once",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/limits#rate-limits",
+   "examples": {
+    "bad": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const fanout = task({\n  id: \"fanout\",\n  run: async (payload) => {\n    for (const id of payload.ids) {\n      await tasks.trigger(\"child\", { id });\n    }\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const fanout = task({\n  id: \"fanout\",\n  run: async (payload) => {\n    payload.ids.forEach((id) => tasks.trigger(\"child\", { id }));\n  },\n});"
+    ],
+    "good": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const fanout = task({\n  id: \"fanout\",\n  run: async (payload) => {\n    await tasks.batchTrigger(\"child\", payload.ids.map((id) => ({ payload: { id } })));\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const fanout = task({\n  id: \"fanout\",\n  run: async (payload) => {\n    for (const id of payload.ids) {\n      console.log(id);\n    }\n  },\n});"
+    ]
+   }
+  },
+  {
+   "id": "TSK-06",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "\\.batchTrigger",
+      "contains": {
+       "pattern": "\\bpayload\\s*:",
+       "min": 1001
+      }
+     },
+     {
+      "type": "call",
+      "callee": "\\.batchTrigger",
+      "unless": "BatchTriggerError|isRateLimited"
+     }
+    ]
+   },
+   "judge": "Is a batchTrigger call given a literal batch of more than 1,000 items, or is it made with no BatchTriggerError or isRateLimited handling on its failure path? Report only those cases. A batch built from a runtime list that is chunked, or a call whose catch branch checks BatchTriggerError, is not a hit.",
+   "message": "batchTrigger has a literal batch over 1,000 items, or this file has no BatchTriggerError or isRateLimited handling",
+   "fix": "chunk the batch to 1,000 items or fewer; catch BatchTriggerError and back off when isRateLimited is true",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/limits#batch-trigger-rate-limits",
+   "examples": {
+    "bad": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const bulk = task({\n  id: \"bulk\",\n  run: async (payload) => {\n    await tasks.batchTrigger(\"child\", [{ payload: { n: 0 } }, { payload: { n: 1 } }, { payload: { n: 2 } }, { payload: { n: 3 } }, { payload: { n: 4 } }, { payload: { n: 5 } }, { payload: { n: 6 } }, { payload: { n: 7 } }, { payload: { n: 8 } }, { payload: { n: 9 } }, { payload: { n: 10 } }, { payload: { n: 11 } }, { payload: { n: 12 } }, { payload: { n: 13 } }, { payload: { n: 14 } }, { payload: { n: 15 } }, { payload: { n: 16 } }, { payload: { n: 17 } }, { payload: { n: 18 } }, { payload: { n: 19 } }, { payload: { n: 20 } }, { payload: { n: 21 } }, { payload: { n: 22 } }, { payload: { n: 23 } }, { payload: { n: 24 } }, { payload: { n: 25 } }, { payload: { n: 26 } }, { payload: { n: 27 } }, { payload: { n: 28 } }, { payload: { n: 29 } }, { payload: { n: 30 } }, { payload: { n: 31 } }, { payload: { n: 32 } }, { payload: { n: 33 } }, { payload: { n: 34 } }, { payload: { n: 35 } }, { payload: { n: 36 } }, { payload: { n: 37 } }, { payload: { n: 38 } }, { payload: { n: 39 } }, { payload: { n: 40 } }, { payload: { n: 41 } }, { payload: { n: 42 } }, { payload: { n: 43 } }, { payload: { n: 44 } }, { payload: { n: 45 } }, { payload: { n: 46 } }, { payload: { n: 47 } }, { payload: { n: 48 } }, { payload: { n: 49 } }, { payload: { n: 50 } }, { payload: { n: 51 } }, { payload: { n: 52 } }, { payload: { n: 53 } }, { payload: { n: 54 } }, { payload: { n: 55 } }, { payload: { n: 56 } }, { payload: { n: 57 } }, { payload: { n: 58 } }, { payload: { n: 59 } }, { payload: { n: 60 } }, { payload: { n: 61 } }, { payload: { n: 62 } }, { payload: { n: 63 } }, { payload: { n: 64 } }, { payload: { n: 65 } }, { payload: { n: 66 } }, { payload: { n: 67 } }, { payload: { n: 68 } }, { payload: { n: 69 } }, { payload: { n: 70 } }, { payload: { n: 71 } }, { payload: { n: 72 } }, { payload: { n: 73 } }, { payload: { n: 74 } }, { payload: { n: 75 } }, { payload: { n: 76 } }, { payload: { n: 77 } }, { payload: { n: 78 } }, { payload: { n: 79 } }, { payload: { n: 80 } }, { payload: { n: 81 } }, { payload: { n: 82 } }, { payload: { n: 83 } }, { payload: { n: 84 } }, { payload: { n: 85 } }, { payload: { n: 86 } }, { payload: { n: 87 } }, { payload: { n: 88 } }, { payload: { n: 89 } }, { payload: { n: 90 } }, { payload: { n: 91 } }, { payload: { n: 92 } }, { payload: { n: 93 } }, { payload: { n: 94 } }, { payload: { n: 95 } }, { payload: { n: 96 } }, { payload: { n: 97 } }, { payload: { n: 98 } }, { payload: { n: 99 } }, { payload: { n: 100 } }, { payload: { n: 101 } }, { payload: { n: 102 } }, { payload: { n: 103 } }, { payload: { n: 104 } }, { payload: { n: 105 } }, { payload: { n: 106 } }, { payload: { n: 107 } }, { payload: { n: 108 } }, { payload: { n: 109 } }, { payload: { n: 110 } }, { payload: { n: 111 } }, { payload: { n: 112 } }, { payload: { n: 113 } }, { payload: { n: 114 } }, { payload: { n: 115 } }, { payload: { n: 116 } }, { payload: { n: 117 } }, { payload: { n: 118 } }, { payload: { n: 119 } }, { payload: { n: 120 } }, { payload: { n: 121 } }, { payload: { n: 122 } }, { payload: { n: 123 } }, { payload: { n: 124 } }, { payload: { n: 125 } }, { payload: { n: 126 } }, { payload: { n: 127 } }, { payload: { n: 128 } }, { payload: { n: 129 } }, { payload: { n: 130 } }, { payload: { n: 131 } }, { payload: { n: 132 } }, { payload: { n: 133 } }, { payload: { n: 134 } }, { payload: { n: 135 } }, { payload: { n: 136 } }, { payload: { n: 137 } }, { payload: { n: 138 } }, { payload: { n: 139 } }, { payload: { n: 140 } }, { payload: { n: 141 } }, { payload: { n: 142 } }, { payload: { n: 143 } }, { payload: { n: 144 } }, { payload: { n: 145 } }, { payload: { n: 146 } }, { payload: { n: 147 } }, { payload: { n: 148 } }, { payload: { n: 149 } }, { payload: { n: 150 } }, { payload: { n: 151 } }, { payload: { n: 152 } }, { payload: { n: 153 } }, { payload: { n: 154 } }, { payload: { n: 155 } }, { payload: { n: 156 } }, { payload: { n: 157 } }, { payload: { n: 158 } }, { payload: { n: 159 } }, { payload: { n: 160 } }, { payload: { n: 161 } }, { payload: { n: 162 } }, { payload: { n: 163 } }, { payload: { n: 164 } }, { payload: { n: 165 } }, { payload: { n: 166 } }, { payload: { n: 167 } }, { payload: { n: 168 } }, { payload: { n: 169 } }, { payload: { n: 170 } }, { payload: { n: 171 } }, { payload: { n: 172 } }, { payload: { n: 173 } }, { payload: { n: 174 } }, { payload: { n: 175 } }, { payload: { n: 176 } }, { payload: { n: 177 } }, { payload: { n: 178 } }, { payload: { n: 179 } }, { payload: { n: 180 } }, { payload: { n: 181 } }, { payload: { n: 182 } }, { payload: { n: 183 } }, { payload: { n: 184 } }, { payload: { n: 185 } }, { payload: { n: 186 } }, { payload: { n: 187 } }, { payload: { n: 188 } }, { payload: { n: 189 } }, { payload: { n: 190 } }, { payload: { n: 191 } }, { payload: { n: 192 } }, { payload: { n: 193 } }, { payload: { n: 194 } }, { payload: { n: 195 } }, { payload: { n: 196 } }, { payload: { n: 197 } }, { payload: { n: 198 } }, { payload: { n: 199 } }, { payload: { n: 200 } }, { payload: { n: 201 } }, { payload: { n: 202 } }, { payload: { n: 203 } }, { payload: { n: 204 } }, { payload: { n: 205 } }, { payload: { n: 206 } }, { payload: { n: 207 } }, { payload: { n: 208 } }, { payload: { n: 209 } }, { payload: { n: 210 } }, { payload: { n: 211 } }, { payload: { n: 212 } }, { payload: { n: 213 } }, { payload: { n: 214 } }, { payload: { n: 215 } }, { payload: { n: 216 } }, { payload: { n: 217 } }, { payload: { n: 218 } }, { payload: { n: 219 } }, { payload: { n: 220 } }, { payload: { n: 221 } }, { payload: { n: 222 } }, { payload: { n: 223 } }, { payload: { n: 224 } }, { payload: { n: 225 } }, { payload: { n: 226 } }, { payload: { n: 227 } }, { payload: { n: 228 } }, { payload: { n: 229 } }, { payload: { n: 230 } }, { payload: { n: 231 } }, { payload: { n: 232 } }, { payload: { n: 233 } }, { payload: { n: 234 } }, { payload: { n: 235 } }, { payload: { n: 236 } }, { payload: { n: 237 } }, { payload: { n: 238 } }, { payload: { n: 239 } }, { payload: { n: 240 } }, { payload: { n: 241 } }, { payload: { n: 242 } }, { payload: { n: 243 } }, { payload: { n: 244 } }, { payload: { n: 245 } }, { payload: { n: 246 } }, { payload: { n: 247 } }, { payload: { n: 248 } }, { payload: { n: 249 } }, { payload: { n: 250 } }, { payload: { n: 251 } }, { payload: { n: 252 } }, { payload: { n: 253 } }, { payload: { n: 254 } }, { payload: { n: 255 } }, { payload: { n: 256 } }, { payload: { n: 257 } }, { payload: { n: 258 } }, { payload: { n: 259 } }, { payload: { n: 260 } }, { payload: { n: 261 } }, { payload: { n: 262 } }, { payload: { n: 263 } }, { payload: { n: 264 } }, { payload: { n: 265 } }, { payload: { n: 266 } }, { payload: { n: 267 } }, { payload: { n: 268 } }, { payload: { n: 269 } }, { payload: { n: 270 } }, { payload: { n: 271 } }, { payload: { n: 272 } }, { payload: { n: 273 } }, { payload: { n: 274 } }, { payload: { n: 275 } }, { payload: { n: 276 } }, { payload: { n: 277 } }, { payload: { n: 278 } }, { payload: { n: 279 } }, { payload: { n: 280 } }, { payload: { n: 281 } }, { payload: { n: 282 } }, { payload: { n: 283 } }, { payload: { n: 284 } }, { payload: { n: 285 } }, { payload: { n: 286 } }, { payload: { n: 287 } }, { payload: { n: 288 } }, { payload: { n: 289 } }, { payload: { n: 290 } }, { payload: { n: 291 } }, { payload: { n: 292 } }, { payload: { n: 293 } }, { payload: { n: 294 } }, { payload: { n: 295 } }, { payload: { n: 296 } }, { payload: { n: 297 } }, { payload: { n: 298 } }, { payload: { n: 299 } }, { payload: { n: 300 } }, { payload: { n: 301 } }, { payload: { n: 302 } }, { payload: { n: 303 } }, { payload: { n: 304 } }, { payload: { n: 305 } }, { payload: { n: 306 } }, { payload: { n: 307 } }, { payload: { n: 308 } }, { payload: { n: 309 } }, { payload: { n: 310 } }, { payload: { n: 311 } }, { payload: { n: 312 } }, { payload: { n: 313 } }, { payload: { n: 314 } }, { payload: { n: 315 } }, { payload: { n: 316 } }, { payload: { n: 317 } }, { payload: { n: 318 } }, { payload: { n: 319 } }, { payload: { n: 320 } }, { payload: { n: 321 } }, { payload: { n: 322 } }, { payload: { n: 323 } }, { payload: { n: 324 } }, { payload: { n: 325 } }, { payload: { n: 326 } }, { payload: { n: 327 } }, { payload: { n: 328 } }, { payload: { n: 329 } }, { payload: { n: 330 } }, { payload: { n: 331 } }, { payload: { n: 332 } }, { payload: { n: 333 } }, { payload: { n: 334 } }, { payload: { n: 335 } }, { payload: { n: 336 } }, { payload: { n: 337 } }, { payload: { n: 338 } }, { payload: { n: 339 } }, { payload: { n: 340 } }, { payload: { n: 341 } }, { payload: { n: 342 } }, { payload: { n: 343 } }, { payload: { n: 344 } }, { payload: { n: 345 } }, { payload: { n: 346 } }, { payload: { n: 347 } }, { payload: { n: 348 } }, { payload: { n: 349 } }, { payload: { n: 350 } }, { payload: { n: 351 } }, { payload: { n: 352 } }, { payload: { n: 353 } }, { payload: { n: 354 } }, { payload: { n: 355 } }, { payload: { n: 356 } }, { payload: { n: 357 } }, { payload: { n: 358 } }, { payload: { n: 359 } }, { payload: { n: 360 } }, { payload: { n: 361 } }, { payload: { n: 362 } }, { payload: { n: 363 } }, { payload: { n: 364 } }, { payload: { n: 365 } }, { payload: { n: 366 } }, { payload: { n: 367 } }, { payload: { n: 368 } }, { payload: { n: 369 } }, { payload: { n: 370 } }, { payload: { n: 371 } }, { payload: { n: 372 } }, { payload: { n: 373 } }, { payload: { n: 374 } }, { payload: { n: 375 } }, { payload: { n: 376 } }, { payload: { n: 377 } }, { payload: { n: 378 } }, { payload: { n: 379 } }, { payload: { n: 380 } }, { payload: { n: 381 } }, { payload: { n: 382 } }, { payload: { n: 383 } }, { payload: { n: 384 } }, { payload: { n: 385 } }, { payload: { n: 386 } }, { payload: { n: 387 } }, { payload: { n: 388 } }, { payload: { n: 389 } }, { payload: { n: 390 } }, { payload: { n: 391 } }, { payload: { n: 392 } }, { payload: { n: 393 } }, { payload: { n: 394 } }, { payload: { n: 395 } }, { payload: { n: 396 } }, { payload: { n: 397 } }, { payload: { n: 398 } }, { payload: { n: 399 } }, { payload: { n: 400 } }, { payload: { n: 401 } }, { payload: { n: 402 } }, { payload: { n: 403 } }, { payload: { n: 404 } }, { payload: { n: 405 } }, { payload: { n: 406 } }, { payload: { n: 407 } }, { payload: { n: 408 } }, { payload: { n: 409 } }, { payload: { n: 410 } }, { payload: { n: 411 } }, { payload: { n: 412 } }, { payload: { n: 413 } }, { payload: { n: 414 } }, { payload: { n: 415 } }, { payload: { n: 416 } }, { payload: { n: 417 } }, { payload: { n: 418 } }, { payload: { n: 419 } }, { payload: { n: 420 } }, { payload: { n: 421 } }, { payload: { n: 422 } }, { payload: { n: 423 } }, { payload: { n: 424 } }, { payload: { n: 425 } }, { payload: { n: 426 } }, { payload: { n: 427 } }, { payload: { n: 428 } }, { payload: { n: 429 } }, { payload: { n: 430 } }, { payload: { n: 431 } }, { payload: { n: 432 } }, { payload: { n: 433 } }, { payload: { n: 434 } }, { payload: { n: 435 } }, { payload: { n: 436 } }, { payload: { n: 437 } }, { payload: { n: 438 } }, { payload: { n: 439 } }, { payload: { n: 440 } }, { payload: { n: 441 } }, { payload: { n: 442 } }, { payload: { n: 443 } }, { payload: { n: 444 } }, { payload: { n: 445 } }, { payload: { n: 446 } }, { payload: { n: 447 } }, { payload: { n: 448 } }, { payload: { n: 449 } }, { payload: { n: 450 } }, { payload: { n: 451 } }, { payload: { n: 452 } }, { payload: { n: 453 } }, { payload: { n: 454 } }, { payload: { n: 455 } }, { payload: { n: 456 } }, { payload: { n: 457 } }, { payload: { n: 458 } }, { payload: { n: 459 } }, { payload: { n: 460 } }, { payload: { n: 461 } }, { payload: { n: 462 } }, { payload: { n: 463 } }, { payload: { n: 464 } }, { payload: { n: 465 } }, { payload: { n: 466 } }, { payload: { n: 467 } }, { payload: { n: 468 } }, { payload: { n: 469 } }, { payload: { n: 470 } }, { payload: { n: 471 } }, { payload: { n: 472 } }, { payload: { n: 473 } }, { payload: { n: 474 } }, { payload: { n: 475 } }, { payload: { n: 476 } }, { payload: { n: 477 } }, { payload: { n: 478 } }, { payload: { n: 479 } }, { payload: { n: 480 } }, { payload: { n: 481 } }, { payload: { n: 482 } }, { payload: { n: 483 } }, { payload: { n: 484 } }, { payload: { n: 485 } }, { payload: { n: 486 } }, { payload: { n: 487 } }, { payload: { n: 488 } }, { payload: { n: 489 } }, { payload: { n: 490 } }, { payload: { n: 491 } }, { payload: { n: 492 } }, { payload: { n: 493 } }, { payload: { n: 494 } }, { payload: { n: 495 } }, { payload: { n: 496 } }, { payload: { n: 497 } }, { payload: { n: 498 } }, { payload: { n: 499 } }, { payload: { n: 500 } }, { payload: { n: 501 } }, { payload: { n: 502 } }, { payload: { n: 503 } }, { payload: { n: 504 } }, { payload: { n: 505 } }, { payload: { n: 506 } }, { payload: { n: 507 } }, { payload: { n: 508 } }, { payload: { n: 509 } }, { payload: { n: 510 } }, { payload: { n: 511 } }, { payload: { n: 512 } }, { payload: { n: 513 } }, { payload: { n: 514 } }, { payload: { n: 515 } }, { payload: { n: 516 } }, { payload: { n: 517 } }, { payload: { n: 518 } }, { payload: { n: 519 } }, { payload: { n: 520 } }, { payload: { n: 521 } }, { payload: { n: 522 } }, { payload: { n: 523 } }, { payload: { n: 524 } }, { payload: { n: 525 } }, { payload: { n: 526 } }, { payload: { n: 527 } }, { payload: { n: 528 } }, { payload: { n: 529 } }, { payload: { n: 530 } }, { payload: { n: 531 } }, { payload: { n: 532 } }, { payload: { n: 533 } }, { payload: { n: 534 } }, { payload: { n: 535 } }, { payload: { n: 536 } }, { payload: { n: 537 } }, { payload: { n: 538 } }, { payload: { n: 539 } }, { payload: { n: 540 } }, { payload: { n: 541 } }, { payload: { n: 542 } }, { payload: { n: 543 } }, { payload: { n: 544 } }, { payload: { n: 545 } }, { payload: { n: 546 } }, { payload: { n: 547 } }, { payload: { n: 548 } }, { payload: { n: 549 } }, { payload: { n: 550 } }, { payload: { n: 551 } }, { payload: { n: 552 } }, { payload: { n: 553 } }, { payload: { n: 554 } }, { payload: { n: 555 } }, { payload: { n: 556 } }, { payload: { n: 557 } }, { payload: { n: 558 } }, { payload: { n: 559 } }, { payload: { n: 560 } }, { payload: { n: 561 } }, { payload: { n: 562 } }, { payload: { n: 563 } }, { payload: { n: 564 } }, { payload: { n: 565 } }, { payload: { n: 566 } }, { payload: { n: 567 } }, { payload: { n: 568 } }, { payload: { n: 569 } }, { payload: { n: 570 } }, { payload: { n: 571 } }, { payload: { n: 572 } }, { payload: { n: 573 } }, { payload: { n: 574 } }, { payload: { n: 575 } }, { payload: { n: 576 } }, { payload: { n: 577 } }, { payload: { n: 578 } }, { payload: { n: 579 } }, { payload: { n: 580 } }, { payload: { n: 581 } }, { payload: { n: 582 } }, { payload: { n: 583 } }, { payload: { n: 584 } }, { payload: { n: 585 } }, { payload: { n: 586 } }, { payload: { n: 587 } }, { payload: { n: 588 } }, { payload: { n: 589 } }, { payload: { n: 590 } }, { payload: { n: 591 } }, { payload: { n: 592 } }, { payload: { n: 593 } }, { payload: { n: 594 } }, { payload: { n: 595 } }, { payload: { n: 596 } }, { payload: { n: 597 } }, { payload: { n: 598 } }, { payload: { n: 599 } }, { payload: { n: 600 } }, { payload: { n: 601 } }, { payload: { n: 602 } }, { payload: { n: 603 } }, { payload: { n: 604 } }, { payload: { n: 605 } }, { payload: { n: 606 } }, { payload: { n: 607 } }, { payload: { n: 608 } }, { payload: { n: 609 } }, { payload: { n: 610 } }, { payload: { n: 611 } }, { payload: { n: 612 } }, { payload: { n: 613 } }, { payload: { n: 614 } }, { payload: { n: 615 } }, { payload: { n: 616 } }, { payload: { n: 617 } }, { payload: { n: 618 } }, { payload: { n: 619 } }, { payload: { n: 620 } }, { payload: { n: 621 } }, { payload: { n: 622 } }, { payload: { n: 623 } }, { payload: { n: 624 } }, { payload: { n: 625 } }, { payload: { n: 626 } }, { payload: { n: 627 } }, { payload: { n: 628 } }, { payload: { n: 629 } }, { payload: { n: 630 } }, { payload: { n: 631 } }, { payload: { n: 632 } }, { payload: { n: 633 } }, { payload: { n: 634 } }, { payload: { n: 635 } }, { payload: { n: 636 } }, { payload: { n: 637 } }, { payload: { n: 638 } }, { payload: { n: 639 } }, { payload: { n: 640 } }, { payload: { n: 641 } }, { payload: { n: 642 } }, { payload: { n: 643 } }, { payload: { n: 644 } }, { payload: { n: 645 } }, { payload: { n: 646 } }, { payload: { n: 647 } }, { payload: { n: 648 } }, { payload: { n: 649 } }, { payload: { n: 650 } }, { payload: { n: 651 } }, { payload: { n: 652 } }, { payload: { n: 653 } }, { payload: { n: 654 } }, { payload: { n: 655 } }, { payload: { n: 656 } }, { payload: { n: 657 } }, { payload: { n: 658 } }, { payload: { n: 659 } }, { payload: { n: 660 } }, { payload: { n: 661 } }, { payload: { n: 662 } }, { payload: { n: 663 } }, { payload: { n: 664 } }, { payload: { n: 665 } }, { payload: { n: 666 } }, { payload: { n: 667 } }, { payload: { n: 668 } }, { payload: { n: 669 } }, { payload: { n: 670 } }, { payload: { n: 671 } }, { payload: { n: 672 } }, { payload: { n: 673 } }, { payload: { n: 674 } }, { payload: { n: 675 } }, { payload: { n: 676 } }, { payload: { n: 677 } }, { payload: { n: 678 } }, { payload: { n: 679 } }, { payload: { n: 680 } }, { payload: { n: 681 } }, { payload: { n: 682 } }, { payload: { n: 683 } }, { payload: { n: 684 } }, { payload: { n: 685 } }, { payload: { n: 686 } }, { payload: { n: 687 } }, { payload: { n: 688 } }, { payload: { n: 689 } }, { payload: { n: 690 } }, { payload: { n: 691 } }, { payload: { n: 692 } }, { payload: { n: 693 } }, { payload: { n: 694 } }, { payload: { n: 695 } }, { payload: { n: 696 } }, { payload: { n: 697 } }, { payload: { n: 698 } }, { payload: { n: 699 } }, { payload: { n: 700 } }, { payload: { n: 701 } }, { payload: { n: 702 } }, { payload: { n: 703 } }, { payload: { n: 704 } }, { payload: { n: 705 } }, { payload: { n: 706 } }, { payload: { n: 707 } }, { payload: { n: 708 } }, { payload: { n: 709 } }, { payload: { n: 710 } }, { payload: { n: 711 } }, { payload: { n: 712 } }, { payload: { n: 713 } }, { payload: { n: 714 } }, { payload: { n: 715 } }, { payload: { n: 716 } }, { payload: { n: 717 } }, { payload: { n: 718 } }, { payload: { n: 719 } }, { payload: { n: 720 } }, { payload: { n: 721 } }, { payload: { n: 722 } }, { payload: { n: 723 } }, { payload: { n: 724 } }, { payload: { n: 725 } }, { payload: { n: 726 } }, { payload: { n: 727 } }, { payload: { n: 728 } }, { payload: { n: 729 } }, { payload: { n: 730 } }, { payload: { n: 731 } }, { payload: { n: 732 } }, { payload: { n: 733 } }, { payload: { n: 734 } }, { payload: { n: 735 } }, { payload: { n: 736 } }, { payload: { n: 737 } }, { payload: { n: 738 } }, { payload: { n: 739 } }, { payload: { n: 740 } }, { payload: { n: 741 } }, { payload: { n: 742 } }, { payload: { n: 743 } }, { payload: { n: 744 } }, { payload: { n: 745 } }, { payload: { n: 746 } }, { payload: { n: 747 } }, { payload: { n: 748 } }, { payload: { n: 749 } }, { payload: { n: 750 } }, { payload: { n: 751 } }, { payload: { n: 752 } }, { payload: { n: 753 } }, { payload: { n: 754 } }, { payload: { n: 755 } }, { payload: { n: 756 } }, { payload: { n: 757 } }, { payload: { n: 758 } }, { payload: { n: 759 } }, { payload: { n: 760 } }, { payload: { n: 761 } }, { payload: { n: 762 } }, { payload: { n: 763 } }, { payload: { n: 764 } }, { payload: { n: 765 } }, { payload: { n: 766 } }, { payload: { n: 767 } }, { payload: { n: 768 } }, { payload: { n: 769 } }, { payload: { n: 770 } }, { payload: { n: 771 } }, { payload: { n: 772 } }, { payload: { n: 773 } }, { payload: { n: 774 } }, { payload: { n: 775 } }, { payload: { n: 776 } }, { payload: { n: 777 } }, { payload: { n: 778 } }, { payload: { n: 779 } }, { payload: { n: 780 } }, { payload: { n: 781 } }, { payload: { n: 782 } }, { payload: { n: 783 } }, { payload: { n: 784 } }, { payload: { n: 785 } }, { payload: { n: 786 } }, { payload: { n: 787 } }, { payload: { n: 788 } }, { payload: { n: 789 } }, { payload: { n: 790 } }, { payload: { n: 791 } }, { payload: { n: 792 } }, { payload: { n: 793 } }, { payload: { n: 794 } }, { payload: { n: 795 } }, { payload: { n: 796 } }, { payload: { n: 797 } }, { payload: { n: 798 } }, { payload: { n: 799 } }, { payload: { n: 800 } }, { payload: { n: 801 } }, { payload: { n: 802 } }, { payload: { n: 803 } }, { payload: { n: 804 } }, { payload: { n: 805 } }, { payload: { n: 806 } }, { payload: { n: 807 } }, { payload: { n: 808 } }, { payload: { n: 809 } }, { payload: { n: 810 } }, { payload: { n: 811 } }, { payload: { n: 812 } }, { payload: { n: 813 } }, { payload: { n: 814 } }, { payload: { n: 815 } }, { payload: { n: 816 } }, { payload: { n: 817 } }, { payload: { n: 818 } }, { payload: { n: 819 } }, { payload: { n: 820 } }, { payload: { n: 821 } }, { payload: { n: 822 } }, { payload: { n: 823 } }, { payload: { n: 824 } }, { payload: { n: 825 } }, { payload: { n: 826 } }, { payload: { n: 827 } }, { payload: { n: 828 } }, { payload: { n: 829 } }, { payload: { n: 830 } }, { payload: { n: 831 } }, { payload: { n: 832 } }, { payload: { n: 833 } }, { payload: { n: 834 } }, { payload: { n: 835 } }, { payload: { n: 836 } }, { payload: { n: 837 } }, { payload: { n: 838 } }, { payload: { n: 839 } }, { payload: { n: 840 } }, { payload: { n: 841 } }, { payload: { n: 842 } }, { payload: { n: 843 } }, { payload: { n: 844 } }, { payload: { n: 845 } }, { payload: { n: 846 } }, { payload: { n: 847 } }, { payload: { n: 848 } }, { payload: { n: 849 } }, { payload: { n: 850 } }, { payload: { n: 851 } }, { payload: { n: 852 } }, { payload: { n: 853 } }, { payload: { n: 854 } }, { payload: { n: 855 } }, { payload: { n: 856 } }, { payload: { n: 857 } }, { payload: { n: 858 } }, { payload: { n: 859 } }, { payload: { n: 860 } }, { payload: { n: 861 } }, { payload: { n: 862 } }, { payload: { n: 863 } }, { payload: { n: 864 } }, { payload: { n: 865 } }, { payload: { n: 866 } }, { payload: { n: 867 } }, { payload: { n: 868 } }, { payload: { n: 869 } }, { payload: { n: 870 } }, { payload: { n: 871 } }, { payload: { n: 872 } }, { payload: { n: 873 } }, { payload: { n: 874 } }, { payload: { n: 875 } }, { payload: { n: 876 } }, { payload: { n: 877 } }, { payload: { n: 878 } }, { payload: { n: 879 } }, { payload: { n: 880 } }, { payload: { n: 881 } }, { payload: { n: 882 } }, { payload: { n: 883 } }, { payload: { n: 884 } }, { payload: { n: 885 } }, { payload: { n: 886 } }, { payload: { n: 887 } }, { payload: { n: 888 } }, { payload: { n: 889 } }, { payload: { n: 890 } }, { payload: { n: 891 } }, { payload: { n: 892 } }, { payload: { n: 893 } }, { payload: { n: 894 } }, { payload: { n: 895 } }, { payload: { n: 896 } }, { payload: { n: 897 } }, { payload: { n: 898 } }, { payload: { n: 899 } }, { payload: { n: 900 } }, { payload: { n: 901 } }, { payload: { n: 902 } }, { payload: { n: 903 } }, { payload: { n: 904 } }, { payload: { n: 905 } }, { payload: { n: 906 } }, { payload: { n: 907 } }, { payload: { n: 908 } }, { payload: { n: 909 } }, { payload: { n: 910 } }, { payload: { n: 911 } }, { payload: { n: 912 } }, { payload: { n: 913 } }, { payload: { n: 914 } }, { payload: { n: 915 } }, { payload: { n: 916 } }, { payload: { n: 917 } }, { payload: { n: 918 } }, { payload: { n: 919 } }, { payload: { n: 920 } }, { payload: { n: 921 } }, { payload: { n: 922 } }, { payload: { n: 923 } }, { payload: { n: 924 } }, { payload: { n: 925 } }, { payload: { n: 926 } }, { payload: { n: 927 } }, { payload: { n: 928 } }, { payload: { n: 929 } }, { payload: { n: 930 } }, { payload: { n: 931 } }, { payload: { n: 932 } }, { payload: { n: 933 } }, { payload: { n: 934 } }, { payload: { n: 935 } }, { payload: { n: 936 } }, { payload: { n: 937 } }, { payload: { n: 938 } }, { payload: { n: 939 } }, { payload: { n: 940 } }, { payload: { n: 941 } }, { payload: { n: 942 } }, { payload: { n: 943 } }, { payload: { n: 944 } }, { payload: { n: 945 } }, { payload: { n: 946 } }, { payload: { n: 947 } }, { payload: { n: 948 } }, { payload: { n: 949 } }, { payload: { n: 950 } }, { payload: { n: 951 } }, { payload: { n: 952 } }, { payload: { n: 953 } }, { payload: { n: 954 } }, { payload: { n: 955 } }, { payload: { n: 956 } }, { payload: { n: 957 } }, { payload: { n: 958 } }, { payload: { n: 959 } }, { payload: { n: 960 } }, { payload: { n: 961 } }, { payload: { n: 962 } }, { payload: { n: 963 } }, { payload: { n: 964 } }, { payload: { n: 965 } }, { payload: { n: 966 } }, { payload: { n: 967 } }, { payload: { n: 968 } }, { payload: { n: 969 } }, { payload: { n: 970 } }, { payload: { n: 971 } }, { payload: { n: 972 } }, { payload: { n: 973 } }, { payload: { n: 974 } }, { payload: { n: 975 } }, { payload: { n: 976 } }, { payload: { n: 977 } }, { payload: { n: 978 } }, { payload: { n: 979 } }, { payload: { n: 980 } }, { payload: { n: 981 } }, { payload: { n: 982 } }, { payload: { n: 983 } }, { payload: { n: 984 } }, { payload: { n: 985 } }, { payload: { n: 986 } }, { payload: { n: 987 } }, { payload: { n: 988 } }, { payload: { n: 989 } }, { payload: { n: 990 } }, { payload: { n: 991 } }, { payload: { n: 992 } }, { payload: { n: 993 } }, { payload: { n: 994 } }, { payload: { n: 995 } }, { payload: { n: 996 } }, { payload: { n: 997 } }, { payload: { n: 998 } }, { payload: { n: 999 } }, { payload: { n: 1000 } }]);\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const bulk = task({\n  id: \"bulk\",\n  run: async (payload) => {\n    await tasks.batchTrigger(\"child\", [{ payload: { id: \"1\" } }, { payload: { id: \"2\" } }]);\n  },\n});"
+    ],
+    "good": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\nimport { BatchTriggerError } from \"@trigger.dev/sdk\";\n\nexport const bulk = task({\n  id: \"bulk\",\n  run: async (payload) => {\n    try {\n      await tasks.batchTrigger(\"child\", [{ payload: { id: \"1\" } }, { payload: { id: \"2\" } }]);\n    } catch (error) {\n      if (error instanceof BatchTriggerError && error.isRateLimited) {\n        console.error(\"rate limited\");\n      }\n      throw error;\n    }\n  },\n});"
+    ]
+   }
+  },
+  {
+   "id": "TSK-07",
+   "family": "TSK",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\\b(?:const|let|var)\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*await\\s+import\\s*\\((?:[^()]|\\([^()]*\\))*\\)[\\s\\S]*?\\b\\1(?:\\.[A-Za-z_$][\\w$]*)?\\.(?:trigger|batchTrigger)\\s*\\("
+     },
+     {
+      "type": "regex",
+      "pattern": "\\b(?:const|let|var)\\s*\\{\\s*([A-Za-z_$][\\w$]*)[^}]*\\}\\s*=\\s*await\\s+import\\s*\\((?:[^()]|\\([^()]*\\))*\\)[\\s\\S]*?\\b\\1\\.(?:trigger|batchTrigger)\\s*\\("
+     }
+    ]
+   },
+   "message": "triggers a task through a binding loaded with await import(); see COULD_NOT_FIND_EXECUTOR in the troubleshooting doc",
+   "fix": "use a top-level import, or tasks.trigger(\"<task-id>\", payload)",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/troubleshooting#could_not_find_executor",
+   "examples": {
+    "bad": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const lazyRunner = task({\n  id: \"lazyRunner\",\n  run: async (payload) => {\n    const mod = await import(\"./tasks/child\");\n    await mod.childTask.trigger({ n: 1 });\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const lazyRunner = task({\n  id: \"lazyRunner\",\n  run: async (payload) => {\n    const { childTask } = await import(\"./tasks/child\");\n    await childTask.trigger({ n: 1 });\n  },\n});"
+    ],
+    "good": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const lazyRunner = task({\n  id: \"lazyRunner\",\n  run: async (payload) => {\n    const mod = await import(\"./utils/format\");\n    return mod.format(1);\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const lazyRunner = task({\n  id: \"lazyRunner\",\n  run: async (payload) => {\n    await tasks.trigger(\"child\", { n: 1 });\n  },\n});"
+    ]
+   }
+  },
+  {
+   "id": "TSK-08",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does a catch block inside run() log or swallow the error and then return normally, without rethrowing and without throwing AbortTaskRunError? Report only that case. A catch that rethrows, or throws AbortTaskRunError, is not a hit.",
+   "message": "a catch inside run() logs the error and returns normally, so the run finishes as Completed",
+   "fix": "rethrow the error, or throw AbortTaskRunError when a retry cannot help",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/errors-retrying"
+  },
+  {
+   "id": "TSK-09",
+   "family": "TSK",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "For each error thrown in run(): is AbortTaskRunError used for a failure a retry could fix (timeout, 429, 5xx, network reset), or is a plain Error thrown for a failure no retry can fix (validation, 4xx other than 429, record not found)? Report only a clear mismatch.",
+   "message": "AbortTaskRunError turns off retries for that attempt; a plain Error is retried under the retry settings of the task",
+   "fix": "choose by retryability: AbortTaskRunError for permanent failures, a plain Error for transient ones; use catchError for per-error handling",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/errors-retrying"
+  },
+  {
+   "id": "TSK-10",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does a payment, email or charge call inside run() send no provider idempotency key? A key built from ctx.run.id or a business id is not a hit, and neither is a call that only reads data.",
+   "message": "a payment, email or charge call inside run() has no provider idempotency key, so a retried attempt can repeat it",
+   "fix": "pass a provider idempotency key built from ctx.run.id or a business id",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/idempotency"
+  },
+  {
+   "id": "TSK-11",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bidempotencyKey\\s*:\\s*[^,}\\n]*?\\b(?:randomUUID|uuid\\w*|v4|nanoid|Date\\.now|Math\\.random)\\s*\\("
+   },
+   "message": "idempotencyKey is built from randomUUID, uuid, nanoid, Date.now or Math.random, so each trigger gets a new key and deduplication never matches",
+   "fix": "derive the key from a stable business id",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/idempotency",
+   "examples": {
+    "bad": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\nimport { randomUUID } from \"node:crypto\";\n\nexport const enqueue = task({\n  id: \"enqueue\",\n  run: async (payload) => {\n    await tasks.trigger(\"charge\", payload, { idempotencyKey: randomUUID() });\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const enqueue = task({\n  id: \"enqueue\",\n  run: async (payload) => {\n    await tasks.trigger(\"charge\", payload, { idempotencyKey: `charge-${Date.now()}` });\n  },\n});"
+    ],
+    "good": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const enqueue = task({\n  id: \"enqueue\",\n  run: async (payload) => {\n    await tasks.trigger(\"charge\", payload, { idempotencyKey: `charge-${payload.orderId}` });\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\nimport { idempotencyKeys } from \"@trigger.dev/sdk\";\n\nexport const enqueue = task({\n  id: \"enqueue\",\n  run: async (payload) => {\n    const key = await idempotencyKeys.create(\"charge\");\n    await tasks.trigger(\"charge\", payload, { idempotencyKey: key });\n  },\n});"
+    ]
+   }
+  },
+  {
+   "id": "TSK-12",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Inside a task, is a raw-string idempotency key, or a key from idempotencyKeys.create() with the default scope, meant to make work happen once ever across runs? Report only that case. A key from idempotencyKeys.create() with scope \"global\" is not a hit.",
+   "message": "a raw-string idempotency key inside a task defaults to run scope, so it dedupes only within one run; once-ever needs scope \"global\"",
+   "fix": "create the key with idempotencyKeys.create(key, { scope: \"global\" }) when it must hold across runs",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/idempotency"
+  },
+  {
+   "id": "TSK-13",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Look for synchronous CPU-heavy loops inside task code (parsing, hashing, image or data crunching, nested loops over large arrays) that run longer than about a minute without awaiting anything. Such a loop blocks the event loop, so heartbeats stop and the run is marked stalled after about 5 minutes. Fix: await heartbeats.yield() inside the loop, move the work to a worker thread, or use a bigger machine.",
+   "message": "a synchronous loop with no await in its body runs with no heartbeats.yield(); a long CPU loop can stop heartbeats",
+   "fix": "await heartbeats.yield() inside the loop, move the work to a worker thread, or use a larger machine",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/runs/heartbeats"
+  },
+  {
+   "id": "TSK-14",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bsetInterval\\s*\\(|\\bsetTimeout\\s*\\((?:[^,()]*,\\s*)?(?:\\d{5,}|\\d{2,3}_\\d{3})\\b|\\bsleep\\s*\\(\\s*(?:\\d{5,}|\\d{2,3}_\\d{3})\\b",
+    "require": "\\btask\\s*\\("
+   },
+   "message": "setInterval, or setTimeout or sleep with a delay of 10 s or more, is used in a task file; the run keeps executing for the whole delay",
+   "fix": "use wait.for() for the delay",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/wait",
+   "examples": {
+    "bad": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const remind = task({\n  id: \"remind\",\n  run: async (payload) => {\n    await new Promise((resolve) => setTimeout(resolve, 300000));\n    return { done: true };\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const remind = task({\n  id: \"remind\",\n  run: async (payload) => {\n    await sleep(60_000);\n    return { done: true };\n  },\n});"
+    ],
+    "good": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const remind = task({\n  id: \"remind\",\n  run: async (payload) => {\n    await new Promise((resolve) => setTimeout(resolve, 500));\n    await wait.for({ minutes: 5 });\n  },\n});"
+    ]
+   }
+  },
+  {
+   "id": "TSK-15",
+   "family": "TSK",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\b(?:for|while)\\s*\\([^)]*\\)\\s*\\{(?:[^{}]|\\{[^{}]*\\})*?\\bwait\\.for\\s*\\(\\s*\\{\\s*seconds\\s*:\\s*[0-5]?\\d\\b(?!\\s*[*\\d_])"
+   },
+   "message": "wait.for({ seconds }) under 60 inside a polling loop; below 60 s the run keeps its concurrency slot for the whole wait",
+   "fix": "use an interval of 60 seconds or more, or a waitpoint token",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/concurrency#short-time-based-waits-keep-their-slot",
+   "examples": {
+    "bad": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const poll = task({\n  id: \"poll\",\n  run: async (payload) => {\n    for (let attempt = 0; attempt < 10; attempt++) {\n      const res = await fetch(payload.url);\n      if (res.ok) return { attempt };\n      await wait.for({ seconds: 15 });\n    }\n    throw new Error(\"gave up\");\n  },\n});"
+    ],
+    "good": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const once = task({\n  id: \"once\",\n  run: async (payload) => {\n    await wait.for({ seconds: 5 });\n    return {};\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const poll = task({\n  id: \"poll\",\n  run: async (payload) => {\n    for (let attempt = 0; attempt < 10; attempt++) {\n      if (await check()) break;\n      await wait.for({ seconds: 60 });\n    }\n  },\n});"
+    ]
+   }
+  }
+ ]
+}

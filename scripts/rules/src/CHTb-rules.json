@@ -1,0 +1,316 @@
+{
+ "rules": [
+  {
+   "id": "CHT-15",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\\b(?:express\\.json|express\\.urlencoded|bodyParser\\.(?:json|urlencoded|text|raw))\\s*\\(",
+      "require": "\\bchat\\.toNodeListener\\s*\\("
+     },
+     {
+      "type": "import",
+      "from": "(?:^|/)trigger/",
+      "require": "\\bchat\\.headStart\\s*\\(",
+      "skipTypeOnly": true
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bchat\\.headStart\\s*\\(",
+      "unless": "\\bmaxDuration\\s*="
+     }
+    ]
+   },
+   "judge": "Confirm the hit is a Head Start route (chat.headStart, or chat.toNodeListener in front of it). Then check three parts: (1) no body parser (express.json, express.urlencoded, bodyParser) runs before chat.toNodeListener on that route; (2) the route imports schema-only tools, not a trigger/ module or heavy execute; (3) a maxDuration export is set when the route runs on serverless (see the doc for per-platform timeouts). Report which parts fail.",
+   "message": "This Head Start route has a body parser, a trigger/ module import, or no maxDuration export.",
+   "fix": "Skip body parsing on the chat route (or scope it to other routes); import schema-only tools from a module that does not import trigger/; export maxDuration on the route segment.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/fast-starts#head-start",
+   "examples": {
+    "bad": [
+     "import express from 'express';\nimport { chat } from '@trigger.dev/sdk/ai';\nconst app = express();\napp.use(express.json());\nconst headStart = chat.headStart({ agentId: 'my-chat', run: async (opts) => opts });\napp.post('/api/chat', chat.toNodeListener(headStart));\n",
+     "import { chat } from '@trigger.dev/sdk/ai';\nimport { fetchPage } from '@/trigger/chat-tools';\nexport const POST = chat.headStart({\n  agentId: 'my-chat',\n  run: async (opts) => opts,\n});\n"
+    ],
+    "good": [
+     "import { chat } from '@trigger.dev/sdk/ai';\nimport { fetchPage } from '@/lib/chat-tools/schemas';\nexport const maxDuration = 60;\nexport const POST = chat.headStart({\n  agentId: 'my-chat',\n  run: async (opts) => opts,\n});\n",
+     "import express from 'express';\nimport { chat } from '@trigger.dev/sdk/ai';\nconst app = express();\napp.post('/api/chat', chat.toNodeListener(handler));\n"
+    ]
+   }
+  },
+  {
+   "id": "CHT-16",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "\\btool",
+      "contains": "\\bexecute\\s*[:,]",
+      "argsMatch": "\\b(?:[Aa]sk|[Qq]uestion|[Cc]larif)\\w*"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\baddToolOutput\\s*\\(",
+      "unless": "\\bsendAutomaticallyWhen\\b"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bneedsApproval\\s*:"
+     }
+    ]
+   },
+   "judge": "For each hit decide which part fires: (a) a question or choice tool still has execute, so the answer is produced on the server instead of the frontend (the question pattern omits execute); (b) addToolOutput is called where useChat has no sendAutomaticallyWhen, so the next turn is not sent by itself; (c) needsApproval is set while the project's ai package is version 5 (the option is documented for AI SDK 6 or later). Report only the parts that hold.",
+   "message": "A question-style tool has execute, addToolOutput has no sendAutomaticallyWhen, or needsApproval is set.",
+   "fix": "Per the HITL pattern: omit execute on question tools and answer them with addToolOutput; pair addToolOutput with sendAutomaticallyWhen; keep needsApproval for AI SDK 6 or later.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/patterns/human-in-the-loop",
+   "examples": {
+    "bad": [
+     "import { tool } from 'ai';\nimport { z } from 'zod';\nimport { chat } from '@trigger.dev/sdk/ai';\n\nexport const askUser = tool({\n  description: 'Ask the user a clarifying question.',\n  inputSchema: z.object({ question: z.string() }),\n  execute: async ({ question }) => ({ answer: question }),\n});\n",
+     "import { useChat } from '@ai-sdk/react';\nimport { useTriggerChatTransport } from '@trigger.dev/sdk/chat/react';\n\nexport function Question() {\n  const { messages, addToolOutput } = useChat({\n    transport: useTriggerChatTransport(),\n  });\n  return <button onClick={() => addToolOutput({ tool: 'askUser', toolCallId: '1', output: { ok: true } })}>ok</button>;\n}\n",
+     "import { tool } from 'ai';\nimport { z } from 'zod';\nimport { chat } from '@trigger.dev/sdk/ai';\n\nexport const sendEmail = tool({\n  description: 'Send an email to a contact.',\n  inputSchema: z.object({ to: z.string() }),\n  needsApproval: true,\n  execute: async ({ to }) => ({ sent: to }),\n});\n"
+    ],
+    "good": [
+     "import { tool } from 'ai';\nimport { z } from 'zod';\nimport { chat } from '@trigger.dev/sdk/ai';\n\nexport const askUser = tool({\n  description: 'Ask the user a clarifying question.',\n  inputSchema: z.object({ question: z.string() }),\n});\n",
+     "import { useChat } from '@ai-sdk/react';\nimport { lastAssistantMessageIsCompleteWithToolCalls } from 'ai';\nimport { useTriggerChatTransport } from '@trigger.dev/sdk/chat/react';\n\nexport function Question() {\n  const { messages, addToolOutput } = useChat({\n    transport: useTriggerChatTransport(),\n    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,\n  });\n  return <button onClick={() => addToolOutput({ tool: 'askUser', toolCallId: '1', output: { ok: true } })}>ok</button>;\n}\n",
+     "import { tool } from 'ai';\nimport { z } from 'zod';\nimport { chat } from '@trigger.dev/sdk/ai';\n\nexport const searchDocs = tool({\n  description: 'Search the docs index.',\n  inputSchema: z.object({ query: z.string() }),\n  execute: async ({ query }) => ({ hits: [query] }),\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "CHT-17",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Decide whether a tool output or chat write in this file can exceed about 1 MiB for realistic inputs: fetched pages, file or search contents, query results, base64 media, or a value passed to chat.response.write or a custom writer.write part. Hit only when the large value is written to the chat stream itself rather than stored and referenced by id. Small status values are not hit.",
+   "message": "A tool output or chat write here can exceed the ~1 MiB per-record cap on the chat stream.",
+   "fix": "Store the large value in your own store and emit only an id on the stream; the UI loads it by id.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/patterns/large-payloads"
+  },
+  {
+   "id": "CHT-18",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Find tools in chat.agent whose execute performs a side effect: sending a message or email, charging, creating or deleting a record, calling a paid API. A turn that is retried after an OOM or regenerated re-runs the whole turn including the tool call, and side effects are not rolled back. Hit when the side effect has no idempotency key passed to the provider and no external checkpoint. Read-only tools are not hit.",
+   "message": "This side-effecting tool has no idempotency key, so a retried or regenerated turn can repeat its side effect.",
+   "fix": "Pass an idempotency key to the provider call, or checkpoint progress externally, so a re-run does not repeat the effect.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/patterns/oom-resilience"
+  },
+  {
+   "id": "CHT-19",
+   "family": "CHT",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\\bawait\\s+chat\\.endAndContinue\\s*\\([^)]*\\)\\s*;\\s*(?!return\\b|\\})[A-Za-z_$(]"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\blockToVersion\\s*:",
+      "require": "\\brequestUpgrade\\s*\\("
+     }
+    ]
+   },
+   "message": "Code runs after await chat.endAndContinue(), though the Session is already handed to a new run; (W) a lockToVersion pin with chat.requestUpgrade() keeps the upgrade on the same version.",
+   "fix": "Return right after await chat.endAndContinue() with no more Session reads or writes; for upgrades, use an external deployment id (externalDeploymentId on chat.requestUpgrade()) instead of a lockToVersion pin.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/patterns/version-upgrades",
+   "examples": {
+    "bad": [
+     "import { chat } from '@trigger.dev/sdk/ai';\n\nexport const handoff = chat.customAgent({\n  id: 'custom-chat',\n  run: async (ctx) => {\n    await chat.endAndContinue();\n    console.log('handed over');\n    return;\n  },\n});\n",
+     "import { chat } from '@trigger.dev/sdk/ai';\n\nexport const myChat = chat.agent({\n  id: 'my-chat',\n  triggerConfig: { lockToVersion: '20260101.1' },\n  run: async ({ messages, signal }) => {\n    chat.requestUpgrade({ externalDeploymentId: 'abc' });\n    return;\n  },\n});\n"
+    ],
+    "good": [
+     "import { chat } from '@trigger.dev/sdk/ai';\n\nexport const handoff = chat.customAgent({\n  id: 'custom-chat',\n  run: async (ctx) => {\n    await chat.endAndContinue();\n    return;\n  },\n});\n",
+     "import { chat } from '@trigger.dev/sdk/ai';\n\nexport const handoff = chat.customAgent({\n  id: 'custom-chat',\n  run: async (ctx) => {\n    await chat.endAndContinue();\n  },\n});\n",
+     "import { chat } from '@trigger.dev/sdk/ai';\n\nexport const myChat = chat.agent({\n  id: 'my-chat',\n  run: async ({ messages, signal, clientData }) => {\n    chat.requestUpgrade({ externalDeploymentId: clientData.commitSha });\n    return;\n  },\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "CHT-20",
+   "family": "CHT",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Self-host only: check whether the deployment is self-hosted (TRIGGER_API_URL points at your own server, not the cloud) and whether OBJECT_STORE_* is configured for it. Hit when that config is absent and this chat.agent has no storage option of its own. Cloud projects and agents with their own storage are not hit.",
+   "message": "This self-hosted chat agent has no storage option and no OBJECT_STORE_* config, so a continuation boots with an empty conversation.",
+   "fix": "Configure the OBJECT_STORE_* variables for the self-host, or pass your own storage on the agent.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/patterns/persistence-and-replay"
+  },
+  {
+   "id": "CHT-21",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "package-json",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bai\\\"\\s*:\\s*\\\"[\\^~>=\\s]*7\\b",
+    "mask": "none",
+    "unless": "\\\"@ai-sdk/otel\\\"\\s*:"
+   },
+   "message": "ai 7 is in package.json without @ai-sdk/otel; AI SDK 7 emits model-call spans from that adapter, so they are missing from the run trace.",
+   "fix": "Install @ai-sdk/otel next to ai@7.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/reference",
+   "examples": {
+    "bad": [
+     "{\n  \"name\": \"app\",\n  \"dependencies\": {\n    \"@trigger.dev/sdk\": \"4.0.0\",\n    \"ai\": \"^7.0.0\"\n  }\n}\n"
+    ],
+    "good": [
+     "{\n  \"dependencies\": {\n    \"@trigger.dev/sdk\": \"4.0.0\",\n    \"ai\": \"^7.0.0\",\n    \"@ai-sdk/otel\": \"^1.0.0\"\n  }\n}\n",
+     "{\n  \"dependencies\": {\n    \"ai\": \"^6.0.0\"\n  }\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "CHT-22",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bsystem\\b\\s*[:=][^;]{0,300}?\\b(?:new\\s+Date\\s*\\(|Date\\.now\\s*\\(|toISOString\\s*\\(|randomUUID\\s*\\()",
+    "require": "\\b(?:cacheControl|systemProviderOptions)\\b"
+   },
+   "message": "This system prompt is cached (cacheControl) and builds a timestamp or random id, so its bytes change each turn and the cache never hits.",
+   "fix": "Move the dynamic value out of the system prompt into a per-turn injection, and keep the cached system string byte-stable.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/prompt-caching",
+   "examples": {
+    "bad": [
+     "import { chat } from '@trigger.dev/sdk/ai';\nimport { streamText } from 'ai';\n\nexport const myChat = chat.agent({\n  id: 'my-chat',\n  cacheControl: { type: 'ephemeral' },\n  run: async ({ messages, signal }) => {\n    return streamText({\n      ...chat.toStreamTextOptions(),\n      system: `You are a support agent. Today is ${new Date().toISOString()}.`,\n      messages,\n      abortSignal: signal,\n    });\n  },\n});\n"
+    ],
+    "good": [
+     "import { chat } from '@trigger.dev/sdk/ai';\nimport { streamText } from 'ai';\n\nconst SYSTEM = 'You are a support agent. Answer briefly.';\n\nexport const myChat = chat.agent({\n  id: 'my-chat',\n  cacheControl: { type: 'ephemeral' },\n  run: async ({ messages, signal }) => {\n    console.log(`turn at ${new Date().toISOString()}`);\n    return streamText({\n      ...chat.toStreamTextOptions(),\n      system: SYSTEM,\n      messages,\n      abortSignal: signal,\n    });\n  },\n});\n",
+     "import { chat } from '@trigger.dev/sdk/ai';\nimport { streamText } from 'ai';\n\nexport const myChat = chat.agent({\n  id: 'my-chat',\n  run: async ({ messages, signal }) => {\n    return streamText({\n      ...chat.toStreamTextOptions(),\n      system: `Today is ${new Date().toISOString()}.`,\n      messages,\n      abortSignal: signal,\n    });\n  },\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "CHT-23",
+   "family": "CHT",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Find code that trusts clientData, or any other value the browser sends (body fields, headers, cookies it controls), for an authorisation or trust decision: who the user is, who owns the chat, a role or plan, a tool permission, a bot or risk score. Hit when the value is used without a server-side derivation (session, database lookup) or a verdict from a trusted edge proxy. clientData used only for UI text or logging is not hit.",
+   "message": "A value from clientData (set by the browser) decides an authorisation or trust check here.",
+   "fix": "Derive the identity and permissions server-side from the session or a database lookup; signals the browser cannot be trusted to send come from a trusted edge proxy.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/patterns/trusted-edge-signals"
+  },
+  {
+   "id": "CHT-24",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "import",
+      "from": "^resumable-stream$"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\btoUIMessageStreamResponse\\s*\\("
+     },
+     {
+      "type": "handler",
+      "name": "run",
+      "contains": "\\bconvertToModelMessages\\s*\\("
+     }
+    ]
+   },
+   "message": "This file still has route-handler chat plumbing (resumable-stream, toUIMessageStreamResponse, or convertToModelMessages in run); chat.agent does these steps itself.",
+   "fix": "Delete the route handler and the resumable-stream setup; the runtime does convertToModelMessages and toUIMessageStreamResponse.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/migrating-from-a-route-handler",
+   "examples": {
+    "bad": [
+     "import { streamText, convertToModelMessages } from 'ai';\nimport { chat } from '@trigger.dev/sdk/ai';\n\nexport async function POST(req: Request) {\n  const { messages } = await req.json();\n  const result = streamText({ model: myModel, messages: convertToModelMessages(messages) });\n  return result.toUIMessageStreamResponse();\n}\n",
+     "import * as resumable from 'resumable-stream';\nimport { chat } from '@trigger.dev/sdk/ai';\n\nexport const chatAgent = chat.agent({\n  id: 'my-chat',\n  run: async ({ messages, signal }) => ({ messages, signal, resumable }),\n});\n",
+     "import { streamText, convertToModelMessages } from 'ai';\nimport { chat } from '@trigger.dev/sdk/ai';\n\nexport const myChat = chat.agent({\n  id: 'my-chat',\n  run: async ({ messages, signal }) => {\n    return streamText({\n      ...chat.toStreamTextOptions(),\n      messages: convertToModelMessages(messages),\n      abortSignal: signal,\n    });\n  },\n});\n"
+    ],
+    "good": [
+     "import { chat } from '@trigger.dev/sdk/ai';\nimport { streamText } from 'ai';\n\nexport const myChat = chat.agent({\n  id: 'my-chat',\n  run: async ({ messages, signal }) => {\n    return streamText({\n      ...chat.toStreamTextOptions(),\n      messages,\n      abortSignal: signal,\n    });\n  },\n});\n",
+     "import { chat } from '@trigger.dev/sdk/ai';\n\nexport const POST = chat.headStart({\n  agentId: 'my-chat',\n  run: async (streamTextOptions) => streamTextOptions,\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "CHT-25",
+   "family": "CHT",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "from\\s*[\\\"'](?:\\.{1,2}/|@/)[^\\\"']*[\\\"'][\\s\\S]{0,2000}?from\\s*[\\\"']@trigger\\.dev/sdk/ai/test[\\\"']"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bmockChatAgent\\s*\\(",
+      "unless": "\\.close\\s*\\("
+     }
+    ]
+   },
+   "message": "This test imports the agent module before @trigger.dev/sdk/ai/test, or calls mockChatAgent without closing the harness.",
+   "fix": "Import @trigger.dev/sdk/ai/test before the agent module, and close the harness in a try/finally (or afterEach).",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/testing",
+   "examples": {
+    "bad": [
+     "import { describe, expect, it } from 'vitest';\nimport { myChatAgent } from './my-chat.js';\nimport { mockChatAgent } from '@trigger.dev/sdk/ai/test';\n\ndescribe('my chat', () => {\n  it('replies', async () => {\n    const harness = mockChatAgent(myChatAgent, { chatId: 't' });\n    await harness.close();\n    expect(harness).toBeDefined();\n  });\n});\n",
+     "import { mockChatAgent } from '@trigger.dev/sdk/ai/test';\nimport { myChatAgent } from './my-chat.js';\nimport { describe, expect, it } from 'vitest';\n\ndescribe('my chat', () => {\n  it('replies', async () => {\n    const harness = mockChatAgent(myChatAgent, { chatId: 't' });\n    expect(harness).toBeDefined();\n  });\n});\n"
+    ],
+    "good": [
+     "import { mockChatAgent } from '@trigger.dev/sdk/ai/test';\nimport { myChatAgent } from './my-chat.js';\nimport { describe, expect, it } from 'vitest';\n\ndescribe('my chat', () => {\n  it('replies', async () => {\n    const harness = mockChatAgent(myChatAgent, { chatId: 't' });\n    try {\n      expect(harness).toBeDefined();\n    } finally {\n      await harness.close();\n    }\n  });\n});\n",
+     "import { describe, expect, it } from 'vitest';\nimport { myChatAgent } from './my-chat.js';\n\ndescribe('my chat', () => {\n  it('exists', () => {\n    expect(myChatAgent).toBeDefined();\n  });\n});\n"
+    ]
+   }
+  }
+ ]
+}

@@ -1,0 +1,323 @@
+{
+ "rules": [
+  {
+   "id": "DEP-01",
+   "family": "DEP",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "workflow",
+   "match": {
+    "type": "regex",
+    "mask": "none",
+    "flags": "m",
+    "pattern": "^(?![ \\t]*#)[^\\n]*?\\btrigger(?:\\.dev)?(?:@[\\w.@-]+)?\\s+deploy\\b",
+    "unless": "TRIGGER_ACCESS_TOKEN"
+   },
+   "message": "This workflow runs a trigger.dev deploy and sets no TRIGGER_ACCESS_TOKEN.",
+   "fix": "Add a per-environment token secret and map it to TRIGGER_ACCESS_TOKEN in the deploy step's env.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/github-actions",
+   "examples": {
+    "bad": [
+     "name: deploy\non:\n  push:\n    branches: [main]\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env prod\n        env:\n          TRIGGER_SECRET_KEY: ${{ secrets.TRIGGER_SECRET_KEY }}\n"
+    ],
+    "good": [
+     "name: deploy\non:\n  push:\n    branches: [main]\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env prod\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_PROD_ACCESS_TOKEN }}\n",
+     "name: ci\non: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      # npx trigger.dev@latest deploy --env prod (moved to deploy.yml)\n      - run: npm test\n"
+    ]
+   }
+  },
+  {
+   "id": "DEP-02",
+   "family": "DEP",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "workflow",
+   "match": {
+    "type": "regex",
+    "mask": "none",
+    "pattern": "TRIGGER_ACCESS_TOKEN:\\s*\\$\\{\\{\\s*secrets\\.(\\w+)\\s*\\}\\}",
+    "require": "--env\\s+(\\w+)[\\s\\S]*--env\\s+(?!\\1\\b)\\w+",
+    "unless": "TRIGGER_ACCESS_TOKEN:\\s*\\$\\{\\{\\s*secrets\\.(\\w+)\\s*\\}\\}[\\s\\S]*TRIGGER_ACCESS_TOKEN:\\s*\\$\\{\\{\\s*secrets\\.(?!\\1\\b)\\w+"
+   },
+   "message": "One TRIGGER_ACCESS_TOKEN secret is used while this workflow deploys to two --env targets.",
+   "fix": "Store one token per environment and map each to TRIGGER_ACCESS_TOKEN in its own job.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/github-actions",
+   "examples": {
+    "bad": [
+     "name: deploy\non:\n  push:\n    branches: [main]\njobs:\n  staging:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env staging\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}\n  production:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env prod\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}\n"
+    ],
+    "good": [
+     "name: deploy\non:\n  push:\n    branches: [main]\njobs:\n  staging:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env staging\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_STAGING_ACCESS_TOKEN }}\n  production:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env prod\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_PROD_ACCESS_TOKEN }}\n"
+    ]
+   }
+  },
+  {
+   "id": "DEP-03",
+   "family": "DEP",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "workflow",
+   "match": {
+    "type": "regex",
+    "mask": "none",
+    "pattern": "--env\\s+preview\\b",
+    "require": "pull_request\\s*:",
+    "unless": "types:\\s*\\[[^\\]]*\\bclosed\\b|^[ \\t]*-[ \\t]*closed\\b"
+   },
+   "message": "This workflow deploys --env preview on pull_request, but pull_request.types has no closed, so preview branches are not archived when PRs close or merge.",
+   "fix": "Add closed to pull_request.types.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/deployment/preview-branches",
+   "examples": {
+    "bad": [
+     "name: preview\non:\n  pull_request:\n    types: [opened, synchronize, reopened]\njobs:\n  preview:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env preview --external-id ${{ github.event.pull_request.head.sha }}\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_PREVIEW_ACCESS_TOKEN }}\n"
+    ],
+    "good": [
+     "name: preview\non:\n  pull_request:\n    types: [opened, synchronize, reopened, closed]\njobs:\n  preview:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env preview --external-id ${{ github.event.pull_request.head.sha }}\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_PREVIEW_ACCESS_TOKEN }}\n"
+    ]
+   }
+  },
+  {
+   "id": "DEP-04",
+   "family": "DEP",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "workflow",
+   "match": {
+    "type": "regex",
+    "mask": "none",
+    "pattern": "--external-id[=\\s]+\\$\\{\\{\\s*github\\.sha\\s*\\}\\}",
+    "require": "pull_request\\s*:"
+   },
+   "message": "The pull_request workflow passes ${{ github.sha }} as --external-id; on pull_request that is the merge commit, not the commit the app was built from.",
+   "fix": "Use github.event.pull_request.head.sha as the --external-id value.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/github-actions",
+   "examples": {
+    "bad": [
+     "name: preview\non:\n  pull_request:\n    types: [opened, synchronize, reopened, closed]\njobs:\n  preview:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env preview --external-id ${{ github.sha }}\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_PREVIEW_ACCESS_TOKEN }}\n"
+    ],
+    "good": [
+     "name: preview\non:\n  pull_request:\n    types: [opened, synchronize, reopened, closed]\njobs:\n  preview:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env preview --external-id ${{ github.event.pull_request.head.sha }}\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_PREVIEW_ACCESS_TOKEN }}\n"
+    ]
+   }
+  },
+  {
+   "id": "DEP-05",
+   "family": "DEP",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "workflow",
+   "match": {
+    "type": "regex",
+    "mask": "none",
+    "pattern": "--external-id[=\\s]+\\$\\{\\{\\s*github\\.(?:event\\.pull_request\\.head\\.)?sha\\s*\\}\\}",
+    "require": "^[ \\t]*paths:"
+   },
+   "message": "A paths: filter is set and --external-id is a commit SHA; commits outside the filter never create a deployment for that SHA, so their runs expire.",
+   "fix": "Derive the external id from the last commit that touched the task files, not from github.sha.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/deployment/atomic-deployment",
+   "examples": {
+    "bad": [
+     "name: deploy\non:\n  push:\n    branches: [main]\n    paths:\n      - src/trigger/tasks.ts\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env prod --external-id ${{ github.sha }}\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}\n"
+    ],
+    "good": [
+     "name: deploy\non:\n  push:\n    branches: [main]\n    paths:\n      - src/trigger/tasks.ts\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - id: last-tasks-commit\n        run: echo \"sha=$(git log -1 --format=%H -- src/trigger)\" >> \"$GITHUB_OUTPUT\"\n      - run: npx trigger.dev@latest deploy --env prod --external-id ${{ steps.last-tasks-commit.outputs.sha }}\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}\n"
+    ]
+   }
+  },
+  {
+   "id": "DEP-06",
+   "family": "DEP",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "workflow",
+   "match": {
+    "type": "regex",
+    "mask": "none",
+    "flags": "m",
+    "pattern": "^(?![ \\t]*#)[^\\n]*?\\bTRIGGER_VERSION\\b[\"']?\\s*[:=]"
+   },
+   "message": "TRIGGER_VERSION is set in hosting or CI config; the SDK sends it as an explicit version, which overrides the external deployment id.",
+   "fix": "Remove TRIGGER_VERSION once version skew protection is verified.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/deployment/atomic-deployment",
+   "examples": {
+    "bad": [
+     "{\n  \"buildCommand\": \"next build\",\n  \"env\": {\n    \"TRIGGER_VERSION\": \"20260101.1\"\n  }\n}\n"
+    ],
+    "good": [
+     "{\n  \"buildCommand\": \"next build\",\n  \"env\": {\n    \"NODE_ENV\": \"production\"\n  }\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "DEP-07",
+   "family": "DEP",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "config",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bsyncVercelEnvVars\\s*\\("
+   },
+   "message": "trigger.config calls syncVercelEnvVars(), a build extension that the Vercel integration docs mark as deprecated.",
+   "fix": "Remove the syncVercelEnvVars() entry from build.extensions.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/vercel-integration",
+   "examples": {
+    "bad": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [syncVercelEnvVars()],\n  },\n});\n"
+    ],
+    "good": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\n// syncVercelEnvVars() was removed from this project.\nexport default defineConfig({\n  project: \"proj_example\",\n});\n"
+    ]
+   },
+   "target": "cloud"
+  },
+  {
+   "id": "DEP-08",
+   "family": "DEP",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "code",
+   "judge": "Which process.env.<NAME> reads inside task code (files that define tasks) have no value in the target environment's list? Ignore reads guarded by a default or a missing-value check.",
+   "live": "npx trigger.dev@latest env list --env <target-env>",
+   "message": "A task reads process.env.<NAME> that is not set in the target environment.",
+   "fix": "Set the variable on the target environment with env set --env <target-env>, or sync it.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/deploy-environment-variables"
+  },
+  {
+   "id": "DEP-09",
+   "family": "DEP",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "workflow",
+   "match": {
+    "type": "regex",
+    "mask": "none",
+    "flags": "m",
+    "pattern": "^(?![ \\t]*#)[^\\n]*?\\btrigger(?:\\.dev)?(?:@[\\w.@-]+)?\\s+deploy\\b[^\\n]*--env-file\\b"
+   },
+   "message": "trigger deploy is given --env-file; that file feeds the deploy CLI and does not set task environment variables.",
+   "fix": "Set task variables with env set on the target environment; keep --env-file only for values the deploy CLI needs.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/cli-deploy-commands",
+   "examples": {
+    "bad": [
+     "name: deploy\non:\n  push:\n    branches: [main]\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env prod --env-file .env.production\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}\n"
+    ],
+    "good": [
+     "name: deploy\non:\n  push:\n    branches: [main]\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env prod\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}\n      - run: node scripts/check-env.js --env-file .env.ci\n"
+    ]
+   }
+  },
+  {
+   "id": "DEP-10",
+   "family": "DEP",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "package-json",
+   "match": {
+    "type": "regex",
+    "mask": "none",
+    "pattern": "\"[^\"\\n]*\"\\s*:\\s*\"(?![^\"\\n]*--env\\b)[^\"\\n]*\\btrigger(?:\\.dev)?(?:@[\\w.@-]+)?\\s+(?:deploy|env)\\b[^\"\\n]*\""
+   },
+   "message": "A package.json deploy or env script runs trigger without --env, so the target environment is not explicit.",
+   "fix": "Add an explicit --env <name> to the script.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/cli-deploy-commands",
+   "examples": {
+    "bad": [
+     "{\n  \"name\": \"tasks\",\n  \"scripts\": {\n    \"dev\": \"trigger dev\",\n    \"deploy:trigger\": \"trigger deploy\"\n  }\n}\n"
+    ],
+    "good": [
+     "{\n  \"name\": \"tasks\",\n  \"scripts\": {\n    \"dev\": \"trigger dev\",\n    \"deploy:trigger\": \"trigger deploy --env staging\"\n  }\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "DEP-11",
+   "family": "DEP",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "workflow",
+   "match": {
+    "type": "regex",
+    "mask": "none",
+    "pattern": "\\btr_preview_|secrets\\.\\w*PREVIEW\\w*(?:KEY|SECRET)\\w*",
+    "unless": "TRIGGER_PREVIEW_BRANCH"
+   },
+   "message": "A preview key is used in this workflow without TRIGGER_PREVIEW_BRANCH, so the runs have no preview branch to target.",
+   "fix": "Set TRIGGER_PREVIEW_BRANCH next to the preview key.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/deployment/preview-branches",
+   "examples": {
+    "bad": [
+     "name: preview-tasks\non:\n  pull_request:\n    types: [opened, synchronize, reopened, closed]\njobs:\n  smoke:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: node scripts/smoke.js\n        env:\n          TRIGGER_SECRET_KEY: ${{ secrets.TRIGGER_PREVIEW_SECRET_KEY }}\n"
+    ],
+    "good": [
+     "name: preview-tasks\non:\n  pull_request:\n    types: [opened, synchronize, reopened, closed]\njobs:\n  smoke:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: node scripts/smoke.js\n        env:\n          TRIGGER_SECRET_KEY: ${{ secrets.TRIGGER_PREVIEW_SECRET_KEY }}\n          TRIGGER_PREVIEW_BRANCH: ${{ github.head_ref }}\n"
+    ]
+   },
+   "target": "cloud"
+  },
+  {
+   "id": "DEP-12",
+   "family": "DEP",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "config",
+   "match": null,
+   "message": "More than one trigger.config.* exists in the repository and the GitHub integration has no config path set.",
+   "fix": "Set the config path in the GitHub integration settings, e.g. apps/tasks/trigger.config.ts.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/github-integration",
+   "judge": "If the repository has more than one trigger.config.* and deploys through the GitHub integration, the dashboard needs a trigger config file path set for the project. That setting is dashboard-only: ask the user to confirm it."
+  },
+  {
+   "id": "DEP-13",
+   "family": "DEP",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "workflow",
+   "match": {
+    "type": "regex",
+    "mask": "none",
+    "flags": "m",
+    "pattern": "^(?![ \\t]*#)[^\\n]*?\\btrigger(?:\\.dev)?(?:@[\\w.@-]+)?\\s+deploy\\b",
+    "unless": "TRIGGER_API_URL"
+   },
+   "message": "A deploy step runs against a self-hosted instance (project facts say self-host) but the workflow never sets TRIGGER_API_URL, so the CLI deploys to the Cloud default.",
+   "fix": "Add TRIGGER_API_URL, pointing to your self-hosted webapp domain, to the deploy step's env.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/github-actions",
+   "examples": {
+    "bad": [
+     "name: deploy\non: { push: { branches: [main] } }\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npx trigger deploy --env prod\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}\n"
+    ],
+    "good": [
+     "name: deploy\non: { push: { branches: [main] } }\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npx trigger deploy --env prod\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}\n          TRIGGER_API_URL: https://jobs.internal.example.com\n"
+    ]
+   },
+   "target": "self-host"
+  }
+ ]
+}

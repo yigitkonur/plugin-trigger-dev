@@ -1,0 +1,168 @@
+{
+ "rules": [
+  {
+   "id": "QUE-01",
+   "family": "QUE",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\\bqueue\\s*:\\s*\\{[^{}]*\\bconcurrencyLimit\\s*:"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bqueues\\s*\\.\\s*(?:overrideConcurrencyLimit|resetConcurrencyLimit)\\s*\\("
+     }
+    ]
+   },
+   "message": "uses the legacy queue concurrency limit (queue: { concurrencyLimit } or queues.overrideConcurrencyLimit / resetConcurrencyLimit); the concurrency option and concurrencyLimits replace them",
+   "fix": "use concurrency: { total, perKey } on the task, or a named concurrencyLimit() shared across tasks; manage it with concurrencyLimits.override / reset",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/concurrency",
+   "examples": {
+    "bad": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const sendEmail = task({\n  id: \"send-email\",\n  queue: { concurrencyLimit: 5 },\n  run: async (payload: { to: string }) => payload,\n});\n",
+     "import { queues } from \"@trigger.dev/sdk\";\n\nexport async function throttleEmails() {\n  await queues.overrideConcurrencyLimit({ type: \"task\", name: \"send-email\" }, 2);\n}\n"
+    ],
+    "good": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const sendEmail = task({\n  id: \"send-email\",\n  concurrency: { total: 5 },\n  run: async (payload: { to: string }) => payload,\n});\n",
+     "import { concurrencyLimit, concurrencyLimits, task } from \"@trigger.dev/sdk\";\n\nexport const openaiLimit = concurrencyLimit({ name: \"openai\", total: 25 });\n\nexport const summarize = task({\n  id: \"summarize\",\n  concurrency: openaiLimit,\n  run: async (payload: { text: string }) => payload,\n});\n\nexport async function raiseOpenAiLimit() {\n  await concurrencyLimits.override(\"openai\", { total: 50 });\n}\n",
+     "import { queue, task } from \"@trigger.dev/sdk\";\n\n// the old form was queue: { concurrencyLimit: 5 }; the queue now carries its own limit\nexport const emails = queue({ name: \"emails\", concurrencyLimit: 10 });\n\nexport const sendEmail = task({\n  id: \"send-email\",\n  queue: emails,\n  run: async (payload: { to: string }) => payload,\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "QUE-02",
+   "family": "QUE",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "applies_when": "sdk>=4",
+   "match": {
+    "type": "call",
+    "callee": "\\.(?:trigger|triggerAndWait|batchTrigger|batchTriggerAndWait)",
+    "contains": "\\bqueue\\s*:\\s*\\{(?=[^{}]*\\bname\\s*:)(?=[^{}]*\\bconcurrencyLimit\\s*:)"
+   },
+   "message": "trigger options pass a queue object with name and concurrencyLimit; in SDK 4 a queue is declared ahead of time and only referenced by name at trigger time",
+   "fix": "declare const q = queue({ name, concurrencyLimit }) once, set it on the task (queue: q), and trigger with { queue: \"name\" }",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/migrating-from-v3",
+   "examples": {
+    "bad": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const processOrder = task({\n  id: \"process-order\",\n  run: async (payload: { orderId: string }) => payload,\n});\n\nexport async function enqueueOrder(orderId: string) {\n  await processOrder.trigger({ orderId }, { queue: { name: \"orders\", concurrencyLimit: 10 } });\n}\n",
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const processOrder = task({\n  id: \"process-order\",\n  run: async (payload: { orderId: string }) => payload,\n});\n\nexport async function enqueueBatch(orderIds: string[]) {\n  await processOrder.batchTrigger(\n    orderIds.map((orderId) => ({ payload: { orderId }, options: { queue: { name: \"orders\", concurrencyLimit: 10 } } }))\n  );\n}\n"
+    ],
+    "good": [
+     "import { queue, task } from \"@trigger.dev/sdk\";\n\nexport const orders = queue({ name: \"orders\", concurrencyLimit: 10 });\n\nexport const processOrder = task({\n  id: \"process-order\",\n  queue: orders,\n  run: async (payload: { orderId: string }) => payload,\n});\n\nexport async function enqueueOrder(orderId: string) {\n  await processOrder.trigger({ orderId }, { queue: \"orders\" });\n}\n",
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const processOrder = task({\n  id: \"process-order\",\n  queue: { name: \"orders\", concurrencyLimit: 10 },\n  run: async (payload: { orderId: string }) => payload,\n});\n\nexport async function enqueueOrder(orderId: string) {\n  await processOrder.trigger({ orderId });\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "QUE-03",
+   "family": "QUE",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "needs_builtin": "undeclared-queue",
+   "match": null,
+   "message": "trigger options name a queue that no task in the project declares with queue({ name }); runs on it stay in Pending version until a deployed task declares it",
+   "fix": "declare const q = queue({ name }) and set it on a task (queue: q), or trigger with the name of a queue that is declared",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/troubleshooting#runs-stuck-in-pending-version",
+   "examples": {
+    "bad": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const sendReport = task({\n  id: \"send-report\",\n  run: async (payload: { id: string }) => payload,\n});\n\nexport async function kickOff(id: string) {\n  await sendReport.trigger({ id }, { queue: \"reports\" });\n}\n"
+    ],
+    "good": [
+     "import { queue, task } from \"@trigger.dev/sdk\";\n\nexport const reports = queue({ name: \"reports\" });\n\nexport const sendReport = task({\n  id: \"send-report\",\n  queue: reports,\n  run: async (payload: { id: string }) => payload,\n});\n\nexport async function kickOff(id: string) {\n  await sendReport.trigger({ id }, { queue: \"reports\" });\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "QUE-04",
+   "family": "QUE",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bconcurrency\\s*:\\s*\\{(?![^{}]*\\btotal\\s*:)[^{}]*\\bperKey\\s*:"
+   },
+   "message": "concurrency sets perKey without total; each key gets its own cap, but the total across all keys is unbounded",
+   "fix": "add total to the same concurrency object to bound all runs together",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/concurrency#per-key-and-total-limits-together",
+   "examples": {
+    "bad": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const syncAccount = task({\n  id: \"sync-account\",\n  concurrency: { perKey: 2 },\n  run: async (payload: { accountId: string }) => payload,\n});\n",
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const syncAccount = task({\n  id: \"sync-account\",\n  run: async (payload: { accountId: string }) => payload,\n});\n\nexport async function enqueueSync(accountId: string) {\n  await syncAccount.trigger({ accountId }, { concurrency: { perKey: 1 } });\n}\n"
+    ],
+    "good": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const syncAccount = task({\n  id: \"sync-account\",\n  concurrency: { perKey: 1, total: 10 },\n  run: async (payload: { accountId: string }) => payload,\n});\n",
+     "import { concurrencyLimit, task } from \"@trigger.dev/sdk\";\n\nexport const tenantLimit = concurrencyLimit({ name: \"tenant\", perKey: 10 });\n\nexport const processWebhook = task({\n  id: \"process-webhook\",\n  concurrency: [{ perKey: 2 }, tenantLimit],\n  run: async (payload: { tenantId: string }) => payload,\n});\n",
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const syncAccount = task({\n  id: \"sync-account\",\n  concurrency: { total: 1 },\n  run: async (payload: { accountId: string }) => payload,\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "QUE-05",
+   "family": "QUE",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Look for a task whose run fans out to a rate-limited third-party API (LLM, email, payments, scraping) through batchTrigger / batchTriggerAndWait, a loop or map of .trigger() calls, or triggerAndWait inside a loop. Answer yes only if no cap bounds the parallel calls: no concurrency option on the task, no queue() with concurrencyLimit, and no concurrencyLimit() shared by the task. Answer no for internal work (database, in-process) and when a cap exists. Report the file and line of the fan-out.",
+   "message": "fans out calls to a rate-limited API, and no concurrency cap on the task or its queue bounds the parallel calls",
+   "fix": "add concurrency: { total: N } to the task, or share a concurrencyLimit({ name, total }) across the tasks that call the API",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/concurrency"
+  },
+  {
+   "id": "QUE-06",
+   "family": "QUE",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\\bqueue\\s*(?:\\(\\s*\\{\\s*name\\s*:|:\\s*\\{\\s*name\\s*:|:)\\s*[\"'\\x60]limit/"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bqueue\\s*(?:\\(\\s*\\{\\s*name\\s*:|:\\s*\\{\\s*name\\s*:|:)\\s*[\"'\\x60][^\"'\\x60\\n]{129,}[\"'\\x60]"
+     }
+    ]
+   },
+   "message": "queue name starts with \"limit/\" (reserved for concurrency limits, rejected at deploy time) or is longer than 128 characters",
+   "fix": "rename the queue: drop the \"limit/\" prefix and keep the name at 128 characters or fewer",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/queues",
+   "examples": {
+    "bad": [
+     "import { queue, task } from \"@trigger.dev/sdk\";\n\nexport const openai = queue({ name: \"limit/openai\" });\n\nexport const callOpenAi = task({\n  id: \"call-openai\",\n  queue: openai,\n  run: async (payload: { prompt: string }) => payload,\n});\n",
+     "import { queue } from \"@trigger.dev/sdk\";\n\nexport const longQueue = queue({ name: \"orders-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\" });\n",
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const callOpenAi = task({\n  id: \"call-openai\",\n  run: async (payload: { prompt: string }) => payload,\n});\n\nexport async function kickOff() {\n  await callOpenAi.trigger({ prompt: \"hi\" }, { queue: \"limit/openai\" });\n}\n"
+    ],
+    "good": [
+     "import { queue, task } from \"@trigger.dev/sdk\";\n\nexport const emails = queue({ name: \"emails\" });\n\nexport const sendEmail = task({\n  id: \"send-email\",\n  queue: emails,\n  run: async (payload: { to: string }) => payload,\n});\n",
+     "import { queue } from \"@trigger.dev/sdk\";\n\nexport const maxQueue = queue({ name: \"emails-yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\" });\n",
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const callOpenAi = task({\n  id: \"call-openai\",\n  run: async (payload: { prompt: string }) => payload,\n});\n\nexport async function kickOff() {\n  await callOpenAi.trigger({ prompt: \"hi\" }, { queue: \"reports/limit/daily\" });\n}\n"
+    ]
+   }
+  }
+ ]
+}

@@ -2,6 +2,297 @@
  "schema_version": 1,
  "rules": [
   {
+   "id": "CFG-01",
+   "family": "CFG",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": null,
+   "needs_builtin": "config-extensions",
+   "message": "calls launch() on a browser library, but trigger.config build.extensions has no browser extension (connect() to a remote browser needs none)",
+   "fix": "add the puppeteer or playwright build extension to build.extensions; for a remote browser use connect() and set runtime: \"node\"",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/extensions/puppeteer"
+  },
+  {
+   "id": "CFG-02",
+   "family": "CFG",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "config",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "prismaExtension",
+      "lacks": "\\bmode\\s*:"
+     },
+     {
+      "type": "call",
+      "callee": "prismaExtension",
+      "contains": "\\bmigrate\\s*:\\s*true\\b",
+      "lacks": "\\bmode\\s*:\\s*[\"']legacy[\"']"
+     }
+    ]
+   },
+   "message": "prismaExtension() is called without a mode, or sets migrate: true outside mode \"legacy\"",
+   "fix": "set mode to the one that matches the Prisma version and generator; keep migrate only in legacy mode",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/extensions/prismaExtension",
+   "examples": {
+    "bad": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { prismaExtension } from \"@trigger.dev/build/extensions/prisma\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [prismaExtension({ migrate: true })],\n  },\n});\n",
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { prismaExtension } from \"@trigger.dev/build/extensions/prisma\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [prismaExtension({ mode: \"modern\", migrate: true })],\n  },\n});\n"
+    ],
+    "good": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { prismaExtension } from \"@trigger.dev/build/extensions/prisma\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [prismaExtension({ mode: \"legacy\", migrate: true })],\n  },\n});\n",
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { prismaExtension } from \"@trigger.dev/build/extensions/prisma\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [prismaExtension({ mode: \"engine-only\", version: \"6.19.0\" })],\n  },\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "CFG-03",
+   "family": "CFG",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": null,
+   "needs_builtin": "config-extensions",
+   "message": "uses ffmpeg (spawn or fluent-ffmpeg), but trigger.config has no ffmpeg() build extension, or fluent-ffmpeg is not in build.external",
+   "fix": "add ffmpeg() from @trigger.dev/build/extensions/core to build.extensions and fluent-ffmpeg to build.external",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/extensions/ffmpeg"
+  },
+  {
+   "id": "CFG-04",
+   "family": "CFG",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "config",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "pythonExtension",
+      "contains": "\\brequirementsFile\\s*:",
+      "containsAlso": "\\brequirements\\s*:"
+     },
+     {
+      "type": "import",
+      "from": "^@trigger\\.dev/build(?:/|$)",
+      "named": "^pythonExtension$"
+     }
+    ]
+   },
+   "message": "pythonExtension() sets both requirementsFile and requirements, or pythonExtension is imported from @trigger.dev/build",
+   "fix": "use either requirementsFile or requirements, and import pythonExtension from @trigger.dev/python/extension",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/extensions/pythonExtension",
+   "examples": {
+    "bad": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { pythonExtension } from \"@trigger.dev/python/extension\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [\n      pythonExtension({ requirementsFile: \"./requirements.txt\", requirements: [\"pandas\"] }),\n    ],\n  },\n});\n",
+     "import { pythonExtension } from \"@trigger.dev/build/extensions/python\";\nimport { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [pythonExtension({ scripts: [\"./python/**/*.py\"] })],\n  },\n});\n"
+    ],
+    "good": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { pythonExtension } from \"@trigger.dev/python/extension\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [pythonExtension({ requirementsFile: \"./requirements.txt\", scripts: [\"./python/**/*.py\"] })],\n  },\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "CFG-05",
+   "family": "CFG",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "message": "imports a native or WASM package (sharp, re2, sqlite3 or similar) that trigger.config build.external does not list and that is not auto-detected",
+   "fix": "add the package to build.external in trigger.config.ts",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/config-file#external",
+   "judge": "Look for imports of native addons (re2, sqlite3, better-sqlite3, node-gyp-built packages) or WebAssembly packages. Most native modules are auto-detected as external; WASM packages must be listed in build.external. Confirm against trigger.config build.external, and against a deploy error such as: No loader is configured for \".node\" files."
+  },
+  {
+   "id": "CFG-06",
+   "family": "CFG",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "import",
+      "from": "^(?:typeorm(?:/.*)?|@nestjs/.+)$"
+     },
+     {
+      "type": "regex",
+      "pattern": "^\\s*@[A-Za-z_$][\\w$.]*\\s*\\(",
+      "flags": "m"
+     }
+    ]
+   },
+   "judge": "Does the project use TypeScript decorators (TypeORM, NestJS or other decorator-based code) AND does trigger.config.* lack emitDecoratorMetadata() from @trigger.dev/build/extensions/typescript, or is typescript missing from devDependencies? Flag only when that holds; a file with no decorators is not a hit.",
+   "message": "uses decorator syntax (typeorm, @nestjs or @Name(...)); trigger.config enables decorator metadata only through emitDecoratorMetadata()",
+   "fix": "add emitDecoratorMetadata() from @trigger.dev/build/extensions/typescript to build.extensions and typescript to devDependencies",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/extensions/emitDecoratorMetadata",
+   "examples": {
+    "bad": [
+     "import { task } from \"@trigger.dev/sdk\";\nimport { Entity, Column } from \"typeorm\";\n\n@Entity()\nexport class Order {\n  @Column()\n  total!: number;\n}\n\nexport const orderTask = task({ id: \"order\", run: async () => new Order() });\n",
+     "import { task } from \"@trigger.dev/sdk\";\nimport { Injectable } from \"@nestjs/common\";\n\n@Injectable()\nexport class Mailer {\n  send(): void {}\n}\n\nexport const mailTask = task({ id: \"mail\", run: async () => new Mailer().send() });\n"
+    ],
+    "good": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const hello = task({ id: \"hello\", run: async () => ({ ok: true }) });\n"
+    ]
+   }
+  },
+  {
+   "id": "CFG-07",
+   "family": "CFG",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does this task read a non-JS file at runtime by path (json, html, sql, wasm, template, certificate or model files) that must exist in the deployed build, and is that file not matched by a build.extensions additionalFiles({ files }) glob in trigger.config.*? If the path is relative to process.cwd(), also check that legacyDevProcessCwdBehaviour is false. Flag only when the file is missing from the build; files pulled in through an import are bundled and do not count.",
+   "message": "reads a non-JS file at runtime by path; trigger.config additionalFiles may not copy that file into the build",
+   "fix": "add the file or glob to additionalFiles({ files }) in build.extensions and set legacyDevProcessCwdBehaviour: false",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/extensions/additionalFiles"
+  },
+  {
+   "id": "CFG-08",
+   "family": "CFG",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "any-text",
+   "match": null,
+   "needs_builtin": "gitignore-tsconfig",
+   "message": ".trigger is not listed in .gitignore, or trigger.config.* is outside the tsconfig include",
+   "fix": "add .trigger to .gitignore and include trigger.config.* in the tsconfig include",
+   "fix_mode": "auto",
+   "doc": "https://trigger.dev/docs/manual-setup"
+  },
+  {
+   "id": "CFG-09",
+   "family": "CFG",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "package-json",
+   "match": {
+    "type": "json",
+    "check": "dep-in",
+    "dep": "^@trigger\\.dev/build$"
+   },
+   "message": "@trigger.dev/build is listed under dependencies, not devDependencies",
+   "fix": "move @trigger.dev/build to devDependencies",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/extensions/overview",
+   "examples": {
+    "bad": [
+     "{\"name\":\"app\",\"dependencies\":{\"@trigger.dev/sdk\":\"4.0.0\",\"@trigger.dev/build\":\"4.0.0\"}}"
+    ],
+    "good": [
+     "{\"name\":\"app\",\"dependencies\":{\"@trigger.dev/sdk\":\"4.0.0\"},\"devDependencies\":{\"@trigger.dev/build\":\"4.0.0\"}}"
+    ]
+   }
+  },
+  {
+   "id": "CFG-10",
+   "family": "CFG",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "config",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bextraCACerts\\s*:\\s*[\"'](?!\\./)"
+   },
+   "message": "extraCACerts is set to a path that does not start with \"./\"",
+   "fix": "use a path relative to the project root that starts with ./",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/config-file",
+   "examples": {
+    "bad": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  extraCACerts: \"/etc/ssl/certs/corp-ca.crt\",\n});\n"
+    ],
+    "good": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  extraCACerts: \"./certs/corp-ca.crt\",\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "CFG-11",
+   "family": "CFG",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "config",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bpackages\\s*:\\s*\\[\\s*(?:[\"'][^\"']*[\"']\\s*,\\s*)*[\"'](?:@[\\w.-]+/)?[\\w.-]+[\"']",
+    "require": "\\badditionalPackages\\s*\\("
+   },
+   "message": "additionalPackages lists a package without a version",
+   "fix": "pin an exact version, for example name@X.Y.Z",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/extensions/additionalPackages",
+   "examples": {
+    "bad": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { additionalPackages } from \"@trigger.dev/build/extensions/core\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [additionalPackages({ packages: [\"wrangler\"] })],\n  },\n});\n",
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { additionalPackages } from \"@trigger.dev/build/extensions/core\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [additionalPackages({ packages: [\"wrangler@4.1.0\", \"esbuild\"] })],\n  },\n});\n"
+    ],
+    "good": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { additionalPackages } from \"@trigger.dev/build/extensions/core\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [additionalPackages({ packages: [\"wrangler@4.1.0\"] })],\n  },\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "CFG-12",
+   "family": "CFG",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "config",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\\bname\\s*:\\s*[\"'][A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|_KEY)[\"']\\s*,\\s*value\\s*:\\s*[\"'][^\"'\\s]+[\"']"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\b[A-Z][A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|_KEY)\\s*:\\s*[\"'][^\"'\\s$]{8,}[\"']"
+     }
+    ]
+   },
+   "message": "trigger.config sets a literal value for a secret-looking name (syncEnvVars entry or a *_SECRET, *_TOKEN, *_PASSWORD or *_KEY key)",
+   "fix": "read the value from process.env or the secret store instead of a literal",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/extensions/syncEnvVars",
+   "examples": {
+    "bad": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { syncEnvVars } from \"@trigger.dev/build/extensions/core\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [\n      syncEnvVars(async () => [{ name: \"STRIPE_SECRET_KEY\", value: \"sk_live_1234567890\" }]),\n    ],\n  },\n});\n",
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  API_TOKEN: \"tok_live_1234567890abcdef\",\n});\n"
+    ],
+    "good": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\nimport { syncEnvVars } from \"@trigger.dev/build/extensions/core\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [\n      syncEnvVars(async () => [{ name: \"STRIPE_SECRET_KEY\", value: process.env.STRIPE_SECRET_KEY ?? \"\" }]),\n    ],\n  },\n});\n",
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  retries: { enabled: true },\n});\n"
+    ]
+   }
+  },
+  {
    "id": "CHT-01",
    "family": "CHT",
    "severity": "error",
@@ -26,6 +317,60 @@
     "good": [
      "import { chat } from \"@trigger.dev/sdk/ai\";\nexport const a = chat.agent({ id: \"a\", run: async ({ messages, signal, streamText }) => streamText({ model, messages, abortSignal: signal }) });",
      "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { streamText } from \"ai\";\nexport const a = chat.agent({ id: \"a\", run: async ({ messages }) => streamText({ model, messages, ...chat.toStreamTextOptions() }) });"
+    ]
+   }
+  },
+  {
+   "id": "CHT-02",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "call",
+    "callee": "\\bstreamText",
+    "require": "\\bchat\\.agent\\s*\\(",
+    "lacks": "\\babortSignal\\b|\\.\\.\\.\\s*chat\\.toStreamTextOptions"
+   },
+   "message": "a streamText call in a chat.agent file passes no abortSignal, so a stop or cancel does not reach the model request",
+   "fix": "pass abortSignal: signal (from run's argument) to streamText",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/backend",
+   "examples": {
+    "bad": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { streamText } from \"ai\";\nexport const a = chat.agent({ id: \"a\", run: async ({ messages }) => streamText({ model, messages }) });"
+    ],
+    "good": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nexport const a = chat.agent({ id: \"a\", run: async ({ messages, signal, streamText }) => streamText({ model, messages, abortSignal: signal }) });",
+     "import { streamText } from \"ai\";\nexport async function summarise(text) { return streamText({ model, prompt: text }); }"
+    ]
+   }
+  },
+  {
+   "id": "CHT-03",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\btoModelOutput\\s*:",
+    "require": "\\bchat\\.agent\\s*\\(",
+    "unless": "\\bchat\\.agent\\s*\\(\\s*\\{[^{}]*?\\btools\\s*[:,}]"
+   },
+   "judge": "Does a tool in this file define toModelOutput and get passed only at the streamText call site inside run(), while the chat.agent({ ... }) config declares no tools? Hits where chat.agent declares tools, or where the toModelOutput tool is not used by the agent, are not real.",
+   "message": "a tool defines toModelOutput but chat.agent declares no tools, so earlier turns are re-converted without the transform",
+   "fix": "declare the same tools on chat.agent({ tools }) as well as on the streamText call",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/tools",
+   "examples": {
+    "bad": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { streamText, tool } from \"ai\";\nconst lookup = tool({ description: \"lookup\", inputSchema: schema, execute: async ({ id }) => ({ id }), toModelOutput: ({ output }) => ({ type: \"text\", value: output.id }) });\nexport const a = chat.agent({ id: \"a\", run: async ({ messages }) => streamText({ model, messages, tools: { lookup } }) });"
+    ],
+    "good": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { streamText, tool } from \"ai\";\nconst lookup = tool({ description: \"lookup\", inputSchema: schema, execute: async ({ id }) => ({ id }), toModelOutput: ({ output }) => ({ type: \"text\", value: output.id }) });\nexport const a = chat.agent({ id: \"a\", tools: { lookup }, run: async ({ messages }) => streamText({ model, messages }) });"
     ]
    }
   },
@@ -56,6 +401,197 @@
    }
   },
   {
+   "id": "CHT-05",
+   "family": "CHT",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "\\bchat\\.createStartSessionAction",
+      "unless": "\\b(?:getSession|getServerSession|currentUser|requireUser|requireAuth|verifySession|require\\w*Owner\\w*|assert\\w*Owner\\w*|check\\w*Owner\\w*|authori[sz]e\\w*|require\\w*Access\\w*|assert\\w*Access\\w*)\\s*\\("
+     },
+     {
+      "type": "call",
+      "callee": "\\bauth\\.createPublicToken",
+      "require": "\\bchat\\.(?:agent|createStartSessionAction)\\s*\\(",
+      "unless": "\\b(?:getSession|getServerSession|currentUser|requireUser|requireAuth|verifySession|require\\w*Owner\\w*|assert\\w*Owner\\w*|check\\w*Owner\\w*|authori[sz]e\\w*|require\\w*Access\\w*|assert\\w*Access\\w*)\\s*\\("
+     }
+    ]
+   },
+   "judge": "Does every server action that calls this startSession, or mints a chat token, first authenticate the caller and check that the caller owns the chatId? Look in the enclosing function and the helpers it calls; a hit with such a check is not real.",
+   "message": "chat.createStartSessionAction or a chat token mint has no authentication or chat-ownership call in this file",
+   "fix": "authorise chatId in both actions: an auth check and an ownership check before startSession or the token mint",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/quick-start",
+   "examples": {
+    "bad": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nconst startSession = chat.createStartSessionAction(\"my-chat\");\nexport async function startChatSession({ chatId }: { chatId: string }) {\n  return startSession({ chatId });\n}"
+    ],
+    "good": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { requireChatOwner } from \"@/lib/chat-access\";\nconst startSession = chat.createStartSessionAction(\"my-chat\");\nexport async function startChatSession({ chatId }: { chatId: string }) {\n  await requireChatOwner(chatId);\n  return startSession({ chatId });\n}"
+    ]
+   }
+  },
+  {
+   "id": "CHT-06",
+   "family": "CHT",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\\bchat\\.createAccessToken\\b|\\bgetStartToken\\b|\\btransport\\.preload\\s*\\(\\s*[^,()]+,"
+     },
+     {
+      "type": "call",
+      "callee": "\\buseTriggerChatTransport",
+      "contains": "\\btrigger(?:Config|Options)\\s*:"
+     }
+    ]
+   },
+   "message": "uses a pre-upgrade chat API (createAccessToken, getStartToken, triggerConfig/triggerOptions on the transport, or transport.preload with options)",
+   "fix": "use the two-callback transport: accessToken refreshes the PAT, startSession wraps chat.createStartSessionAction, and trigger config moves into createStartSessionAction",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/upgrade-guide",
+   "examples": {
+    "bad": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nexport const myChat = chat.agent({ id: \"my-chat\", run: async () => {} });\nexport async function mintToken(chatId: string) {\n  return chat.createAccessToken<typeof myChat>(\"my-chat\");\n}",
+     "import { useTriggerChatTransport } from \"@trigger.dev/sdk/chat/react\";\nexport function useChatTransport(chatId: string) {\n  return useTriggerChatTransport<typeof myChat>({\n    accessToken: () => mintToken(chatId),\n    triggerOptions: { tags: [\"chat\"] },\n  });\n}",
+     "import { useTriggerChatTransport } from \"@trigger.dev/sdk/chat/react\";\nconst transport = useTriggerChatTransport<typeof myChat>({ accessToken: () => mintToken(\"c1\") });\ntransport.preload(\"c1\", { idleTimeoutInSeconds: 60 });"
+    ],
+    "good": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { useTriggerChatTransport } from \"@trigger.dev/sdk/chat/react\";\nexport const myChat = chat.agent({ id: \"my-chat\", run: async () => {} });\nexport const startChatSession = chat.createStartSessionAction(\"my-chat\", { triggerConfig: { basePayload: {} } });\nexport function useChatTransport(chatId: string) {\n  return useTriggerChatTransport<typeof myChat>({\n    accessToken: () => mintToken(chatId),\n    startSession: ({ chatId }) => startChatSession({ chatId }),\n  });\n}"
+    ]
+   }
+  },
+  {
+   "id": "CHT-07",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "\\buseTriggerChatTransport",
+      "lacks": "\\bstartSession\\b"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bstartSession\\s*:\\s*\\(\\s*\\{\\s*chatId\\s*\\}\\s*\\)",
+      "require": "\\bclientData\\s*:"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bstartSession\\s*:\\s*\\(\\s*\\{[^}]*\\bclientData\\b[^}]*\\}\\s*\\)\\s*=>\\s*[\\w$.]+\\s*\\(\\s*\\{(?![^}]*\\bclientData\\b)[^}]*\\}\\s*\\)"
+     }
+    ]
+   },
+   "message": "useTriggerChatTransport has no startSession, or its startSession drops the clientData the transport carries",
+   "fix": "add a startSession that calls a server action wrapping chat.createStartSessionAction, and forward clientData into it",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/frontend",
+   "examples": {
+    "bad": [
+     "import { useTriggerChatTransport } from \"@trigger.dev/sdk/chat/react\";\nexport function useChatTransport(chatId: string) {\n  return useTriggerChatTransport<typeof myChat>({\n    accessToken: () => mintToken(chatId),\n  });\n}",
+     "import { useTriggerChatTransport } from \"@trigger.dev/sdk/chat/react\";\nexport function useChatTransport(userId: string) {\n  return useTriggerChatTransport<typeof myChat>({\n    accessToken: () => mintToken(userId),\n    startSession: ({ chatId }) => startChatSession({ chatId }),\n    clientData: { userId },\n  });\n}"
+    ],
+    "good": [
+     "import { useTriggerChatTransport } from \"@trigger.dev/sdk/chat/react\";\nexport function useChatTransport(chatId: string) {\n  return useTriggerChatTransport<typeof myChat>({\n    accessToken: () => mintToken(chatId),\n    startSession: ({ chatId, clientData }) => startChatSession({ chatId, clientData }),\n    clientData: { userId: \"u_1\" },\n  });\n}",
+     "import { useTriggerChatTransport } from \"@trigger.dev/sdk/chat/react\";\nexport function useChatTransport(chatId: string) {\n  return useTriggerChatTransport<typeof myChat>({\n    accessToken: () => mintToken(chatId),\n    startSession: ({ chatId }) => startChatSession({ chatId }),\n  });\n}"
+    ]
+   }
+  },
+  {
+   "id": "CHT-08",
+   "family": "CHT",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bhydrateMessages\\s*[:,}][\\s\\S]*\\bstorage\\s*:|\\bstorage\\s*:[\\s\\S]*\\bhydrateMessages\\s*[:,}]",
+    "require": "\\bchat\\.agent\\s*\\("
+   },
+   "message": "chat.agent sets both hydrateMessages and storage, which the runtime rejects at start (a hydrateMessages hook alone is the deprecated W form and is not reported by this entry)",
+   "fix": "delete hydrateMessages and keep storage: TranscriptStorage",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/migrating-from-hydrate-messages",
+   "examples": {
+    "bad": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nexport const a = chat.agent({\n  id: \"a\",\n  hydrateMessages: async ({ chatId }) => loadRows(chatId),\n  storage: transcriptStorage,\n  run: async () => {},\n});"
+    ],
+    "good": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nexport const a = chat.agent({\n  id: \"a\",\n  storage: transcriptStorage,\n  run: async () => {},\n});",
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nexport const a = chat.agent({\n  id: \"a\",\n  hydrateMessages: async ({ chatId }) => loadRows(chatId),\n  run: async () => {},\n});"
+    ]
+   }
+  },
+  {
+   "id": "CHT-09",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "handler",
+    "name": "onTurnStart",
+    "contains": "\\bchat\\.defer\\s*\\(\\s*(?:await\\s+)?[\\w$.]*(?:[Mm]essage|[Tt]ranscript|[Pp]ersist)[\\w$.]*\\s*\\("
+   },
+   "message": "chat.defer wraps a message write in onTurnStart; chat.defer only guarantees completion before onTurnComplete, so a reload can read the transcript before the write lands",
+   "fix": "use chat.deferBeforeOutput for the message write, or await it if the code reads it back",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/background-injection#chat-deferbeforeoutput",
+   "examples": {
+    "bad": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { db } from \"./db\";\nexport const a = chat.agent({\n  id: \"a\",\n  onTurnStart: async ({ chatId, uiMessages }) => {\n    chat.defer(db.chatMessage.create({ data: { chatId, parts: uiMessages } }));\n  },\n  run: async () => {},\n});"
+    ],
+    "good": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { db } from \"./db\";\nexport const a = chat.agent({\n  id: \"a\",\n  onTurnStart: async ({ chatId, uiMessages }) => {\n    chat.deferBeforeOutput(db.chatMessage.create({ data: { chatId, parts: uiMessages } }));\n    chat.defer(analytics.track(\"turn_started\", { chatId }));\n  },\n  run: async () => {},\n});",
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { db } from \"./db\";\nexport const a = chat.agent({\n  id: \"a\",\n  onTurnComplete: async ({ chatId, uiMessages }) => {\n    chat.defer(db.chatMessage.create({ data: { chatId, parts: uiMessages } }));\n  },\n  run: async () => {},\n});"
+    ]
+   }
+  },
+  {
+   "id": "CHT-10",
+   "family": "CHT",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\.\\.\\.\\s*chat\\.toStreamTextOptions\\s*\\([\\s\\S]*?\\)[\\s\\S]*?\\bprepareStep\\s*[:,}]",
+    "require": "\\bchat\\.agent\\s*\\("
+   },
+   "message": "prepareStep is set after ...chat.toStreamTextOptions() in a chat.agent, which replaces the managed prepareStep, so steering, compaction and injection stop running",
+   "fix": "destructure streamText from run's argument (it composes your prepareStep) instead of spreading, or remove the custom prepareStep",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/compaction",
+   "examples": {
+    "bad": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { streamText } from \"ai\";\nexport const a = chat.agent({\n  id: \"a\",\n  run: async ({ messages }) =>\n    streamText({\n      model,\n      messages,\n      ...chat.toStreamTextOptions(),\n      prepareStep: async ({ messages }) => ({ messages }),\n    }),\n});"
+    ],
+    "good": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nexport const a = chat.agent({\n  id: \"a\",\n  run: async ({ messages, streamText }) =>\n    streamText({\n      model,\n      messages,\n      prepareStep: async ({ messages }) => ({ messages }),\n    }),\n});"
+    ]
+   }
+  },
+  {
    "id": "CHT-11",
    "family": "CHT",
    "severity": "error",
@@ -79,6 +615,821 @@
      "import { chat } from \"@trigger.dev/sdk/ai\";\nexport const a = chat.agent({ id: \"a\", onAction: async ({ action }) => {\n  chat.history.slice(0, -2);\n  return chat.turn();\n}, run: async () => {} });"
     ]
    }
+  },
+  {
+   "id": "CHT-12",
+   "family": "CHT",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bexport\\s+const\\s+\\w+\\s*=\\s*chat\\.createLoadTranscriptAction\\s*\\("
+   },
+   "message": "createLoadTranscriptAction is exported bare, so the transcript read has no ownership check of its own",
+   "fix": "wrap the exported action with an ownership check on chatId; the storage's clientData check is only a backstop",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/transcript-storage#reading-the-transcript",
+   "examples": {
+    "bad": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { defaultStorage } from \"./transcript-storage\";\nexport const loadTranscript = chat.createLoadTranscriptAction(defaultStorage, { limit: 50 });"
+    ],
+    "good": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nimport { defaultStorage } from \"./transcript-storage\";\nimport { requireChatOwner } from \"@/lib/chat-access\";\nconst load = chat.createLoadTranscriptAction(defaultStorage, { limit: 50 });\nexport const loadTranscript = async (chatId: string) => {\n  await requireChatOwner(chatId);\n  return load(chatId);\n};"
+    ]
+   }
+  },
+  {
+   "id": "CHT-13",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Are the message write and the lastEventId (or session token) write issued as separate awaited statements instead of one transaction (for example, two awaited db calls rather than a single db.$transaction)? Confirm both writes happen in the same turn handler.",
+   "message": "messages and lastEventId are written in separate awaits, so a page load between the two writes can read a conversation and a session that disagree",
+   "fix": "write messages and lastEventId in one transaction",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/patterns/database-persistence"
+  },
+  {
+   "id": "CHT-14",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "call",
+    "callee": "\\bchat\\.agent",
+    "lacks": "\\buiMessageStreamOptions\\b[\\s\\S]*?\\bonError\\b"
+   },
+   "message": "chat.agent sets no uiMessageStreamOptions.onError, so model errors are not converted before they reach the browser",
+   "fix": "add uiMessageStreamOptions: { onError } that returns a sanitised message",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/error-handling",
+   "examples": {
+    "bad": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nexport const a = chat.agent({\n  id: \"a\",\n  run: async ({ messages, streamText }) => streamText({ model, messages }),\n});"
+    ],
+    "good": [
+     "import { chat } from \"@trigger.dev/sdk/ai\";\nexport const a = chat.agent({\n  id: \"a\",\n  uiMessageStreamOptions: {\n    onError: () => \"The model request failed. Try again.\",\n  },\n  run: async ({ messages, streamText }) => streamText({ model, messages }),\n});"
+    ]
+   }
+  },
+  {
+   "id": "CHT-15",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\\b(?:express\\.json|express\\.urlencoded|bodyParser\\.(?:json|urlencoded|text|raw))\\s*\\(",
+      "require": "\\bchat\\.toNodeListener\\s*\\("
+     },
+     {
+      "type": "import",
+      "from": "(?:^|/)trigger/",
+      "require": "\\bchat\\.headStart\\s*\\(",
+      "skipTypeOnly": true
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bchat\\.headStart\\s*\\(",
+      "unless": "\\bmaxDuration\\s*="
+     }
+    ]
+   },
+   "judge": "Confirm the hit is a Head Start route (chat.headStart, or chat.toNodeListener in front of it). Then check three parts: (1) no body parser (express.json, express.urlencoded, bodyParser) runs before chat.toNodeListener on that route; (2) the route imports schema-only tools, not a trigger/ module or heavy execute; (3) a maxDuration export is set when the route runs on serverless (see the doc for per-platform timeouts). Report which parts fail.",
+   "message": "This Head Start route has a body parser, a trigger/ module import, or no maxDuration export.",
+   "fix": "Skip body parsing on the chat route (or scope it to other routes); import schema-only tools from a module that does not import trigger/; export maxDuration on the route segment.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/fast-starts#head-start",
+   "examples": {
+    "bad": [
+     "import express from 'express';\nimport { chat } from '@trigger.dev/sdk/ai';\nconst app = express();\napp.use(express.json());\nconst headStart = chat.headStart({ agentId: 'my-chat', run: async (opts) => opts });\napp.post('/api/chat', chat.toNodeListener(headStart));\n",
+     "import { chat } from '@trigger.dev/sdk/ai';\nimport { fetchPage } from '@/trigger/chat-tools';\nexport const POST = chat.headStart({\n  agentId: 'my-chat',\n  run: async (opts) => opts,\n});\n"
+    ],
+    "good": [
+     "import { chat } from '@trigger.dev/sdk/ai';\nimport { fetchPage } from '@/lib/chat-tools/schemas';\nexport const maxDuration = 60;\nexport const POST = chat.headStart({\n  agentId: 'my-chat',\n  run: async (opts) => opts,\n});\n",
+     "import express from 'express';\nimport { chat } from '@trigger.dev/sdk/ai';\nconst app = express();\napp.post('/api/chat', chat.toNodeListener(handler));\n"
+    ]
+   }
+  },
+  {
+   "id": "CHT-16",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "\\btool",
+      "contains": "\\bexecute\\s*[:,]",
+      "argsMatch": "\\b(?:[Aa]sk|[Qq]uestion|[Cc]larif)\\w*"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\baddToolOutput\\s*\\(",
+      "unless": "\\bsendAutomaticallyWhen\\b"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bneedsApproval\\s*:"
+     }
+    ]
+   },
+   "judge": "For each hit decide which part fires: (a) a question or choice tool still has execute, so the answer is produced on the server instead of the frontend (the question pattern omits execute); (b) addToolOutput is called where useChat has no sendAutomaticallyWhen, so the next turn is not sent by itself; (c) needsApproval is set while the project's ai package is version 5 (the option is documented for AI SDK 6 or later). Report only the parts that hold.",
+   "message": "A question-style tool has execute, addToolOutput has no sendAutomaticallyWhen, or needsApproval is set.",
+   "fix": "Per the HITL pattern: omit execute on question tools and answer them with addToolOutput; pair addToolOutput with sendAutomaticallyWhen; keep needsApproval for AI SDK 6 or later.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/patterns/human-in-the-loop",
+   "examples": {
+    "bad": [
+     "import { tool } from 'ai';\nimport { z } from 'zod';\nimport { chat } from '@trigger.dev/sdk/ai';\n\nexport const askUser = tool({\n  description: 'Ask the user a clarifying question.',\n  inputSchema: z.object({ question: z.string() }),\n  execute: async ({ question }) => ({ answer: question }),\n});\n",
+     "import { useChat } from '@ai-sdk/react';\nimport { useTriggerChatTransport } from '@trigger.dev/sdk/chat/react';\n\nexport function Question() {\n  const { messages, addToolOutput } = useChat({\n    transport: useTriggerChatTransport(),\n  });\n  return <button onClick={() => addToolOutput({ tool: 'askUser', toolCallId: '1', output: { ok: true } })}>ok</button>;\n}\n",
+     "import { tool } from 'ai';\nimport { z } from 'zod';\nimport { chat } from '@trigger.dev/sdk/ai';\n\nexport const sendEmail = tool({\n  description: 'Send an email to a contact.',\n  inputSchema: z.object({ to: z.string() }),\n  needsApproval: true,\n  execute: async ({ to }) => ({ sent: to }),\n});\n"
+    ],
+    "good": [
+     "import { tool } from 'ai';\nimport { z } from 'zod';\nimport { chat } from '@trigger.dev/sdk/ai';\n\nexport const askUser = tool({\n  description: 'Ask the user a clarifying question.',\n  inputSchema: z.object({ question: z.string() }),\n});\n",
+     "import { useChat } from '@ai-sdk/react';\nimport { lastAssistantMessageIsCompleteWithToolCalls } from 'ai';\nimport { useTriggerChatTransport } from '@trigger.dev/sdk/chat/react';\n\nexport function Question() {\n  const { messages, addToolOutput } = useChat({\n    transport: useTriggerChatTransport(),\n    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,\n  });\n  return <button onClick={() => addToolOutput({ tool: 'askUser', toolCallId: '1', output: { ok: true } })}>ok</button>;\n}\n",
+     "import { tool } from 'ai';\nimport { z } from 'zod';\nimport { chat } from '@trigger.dev/sdk/ai';\n\nexport const searchDocs = tool({\n  description: 'Search the docs index.',\n  inputSchema: z.object({ query: z.string() }),\n  execute: async ({ query }) => ({ hits: [query] }),\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "CHT-17",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Decide whether a tool output or chat write in this file can exceed about 1 MiB for realistic inputs: fetched pages, file or search contents, query results, base64 media, or a value passed to chat.response.write or a custom writer.write part. Hit only when the large value is written to the chat stream itself rather than stored and referenced by id. Small status values are not hit.",
+   "message": "A tool output or chat write here can exceed the ~1 MiB per-record cap on the chat stream.",
+   "fix": "Store the large value in your own store and emit only an id on the stream; the UI loads it by id.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/patterns/large-payloads"
+  },
+  {
+   "id": "CHT-18",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Find tools in chat.agent whose execute performs a side effect: sending a message or email, charging, creating or deleting a record, calling a paid API. A turn that is retried after an OOM or regenerated re-runs the whole turn including the tool call, and side effects are not rolled back. Hit when the side effect has no idempotency key passed to the provider and no external checkpoint. Read-only tools are not hit.",
+   "message": "This side-effecting tool has no idempotency key, so a retried or regenerated turn can repeat its side effect.",
+   "fix": "Pass an idempotency key to the provider call, or checkpoint progress externally, so a re-run does not repeat the effect.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/patterns/oom-resilience"
+  },
+  {
+   "id": "CHT-19",
+   "family": "CHT",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\\bawait\\s+chat\\.endAndContinue\\s*\\([^)]*\\)\\s*;\\s*(?!return\\b|\\})[A-Za-z_$(]"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\blockToVersion\\s*:",
+      "require": "\\brequestUpgrade\\s*\\("
+     }
+    ]
+   },
+   "message": "Code runs after await chat.endAndContinue(), though the Session is already handed to a new run; (W) a lockToVersion pin with chat.requestUpgrade() keeps the upgrade on the same version.",
+   "fix": "Return right after await chat.endAndContinue() with no more Session reads or writes; for upgrades, use an external deployment id (externalDeploymentId on chat.requestUpgrade()) instead of a lockToVersion pin.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/patterns/version-upgrades",
+   "examples": {
+    "bad": [
+     "import { chat } from '@trigger.dev/sdk/ai';\n\nexport const handoff = chat.customAgent({\n  id: 'custom-chat',\n  run: async (ctx) => {\n    await chat.endAndContinue();\n    console.log('handed over');\n    return;\n  },\n});\n",
+     "import { chat } from '@trigger.dev/sdk/ai';\n\nexport const myChat = chat.agent({\n  id: 'my-chat',\n  triggerConfig: { lockToVersion: '20260101.1' },\n  run: async ({ messages, signal }) => {\n    chat.requestUpgrade({ externalDeploymentId: 'abc' });\n    return;\n  },\n});\n"
+    ],
+    "good": [
+     "import { chat } from '@trigger.dev/sdk/ai';\n\nexport const handoff = chat.customAgent({\n  id: 'custom-chat',\n  run: async (ctx) => {\n    await chat.endAndContinue();\n    return;\n  },\n});\n",
+     "import { chat } from '@trigger.dev/sdk/ai';\n\nexport const handoff = chat.customAgent({\n  id: 'custom-chat',\n  run: async (ctx) => {\n    await chat.endAndContinue();\n  },\n});\n",
+     "import { chat } from '@trigger.dev/sdk/ai';\n\nexport const myChat = chat.agent({\n  id: 'my-chat',\n  run: async ({ messages, signal, clientData }) => {\n    chat.requestUpgrade({ externalDeploymentId: clientData.commitSha });\n    return;\n  },\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "CHT-20",
+   "family": "CHT",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Self-host only: check whether the deployment is self-hosted (TRIGGER_API_URL points at your own server, not the cloud) and whether OBJECT_STORE_* is configured for it. Hit when that config is absent and this chat.agent has no storage option of its own. Cloud projects and agents with their own storage are not hit.",
+   "message": "This self-hosted chat agent has no storage option and no OBJECT_STORE_* config, so a continuation boots with an empty conversation.",
+   "fix": "Configure the OBJECT_STORE_* variables for the self-host, or pass your own storage on the agent.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/patterns/persistence-and-replay"
+  },
+  {
+   "id": "CHT-21",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "package-json",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bai\\\"\\s*:\\s*\\\"[\\^~>=\\s]*7\\b",
+    "mask": "none",
+    "unless": "\\\"@ai-sdk/otel\\\"\\s*:"
+   },
+   "message": "ai 7 is in package.json without @ai-sdk/otel; AI SDK 7 emits model-call spans from that adapter, so they are missing from the run trace.",
+   "fix": "Install @ai-sdk/otel next to ai@7.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/reference",
+   "examples": {
+    "bad": [
+     "{\n  \"name\": \"app\",\n  \"dependencies\": {\n    \"@trigger.dev/sdk\": \"4.0.0\",\n    \"ai\": \"^7.0.0\"\n  }\n}\n"
+    ],
+    "good": [
+     "{\n  \"dependencies\": {\n    \"@trigger.dev/sdk\": \"4.0.0\",\n    \"ai\": \"^7.0.0\",\n    \"@ai-sdk/otel\": \"^1.0.0\"\n  }\n}\n",
+     "{\n  \"dependencies\": {\n    \"ai\": \"^6.0.0\"\n  }\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "CHT-22",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bsystem\\b\\s*[:=][^;]{0,300}?\\b(?:new\\s+Date\\s*\\(|Date\\.now\\s*\\(|toISOString\\s*\\(|randomUUID\\s*\\()",
+    "require": "\\b(?:cacheControl|systemProviderOptions)\\b"
+   },
+   "message": "This system prompt is cached (cacheControl) and builds a timestamp or random id, so its bytes change each turn and the cache never hits.",
+   "fix": "Move the dynamic value out of the system prompt into a per-turn injection, and keep the cached system string byte-stable.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/prompt-caching",
+   "examples": {
+    "bad": [
+     "import { chat } from '@trigger.dev/sdk/ai';\nimport { streamText } from 'ai';\n\nexport const myChat = chat.agent({\n  id: 'my-chat',\n  cacheControl: { type: 'ephemeral' },\n  run: async ({ messages, signal }) => {\n    return streamText({\n      ...chat.toStreamTextOptions(),\n      system: `You are a support agent. Today is ${new Date().toISOString()}.`,\n      messages,\n      abortSignal: signal,\n    });\n  },\n});\n"
+    ],
+    "good": [
+     "import { chat } from '@trigger.dev/sdk/ai';\nimport { streamText } from 'ai';\n\nconst SYSTEM = 'You are a support agent. Answer briefly.';\n\nexport const myChat = chat.agent({\n  id: 'my-chat',\n  cacheControl: { type: 'ephemeral' },\n  run: async ({ messages, signal }) => {\n    console.log(`turn at ${new Date().toISOString()}`);\n    return streamText({\n      ...chat.toStreamTextOptions(),\n      system: SYSTEM,\n      messages,\n      abortSignal: signal,\n    });\n  },\n});\n",
+     "import { chat } from '@trigger.dev/sdk/ai';\nimport { streamText } from 'ai';\n\nexport const myChat = chat.agent({\n  id: 'my-chat',\n  run: async ({ messages, signal }) => {\n    return streamText({\n      ...chat.toStreamTextOptions(),\n      system: `Today is ${new Date().toISOString()}.`,\n      messages,\n      abortSignal: signal,\n    });\n  },\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "CHT-23",
+   "family": "CHT",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Find code that trusts clientData, or any other value the browser sends (body fields, headers, cookies it controls), for an authorisation or trust decision: who the user is, who owns the chat, a role or plan, a tool permission, a bot or risk score. Hit when the value is used without a server-side derivation (session, database lookup) or a verdict from a trusted edge proxy. clientData used only for UI text or logging is not hit.",
+   "message": "A value from clientData (set by the browser) decides an authorisation or trust check here.",
+   "fix": "Derive the identity and permissions server-side from the session or a database lookup; signals the browser cannot be trusted to send come from a trusted edge proxy.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/patterns/trusted-edge-signals"
+  },
+  {
+   "id": "CHT-24",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "import",
+      "from": "^resumable-stream$"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\btoUIMessageStreamResponse\\s*\\("
+     },
+     {
+      "type": "handler",
+      "name": "run",
+      "contains": "\\bconvertToModelMessages\\s*\\("
+     }
+    ]
+   },
+   "message": "This file still has route-handler chat plumbing (resumable-stream, toUIMessageStreamResponse, or convertToModelMessages in run); chat.agent does these steps itself.",
+   "fix": "Delete the route handler and the resumable-stream setup; the runtime does convertToModelMessages and toUIMessageStreamResponse.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/migrating-from-a-route-handler",
+   "examples": {
+    "bad": [
+     "import { streamText, convertToModelMessages } from 'ai';\nimport { chat } from '@trigger.dev/sdk/ai';\n\nexport async function POST(req: Request) {\n  const { messages } = await req.json();\n  const result = streamText({ model: myModel, messages: convertToModelMessages(messages) });\n  return result.toUIMessageStreamResponse();\n}\n",
+     "import * as resumable from 'resumable-stream';\nimport { chat } from '@trigger.dev/sdk/ai';\n\nexport const chatAgent = chat.agent({\n  id: 'my-chat',\n  run: async ({ messages, signal }) => ({ messages, signal, resumable }),\n});\n",
+     "import { streamText, convertToModelMessages } from 'ai';\nimport { chat } from '@trigger.dev/sdk/ai';\n\nexport const myChat = chat.agent({\n  id: 'my-chat',\n  run: async ({ messages, signal }) => {\n    return streamText({\n      ...chat.toStreamTextOptions(),\n      messages: convertToModelMessages(messages),\n      abortSignal: signal,\n    });\n  },\n});\n"
+    ],
+    "good": [
+     "import { chat } from '@trigger.dev/sdk/ai';\nimport { streamText } from 'ai';\n\nexport const myChat = chat.agent({\n  id: 'my-chat',\n  run: async ({ messages, signal }) => {\n    return streamText({\n      ...chat.toStreamTextOptions(),\n      messages,\n      abortSignal: signal,\n    });\n  },\n});\n",
+     "import { chat } from '@trigger.dev/sdk/ai';\n\nexport const POST = chat.headStart({\n  agentId: 'my-chat',\n  run: async (streamTextOptions) => streamTextOptions,\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "CHT-25",
+   "family": "CHT",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "from\\s*[\\\"'](?:\\.{1,2}/|@/)[^\\\"']*[\\\"'][\\s\\S]{0,2000}?from\\s*[\\\"']@trigger\\.dev/sdk/ai/test[\\\"']"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bmockChatAgent\\s*\\(",
+      "unless": "\\.close\\s*\\("
+     }
+    ]
+   },
+   "message": "This test imports the agent module before @trigger.dev/sdk/ai/test, or calls mockChatAgent without closing the harness.",
+   "fix": "Import @trigger.dev/sdk/ai/test before the agent module, and close the harness in a try/finally (or afterEach).",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/testing",
+   "examples": {
+    "bad": [
+     "import { describe, expect, it } from 'vitest';\nimport { myChatAgent } from './my-chat.js';\nimport { mockChatAgent } from '@trigger.dev/sdk/ai/test';\n\ndescribe('my chat', () => {\n  it('replies', async () => {\n    const harness = mockChatAgent(myChatAgent, { chatId: 't' });\n    await harness.close();\n    expect(harness).toBeDefined();\n  });\n});\n",
+     "import { mockChatAgent } from '@trigger.dev/sdk/ai/test';\nimport { myChatAgent } from './my-chat.js';\nimport { describe, expect, it } from 'vitest';\n\ndescribe('my chat', () => {\n  it('replies', async () => {\n    const harness = mockChatAgent(myChatAgent, { chatId: 't' });\n    expect(harness).toBeDefined();\n  });\n});\n"
+    ],
+    "good": [
+     "import { mockChatAgent } from '@trigger.dev/sdk/ai/test';\nimport { myChatAgent } from './my-chat.js';\nimport { describe, expect, it } from 'vitest';\n\ndescribe('my chat', () => {\n  it('replies', async () => {\n    const harness = mockChatAgent(myChatAgent, { chatId: 't' });\n    try {\n      expect(harness).toBeDefined();\n    } finally {\n      await harness.close();\n    }\n  });\n});\n",
+     "import { describe, expect, it } from 'vitest';\nimport { myChatAgent } from './my-chat.js';\n\ndescribe('my chat', () => {\n  it('exists', () => {\n    expect(myChatAgent).toBeDefined();\n  });\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "COST-01",
+   "family": "COST",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "code",
+   "match": null,
+   "judge": "Is this task's machine preset larger than its work needs? Only flag when the task sets a machine (in the task definition or the trigger call) and the measured CPU or memory stays well below that preset, or usage_duration is short, or the work is mostly waiting on I/O. Presets are listed in machines.mdx; the default is small-1x.",
+   "live": "TRQL via the MCP query tool, run both: (1) SELECT task_identifier, machine_name, avg(metric_value) AS avg_memory FROM metrics WHERE metric_name = 'process.memory.usage' AND bucket_start BETWEEN '<from>' AND '<to>' GROUP BY task_identifier, machine_name; (2) SELECT task_identifier, count() AS runs, avg(usage_duration) AS avg_ms FROM runs WHERE triggered_at BETWEEN '<from>' AND '<to>' GROUP BY task_identifier ORDER BY runs DESC LIMIT 20",
+   "message": "Measured memory or usage duration for this task leaves most of its machine preset unused.",
+   "fix": "Use the smallest preset that fits (presets in machines.mdx), override the machine per trigger only for heavy payloads, or raise the preset on an OOM retry rather than for every run.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/how-to-reduce-your-spend"
+  },
+  {
+   "id": "COST-02",
+   "family": "COST",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "code",
+   "match": null,
+   "judge": "Does the task throw a permanent error (invalid input, a validation failure, a 4xx that retrying cannot change) and lack an AbortTaskRunError guard for it? Retries of a permanent failure only repeat the same work.",
+   "live": "TRQL via the MCP query tool: SELECT task_identifier, count() AS runs, avg(attempt_count) AS avg_attempts, sum(compute_cost) AS cost FROM runs WHERE triggered_at BETWEEN '<from>' AND '<to>' AND attempt_count >= 3 GROUP BY task_identifier ORDER BY cost DESC LIMIT 20",
+   "message": "Runs of this task reach three or more attempts, and each retry bills compute again.",
+   "fix": "Throw AbortTaskRunError for permanent errors so the attempt is not retried, and cap maxAttempts for the rest.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/errors-retrying"
+  },
+  {
+   "id": "COST-03",
+   "family": "COST",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "code",
+   "match": null,
+   "judge": "Is this task triggered in bursts for the same key (the same user, document or entity), where the latest or a consolidated run is enough? If each trigger is independent work, do not flag. A trigger call that already passes a debounce option is not a hit.",
+   "live": "TRQL via the MCP query tool: SELECT task_identifier, toStartOfMinute(triggered_at) AS minute, count() AS runs FROM runs WHERE triggered_at BETWEEN '<from>' AND '<to>' GROUP BY task_identifier, minute ORDER BY runs DESC LIMIT 20",
+   "message": "Several runs of this task start within the same minute.",
+   "fix": "Pass { debounce: { key, delay } } on the trigger call so triggers for one key collapse into one run, and set maxDelay so a constant stream still runs.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/triggering"
+  },
+  {
+   "id": "COST-04",
+   "family": "COST",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "call",
+    "callee": "\\bwait\\.for",
+    "contains": "\\bseconds\\s*:\\s*0*[0-5](?![\\d.])",
+    "lacks": "\\b(?:minutes|hours|days)\\s*:"
+   },
+   "message": "A wait.for of 5 seconds or less is billed as compute; waits longer than 5 seconds are not.",
+   "fix": "Use a wait longer than 5 seconds (wait.for or wait.until), or a waitpoint token (wait.createToken) when an external event ends the wait; replace polling loops with one of these.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/wait",
+   "examples": {
+    "bad": [
+     "import { task, wait } from \"@trigger.dev/sdk\";\n\nexport const pollJob = task({\n  id: \"poll-job\",\n  run: async (payload: { id: string }) => {\n    await wait.for({ seconds: 5 });\n    return { id: payload.id };\n  },\n});\n",
+     "import { task, wait } from \"@trigger.dev/sdk\";\n\nexport const pollJob = task({\n  id: \"poll-job\",\n  run: async (payload: { id: string }) => {\n    for (let i = 0; i < 10; i++) {\n      await wait.for({ seconds: 2 });\n    }\n    return { id: payload.id };\n  },\n});\n"
+    ],
+    "good": [
+     "import { task, wait } from \"@trigger.dev/sdk\";\n\nexport const pollJob = task({\n  id: \"poll-job\",\n  run: async (payload: { id: string }) => {\n    await wait.for({ minutes: 5 });\n    return { id: payload.id };\n  },\n});\n",
+     "import { task, wait } from \"@trigger.dev/sdk\";\n\nexport const pollJob = task({\n  id: \"poll-job\",\n  run: async (payload: { id: string }) => {\n    await wait.for({ seconds: 30 });\n    return { id: payload.id };\n  },\n});\n",
+     "import { task, wait } from \"@trigger.dev/sdk\";\n\n// await wait.for({ seconds: 5 });\nexport const pollJob = task({\n  id: \"poll-job\",\n  run: async () => ({ ok: true }),\n});\n",
+     "import { task, wait } from \"@trigger.dev/sdk\";\n\nexport const pollJob = task({\n  id: \"poll-job\",\n  run: async (payload: { date: string }) => {\n    await wait.until({ date: new Date(payload.date) });\n    const token = await wait.createToken({ timeout: \"10m\" });\n    return { token };\n  },\n});\n",
+     "import { task, wait } from \"@trigger.dev/sdk\";\n\nexport const pollJob = task({\n  id: \"poll-job\",\n  run: async (payload: { id: string }) => {\n    await wait.for({ seconds: 60 });\n    return { id: payload.id };\n  },\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "COST-05",
+   "family": "COST",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "code",
+   "match": null,
+   "judge": "For each declarative schedule (a cron on schedules.task, or schedules.create), compare its cron interval with how often the data it reads or writes can change. Flag only when the cron fires clearly more often than that data changes. The per-day run counts show the actual firing rate.",
+   "live": "TRQL via the MCP query tool: SELECT task_identifier, toStartOfDay(triggered_at) AS day, count() AS runs FROM runs WHERE triggered_at BETWEEN '<from>' AND '<to>' GROUP BY task_identifier, day ORDER BY runs DESC LIMIT 50",
+   "message": "This scheduled task's cron fires more often than the data it reads changes.",
+   "fix": "Reduce the cron frequency to the interval at which the data actually changes.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/tasks/scheduled"
+  },
+  {
+   "id": "COST-06",
+   "family": "COST",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "code",
+   "match": null,
+   "judge": "Is the average usage_duration tiny compared with the number of runs, and are these separate triggers of items that could share one run?",
+   "live": "TRQL via the MCP query tool: SELECT task_identifier, count() AS runs, avg(usage_duration) AS avg_ms FROM runs WHERE triggered_at BETWEEN '<from>' AND '<to>' GROUP BY task_identifier ORDER BY runs DESC LIMIT 20",
+   "message": "This task starts many runs, and each run uses very little compute time.",
+   "fix": "Do more work per run: batch items into one payload (batchTrigger, or a loop inside the task) instead of one run per item.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/how-to-reduce-your-spend"
+  },
+  {
+   "id": "COST-07",
+   "family": "COST",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "config",
+   "match": null,
+   "judge": "Applies to Trigger.dev Cloud organizations only; billing limits do not apply to self-hosted instances. Flag when no billing limit or billing alert is set (the default is no limit).",
+   "live": "No MCP or CLI query covers billing limits. Dashboard check, for a human: Organization menu, then Settings, then Billing limits. Report the setting; do not change it.",
+   "message": "This Cloud organization has no billing limit or billing alert configured.",
+   "fix": "A human sets a monthly billing limit (plan maximum or a custom cap) and billing alerts under Organization, Settings, Billing limits.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/billing-limits"
+  },
+  {
+   "id": "DEP-01",
+   "family": "DEP",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "workflow",
+   "match": {
+    "type": "regex",
+    "mask": "none",
+    "flags": "m",
+    "pattern": "^(?![ \\t]*#)[^\\n]*?\\btrigger(?:\\.dev)?(?:@[\\w.@-]+)?\\s+deploy\\b",
+    "unless": "TRIGGER_ACCESS_TOKEN"
+   },
+   "message": "This workflow runs a trigger.dev deploy and sets no TRIGGER_ACCESS_TOKEN.",
+   "fix": "Add a per-environment token secret and map it to TRIGGER_ACCESS_TOKEN in the deploy step's env.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/github-actions",
+   "examples": {
+    "bad": [
+     "name: deploy\non:\n  push:\n    branches: [main]\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env prod\n        env:\n          TRIGGER_SECRET_KEY: ${{ secrets.TRIGGER_SECRET_KEY }}\n"
+    ],
+    "good": [
+     "name: deploy\non:\n  push:\n    branches: [main]\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env prod\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_PROD_ACCESS_TOKEN }}\n",
+     "name: ci\non: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      # npx trigger.dev@latest deploy --env prod (moved to deploy.yml)\n      - run: npm test\n"
+    ]
+   }
+  },
+  {
+   "id": "DEP-02",
+   "family": "DEP",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "workflow",
+   "match": {
+    "type": "regex",
+    "mask": "none",
+    "pattern": "TRIGGER_ACCESS_TOKEN:\\s*\\$\\{\\{\\s*secrets\\.(\\w+)\\s*\\}\\}",
+    "require": "--env\\s+(\\w+)[\\s\\S]*--env\\s+(?!\\1\\b)\\w+",
+    "unless": "TRIGGER_ACCESS_TOKEN:\\s*\\$\\{\\{\\s*secrets\\.(\\w+)\\s*\\}\\}[\\s\\S]*TRIGGER_ACCESS_TOKEN:\\s*\\$\\{\\{\\s*secrets\\.(?!\\1\\b)\\w+"
+   },
+   "message": "One TRIGGER_ACCESS_TOKEN secret is used while this workflow deploys to two --env targets.",
+   "fix": "Store one token per environment and map each to TRIGGER_ACCESS_TOKEN in its own job.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/github-actions",
+   "examples": {
+    "bad": [
+     "name: deploy\non:\n  push:\n    branches: [main]\njobs:\n  staging:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env staging\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}\n  production:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env prod\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}\n"
+    ],
+    "good": [
+     "name: deploy\non:\n  push:\n    branches: [main]\njobs:\n  staging:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env staging\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_STAGING_ACCESS_TOKEN }}\n  production:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env prod\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_PROD_ACCESS_TOKEN }}\n"
+    ]
+   }
+  },
+  {
+   "id": "DEP-03",
+   "family": "DEP",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "workflow",
+   "match": {
+    "type": "regex",
+    "mask": "none",
+    "pattern": "--env\\s+preview\\b",
+    "require": "pull_request\\s*:",
+    "unless": "types:\\s*\\[[^\\]]*\\bclosed\\b|^[ \\t]*-[ \\t]*closed\\b"
+   },
+   "message": "This workflow deploys --env preview on pull_request, but pull_request.types has no closed, so preview branches are not archived when PRs close or merge.",
+   "fix": "Add closed to pull_request.types.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/deployment/preview-branches",
+   "examples": {
+    "bad": [
+     "name: preview\non:\n  pull_request:\n    types: [opened, synchronize, reopened]\njobs:\n  preview:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env preview --external-id ${{ github.event.pull_request.head.sha }}\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_PREVIEW_ACCESS_TOKEN }}\n"
+    ],
+    "good": [
+     "name: preview\non:\n  pull_request:\n    types: [opened, synchronize, reopened, closed]\njobs:\n  preview:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env preview --external-id ${{ github.event.pull_request.head.sha }}\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_PREVIEW_ACCESS_TOKEN }}\n"
+    ]
+   }
+  },
+  {
+   "id": "DEP-04",
+   "family": "DEP",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "workflow",
+   "match": {
+    "type": "regex",
+    "mask": "none",
+    "pattern": "--external-id[=\\s]+\\$\\{\\{\\s*github\\.sha\\s*\\}\\}",
+    "require": "pull_request\\s*:"
+   },
+   "message": "The pull_request workflow passes ${{ github.sha }} as --external-id; on pull_request that is the merge commit, not the commit the app was built from.",
+   "fix": "Use github.event.pull_request.head.sha as the --external-id value.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/github-actions",
+   "examples": {
+    "bad": [
+     "name: preview\non:\n  pull_request:\n    types: [opened, synchronize, reopened, closed]\njobs:\n  preview:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env preview --external-id ${{ github.sha }}\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_PREVIEW_ACCESS_TOKEN }}\n"
+    ],
+    "good": [
+     "name: preview\non:\n  pull_request:\n    types: [opened, synchronize, reopened, closed]\njobs:\n  preview:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env preview --external-id ${{ github.event.pull_request.head.sha }}\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_PREVIEW_ACCESS_TOKEN }}\n"
+    ]
+   }
+  },
+  {
+   "id": "DEP-05",
+   "family": "DEP",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "workflow",
+   "match": {
+    "type": "regex",
+    "mask": "none",
+    "pattern": "--external-id[=\\s]+\\$\\{\\{\\s*github\\.(?:event\\.pull_request\\.head\\.)?sha\\s*\\}\\}",
+    "require": "^[ \\t]*paths:"
+   },
+   "message": "A paths: filter is set and --external-id is a commit SHA; commits outside the filter never create a deployment for that SHA, so their runs expire.",
+   "fix": "Derive the external id from the last commit that touched the task files, not from github.sha.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/deployment/atomic-deployment",
+   "examples": {
+    "bad": [
+     "name: deploy\non:\n  push:\n    branches: [main]\n    paths:\n      - src/trigger/tasks.ts\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env prod --external-id ${{ github.sha }}\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}\n"
+    ],
+    "good": [
+     "name: deploy\non:\n  push:\n    branches: [main]\n    paths:\n      - src/trigger/tasks.ts\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - id: last-tasks-commit\n        run: echo \"sha=$(git log -1 --format=%H -- src/trigger)\" >> \"$GITHUB_OUTPUT\"\n      - run: npx trigger.dev@latest deploy --env prod --external-id ${{ steps.last-tasks-commit.outputs.sha }}\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}\n"
+    ]
+   }
+  },
+  {
+   "id": "DEP-06",
+   "family": "DEP",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "workflow",
+   "match": {
+    "type": "regex",
+    "mask": "none",
+    "flags": "m",
+    "pattern": "^(?![ \\t]*#)[^\\n]*?\\bTRIGGER_VERSION\\b[\"']?\\s*[:=]"
+   },
+   "message": "TRIGGER_VERSION is set in hosting or CI config; the SDK sends it as an explicit version, which overrides the external deployment id.",
+   "fix": "Remove TRIGGER_VERSION once version skew protection is verified.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/deployment/atomic-deployment",
+   "examples": {
+    "bad": [
+     "{\n  \"buildCommand\": \"next build\",\n  \"env\": {\n    \"TRIGGER_VERSION\": \"20260101.1\"\n  }\n}\n"
+    ],
+    "good": [
+     "{\n  \"buildCommand\": \"next build\",\n  \"env\": {\n    \"NODE_ENV\": \"production\"\n  }\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "DEP-07",
+   "family": "DEP",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "config",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bsyncVercelEnvVars\\s*\\("
+   },
+   "message": "trigger.config calls syncVercelEnvVars(), a build extension that the Vercel integration docs mark as deprecated.",
+   "fix": "Remove the syncVercelEnvVars() entry from build.extensions.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/vercel-integration",
+   "examples": {
+    "bad": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  build: {\n    extensions: [syncVercelEnvVars()],\n  },\n});\n"
+    ],
+    "good": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\n// syncVercelEnvVars() was removed from this project.\nexport default defineConfig({\n  project: \"proj_example\",\n});\n"
+    ]
+   },
+   "target": "cloud"
+  },
+  {
+   "id": "DEP-08",
+   "family": "DEP",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "code",
+   "judge": "Which process.env.<NAME> reads inside task code (files that define tasks) have no value in the target environment's list? Ignore reads guarded by a default or a missing-value check.",
+   "live": "npx trigger.dev@latest env list --env <target-env>",
+   "message": "A task reads process.env.<NAME> that is not set in the target environment.",
+   "fix": "Set the variable on the target environment with env set --env <target-env>, or sync it.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/deploy-environment-variables"
+  },
+  {
+   "id": "DEP-09",
+   "family": "DEP",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "workflow",
+   "match": {
+    "type": "regex",
+    "mask": "none",
+    "flags": "m",
+    "pattern": "^(?![ \\t]*#)[^\\n]*?\\btrigger(?:\\.dev)?(?:@[\\w.@-]+)?\\s+deploy\\b[^\\n]*--env-file\\b"
+   },
+   "message": "trigger deploy is given --env-file; that file feeds the deploy CLI and does not set task environment variables.",
+   "fix": "Set task variables with env set on the target environment; keep --env-file only for values the deploy CLI needs.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/cli-deploy-commands",
+   "examples": {
+    "bad": [
+     "name: deploy\non:\n  push:\n    branches: [main]\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env prod --env-file .env.production\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}\n"
+    ],
+    "good": [
+     "name: deploy\non:\n  push:\n    branches: [main]\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env prod\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}\n      - run: node scripts/check-env.js --env-file .env.ci\n"
+    ]
+   }
+  },
+  {
+   "id": "DEP-10",
+   "family": "DEP",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "package-json",
+   "match": {
+    "type": "regex",
+    "mask": "none",
+    "pattern": "\"[^\"\\n]*\"\\s*:\\s*\"(?![^\"\\n]*--env\\b)[^\"\\n]*\\btrigger(?:\\.dev)?(?:@[\\w.@-]+)?\\s+(?:deploy|env)\\b[^\"\\n]*\""
+   },
+   "message": "A package.json deploy or env script runs trigger without --env, so the target environment is not explicit.",
+   "fix": "Add an explicit --env <name> to the script.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/cli-deploy-commands",
+   "examples": {
+    "bad": [
+     "{\n  \"name\": \"tasks\",\n  \"scripts\": {\n    \"dev\": \"trigger dev\",\n    \"deploy:trigger\": \"trigger deploy\"\n  }\n}\n"
+    ],
+    "good": [
+     "{\n  \"name\": \"tasks\",\n  \"scripts\": {\n    \"dev\": \"trigger dev\",\n    \"deploy:trigger\": \"trigger deploy --env staging\"\n  }\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "DEP-11",
+   "family": "DEP",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "workflow",
+   "match": {
+    "type": "regex",
+    "mask": "none",
+    "pattern": "\\btr_preview_|secrets\\.\\w*PREVIEW\\w*(?:KEY|SECRET)\\w*",
+    "unless": "TRIGGER_PREVIEW_BRANCH"
+   },
+   "message": "A preview key is used in this workflow without TRIGGER_PREVIEW_BRANCH, so the runs have no preview branch to target.",
+   "fix": "Set TRIGGER_PREVIEW_BRANCH next to the preview key.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/deployment/preview-branches",
+   "examples": {
+    "bad": [
+     "name: preview-tasks\non:\n  pull_request:\n    types: [opened, synchronize, reopened, closed]\njobs:\n  smoke:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: node scripts/smoke.js\n        env:\n          TRIGGER_SECRET_KEY: ${{ secrets.TRIGGER_PREVIEW_SECRET_KEY }}\n"
+    ],
+    "good": [
+     "name: preview-tasks\non:\n  pull_request:\n    types: [opened, synchronize, reopened, closed]\njobs:\n  smoke:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: node scripts/smoke.js\n        env:\n          TRIGGER_SECRET_KEY: ${{ secrets.TRIGGER_PREVIEW_SECRET_KEY }}\n          TRIGGER_PREVIEW_BRANCH: ${{ github.head_ref }}\n"
+    ]
+   },
+   "target": "cloud"
+  },
+  {
+   "id": "DEP-12",
+   "family": "DEP",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "config",
+   "match": null,
+   "message": "More than one trigger.config.* exists in the repository and the GitHub integration has no config path set.",
+   "fix": "Set the config path in the GitHub integration settings, e.g. apps/tasks/trigger.config.ts.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/github-integration",
+   "judge": "If the repository has more than one trigger.config.* and deploys through the GitHub integration, the dashboard needs a trigger config file path set for the project. That setting is dashboard-only: ask the user to confirm it."
+  },
+  {
+   "id": "DEP-13",
+   "family": "DEP",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "workflow",
+   "match": {
+    "type": "regex",
+    "mask": "none",
+    "flags": "m",
+    "pattern": "^(?![ \\t]*#)[^\\n]*?\\btrigger(?:\\.dev)?(?:@[\\w.@-]+)?\\s+deploy\\b",
+    "unless": "TRIGGER_API_URL"
+   },
+   "message": "A deploy step runs against a self-hosted instance (project facts say self-host) but the workflow never sets TRIGGER_API_URL, so the CLI deploys to the Cloud default.",
+   "fix": "Add TRIGGER_API_URL, pointing to your self-hosted webapp domain, to the deploy step's env.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/github-actions",
+   "examples": {
+    "bad": [
+     "name: deploy\non: { push: { branches: [main] } }\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npx trigger deploy --env prod\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}\n"
+    ],
+    "good": [
+     "name: deploy\non: { push: { branches: [main] } }\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npx trigger deploy --env prod\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}\n          TRIGGER_API_URL: https://jobs.internal.example.com\n"
+    ]
+   },
+   "target": "self-host"
   },
   {
    "id": "MIG-01",
@@ -127,6 +1478,38 @@
     ],
     "good": [
      "import { task } from \"@trigger.dev/sdk\";\nexport const x = task({ id: \"x\", run: async () => {} });"
+    ]
+   }
+  },
+  {
+   "id": "MIG-03",
+   "family": "MIG",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bhandleError\\s*:\\s*(?:async\\s*)?(?:\\(|function\\b)|\\b(?:init|cleanup)\\s*:\\s*(?:async\\s*)?(?:\\(|function\\b)|\\b(?:toolTask|ai\\.tool)\\s*\\(|\\bmetadata\\.stream\\s*\\(|\\bonStart\\s*:"
+   },
+   "message": "uses a task API that SDK 4 renamed or deprecated (handleError, init, cleanup, toolTask, ai.tool, metadata.stream, onStart)",
+   "fix": "catchError instead of handleError; middleware and locals instead of init/cleanup; schemaTask with ai.toolExecute instead of toolTask/ai.tool; streams.pipe instead of metadata.stream; onStartAttempt instead of onStart",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/migrating-from-v3",
+   "examples": {
+    "bad": [
+     "import { task } from \"@trigger.dev/sdk\";\nexport const a = task({\n  id: \"a\",\n  handleError: async (payload, error) => {},\n  run: async () => {},\n});",
+     "import { task } from \"@trigger.dev/sdk\";\nexport const a = task({\n  id: \"a\",\n  init: async () => ({ client: 1 }),\n  run: async (payload, { init }) => {},\n});",
+     "import { toolTask } from \"@trigger.dev/sdk\";\nexport const lookup = toolTask({\n  id: \"lookup\",\n  description: \"Look up a record\",\n  run: async () => {},\n});",
+     "import { ai, schemaTask } from \"@trigger.dev/sdk\";\nexport const lookup = schemaTask({ id: \"lookup\", run: async () => {} });\nexport const tool = ai.tool(lookup);",
+     "import { task, metadata } from \"@trigger.dev/sdk\";\nexport const a = task({\n  id: \"a\",\n  run: async () => {\n    await metadata.stream(\"logs\", readable);\n  },\n});",
+     "import { task } from \"@trigger.dev/sdk\";\nexport const a = task({\n  id: \"a\",\n  onStart: async ({ payload, ctx }) => {},\n  run: async () => {},\n});",
+     "import { task } from \"@trigger.dev/sdk\";\nexport const a = task({\n  id: \"a\",\n  cleanup: async () => {},\n  run: async () => {},\n});"
+    ],
+    "good": [
+     "import { task } from \"@trigger.dev/sdk\";\nexport const a = task({\n  id: \"a\",\n  catchError: async ({ error }) => {},\n  run: async () => {},\n});",
+     "import { ai, schemaTask } from \"@trigger.dev/sdk\";\nexport const lookup = schemaTask({\n  id: \"lookup\",\n  run: async (payload) => ai.toolExecute(payload),\n});",
+     "import { task, streams } from \"@trigger.dev/sdk\";\n// handleError, init, cleanup, toolTask, ai.tool(, metadata.stream(, onStart: were removed in v4\nexport const a = task({\n  id: \"a\",\n  onStartAttempt: async ({ ctx }) => {},\n  run: async () => {\n    await streams.pipe(\"logs\", readable);\n  },\n});"
     ]
    }
   },
@@ -242,6 +1625,381 @@
    }
   },
   {
+   "id": "MIG-08",
+   "family": "MIG",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "package-json",
+   "match": null,
+   "needs_builtin": "version-skew",
+   "message": "@trigger.dev/* and trigger.dev versions differ across package.json files, or a 3.x version is pinned",
+   "fix": "align every @trigger.dev/* package and trigger.dev to one version, then run npx trigger.dev@latest update",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/upgrading-packages",
+   "examples": {
+    "bad": [],
+    "good": []
+   }
+  },
+  {
+   "id": "MIG-09",
+   "family": "MIG",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "any-text",
+   "prefilter": "\\bzod\\b",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "json",
+      "check": "dep-lt",
+      "dep": "zod",
+      "version": "3.25.56",
+      "sections": [
+       "dependencies",
+       "devDependencies",
+       "overrides",
+       "resolutions"
+      ]
+     },
+     {
+      "type": "regex",
+      "pattern": "\\binstanceof\\s+z\\.ZodError\\b"
+     }
+    ]
+   },
+   "message": "zod is pinned below 3.25.56 (unsupported by Trigger.dev), or an instanceof z.ZodError check is used, which does not match Zod 4 errors",
+   "fix": "upgrade zod to ^3.25.56 || ^4.0.0 (including overrides/resolutions); read errors from result.error.issues instead of instanceof z.ZodError; import zod/v4 for composed schemas",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/troubleshooting-zod",
+   "examples": {
+    "bad": [
+     "import { z } from \"zod\";\n\nexport function explain(err: unknown) {\n  if (err instanceof z.ZodError) {\n    return err.issues;\n  }\n  return [];\n}",
+     "import { z } from \"zod\";\nexport const schema = z.object({ id: z.string() });\nconst result = schema.safeParse({});\nif (!result.success && result.error instanceof z.ZodError) console.log(result.error.issues);"
+    ],
+    "good": [
+     "import { z } from \"zod\";\n\nexport function explain(result: { success: false; error: z.ZodError }) {\n  return result.error.issues;\n}",
+     "import { z } from \"zod\";\n// err instanceof z.ZodError was replaced by result.error.issues\nexport const schema = z.object({ id: z.string() });"
+    ]
+   }
+  },
+  {
+   "id": "MIG-10",
+   "family": "MIG",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "config",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\\bruntime\\s*:\\s*[\"']node[\"']"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bdefineConfig\\s*\\(",
+      "unless": "\\bruntime\\s*:"
+     }
+    ]
+   },
+   "message": "trigger.config leaves runtime unset or set to node, so tasks follow the current Node.js LTS",
+   "fix": "pin a runtime such as node-24 (node-22 and node-26 are also available) when reproducible builds matter",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/config-file",
+   "examples": {
+    "bad": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  dirs: [\"./src/trigger\"],\n});",
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  runtime: \"node\",\n  dirs: [\"./src/trigger\"],\n});"
+    ],
+    "good": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  runtime: \"node-24\",\n  dirs: [\"./src/trigger\"],\n});",
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  runtime: \"bun\",\n  dirs: [\"./src/trigger\"],\n});"
+    ]
+   }
+  },
+  {
+   "id": "MIG-11",
+   "family": "MIG",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "any-text",
+   "prefilter": "@trigger\\.dev/",
+   "applies_when": "sdk>=4",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\"@opentelemetry/exporter-[\\w-]+\"\\s*:\\s*\"[\\^~]?0\\.52\\.(?:\\d+|x)\"",
+      "mask": "none"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bOTEL_(?:EXPORTER_|TRACES_EXPORTER|LOGS_EXPORTER|METRICS_EXPORTER)"
+     }
+    ]
+   },
+   "message": "OTEL exporters are pinned to 0.52.x, or configured through OTEL_* env vars; with SDK 4 exporters take constructor arguments in trigger.config",
+   "fix": "move the @opentelemetry exporter packages to 0.203.x and pass endpoint and headers as constructor arguments instead of OTEL_* env vars",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/config-file",
+   "examples": {
+    "bad": [
+     "{\n  \"name\": \"app\",\n  \"dependencies\": {\n    \"@trigger.dev/sdk\": \"4.1.0\",\n    \"@opentelemetry/exporter-trace-otlp-http\": \"0.52.1\"\n  }\n}",
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nconst endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;\n\nexport default defineConfig({\n  project: \"proj_example\",\n  dirs: [\"./src/trigger\"],\n});"
+    ],
+    "good": [
+     "{\n  \"name\": \"app\",\n  \"dependencies\": {\n    \"@trigger.dev/sdk\": \"4.1.0\",\n    \"@opentelemetry/exporter-trace-otlp-http\": \"0.203.0\"\n  }\n}",
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\n// OTEL_EXPORTER_OTLP_ENDPOINT is not read here: pass the endpoint to the exporter\nexport default defineConfig({\n  project: \"proj_example\",\n  dirs: [\"./src/trigger\"],\n});"
+    ]
+   }
+  },
+  {
+   "id": "OPS-01",
+   "family": "OPS",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "any-text",
+   "match": null,
+   "judge": "Decide which dimension (Flow, Execution or Liveness) drives the headline verdict and whether the finding is a current incident or a stale reading. A failing (✕) dimension is the error case; a degraded (⚠) dimension is the warning case (W).",
+   "live": "MCP get_report with key 'health', period '24h', and environment passed explicitly as the production environment; repeat with the staging environment. Do not omit environment: the tool reports on dev by default. Read the Flow, Execution and Liveness severities.",
+   "message": "get_report health reports a dimension (Flow, Execution or Liveness) as failing for this environment; a degraded dimension is the warning case (W).",
+   "fix": "Start from the headline dimension: Flow points at concurrency, throttle or trigger-spike causes; Execution points at failing task code, so open its failed runs.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/reports"
+  },
+  {
+   "id": "OPS-02",
+   "family": "OPS",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "any-text",
+   "match": null,
+   "judge": "Decide whether a task's failure share or retry count is a storm. A handful of runs is noise; a high failed share over many runs, or many runs above 3 attempts, is a storm. Crashed counts as a failure.",
+   "live": "TRQL through the query MCP tool (call get_query_schema first) with the production secret key, so the scope is the production environment (query scope 'environment' is the default), time range 24h: SELECT task_identifier, count() AS total, countIf(status IN ('Failed', 'Crashed')) AS failed, countIf(attempt_count > 3) AS retried FROM runs GROUP BY task_identifier ORDER BY failed DESC LIMIT 20",
+   "message": "Task has runs that failed or crashed in the 24h window and runs that needed more than 3 attempts (counts from the runs table).",
+   "fix": "Fix the cause in the task (read the error on its failed runs) before retrying; for retry storms, review the task's retry settings so one bad input does not re-run many attempts.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/observability/query"
+  },
+  {
+   "id": "OPS-03",
+   "family": "OPS",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "any-text",
+   "match": null,
+   "judge": "Decide whether the peak is near the preset ceiling. The monitoring example in machines.mdx uses 80% of memory as its warning cut-off. A task at or above 80% of its preset on repeated runs is near the ceiling; a single spike may be one large payload.",
+   "live": "TRQL through the query MCP tool with the production secret key (scope 'environment'), time range 24h: SELECT task_identifier, machine_name, max(metric_value) AS peak_bytes FROM metrics WHERE metric_name = 'process.memory.usage' GROUP BY task_identifier, machine_name ORDER BY peak_bytes DESC LIMIT 20. process.memory.usage is in bytes and is emitted by SDK 4.4.1 or later (logging.mdx). Compare peak_bytes with the Memory column of the machines table for machine_name (0.25 GB for micro up to 16 GB for large-2x).",
+   "message": "Task peak process memory in the window is recorded against its machine preset (peak_bytes from process.memory.usage).",
+   "fix": "Move the task to a larger machine preset (the machine option in the task definition), or reduce the payload or memory use that drives the peak.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/machines"
+  },
+  {
+   "id": "OPS-04",
+   "family": "OPS",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "any-text",
+   "match": null,
+   "judge": "Decide whether the 429s are a sustained pattern or a single burst. A few denials in one minute is a burst; denials across many minutes mean the caller's request rate is above the limit. Identify which caller sends the requests (a trigger loop, a polling job or a batch).",
+   "live": "TRQL through the query MCP tool with the production secret key (rate-limit rows are recorded against the environment whose secret key made the request), time range 24h: SELECT toStartOfMinute(bucket_start) AS minute, sumIf(metric_value, metric_name = 'api.rate_limit.denied') AS denied, sumIf(metric_value, metric_name IN ('api.rate_limit.allowed', 'api.rate_limit.denied')) AS attempts FROM metrics WHERE metric_name LIKE 'api.rate_limit.%' GROUP BY minute ORDER BY minute LIMIT 1000. Self-host: these rows exist only when API_RATE_LIMIT_METRICS_ENABLED=1 is set on the server.",
+   "message": "API requests were answered with 429 (api.rate_limit.denied above 0) in the window for the production environment's secret key.",
+   "fix": "Batch or space out the calls that hit the API (for example batchTrigger instead of one trigger per item); the sustained limit is api.rate_limit.limit.per_second in the same metrics rows.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/observability/query#api-rate-limit-metrics"
+  },
+  {
+   "id": "OPS-05",
+   "family": "OPS",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "any-text",
+   "match": null,
+   "judge": "Ask the user whether a run-fails alert exists for the production environment. If one exists the rule clears; if not, report it. An error-group alert on the Errors page complements a run-fails alert but does not replace it.",
+   "live": "No query: mcp-tools.mdx lists no alert tool and no TRQL table holds alert configuration, so ask the user, or have them check the dashboard Alerts page for the production environment for a 'run fails' alert (troubleshooting-alerts.mdx, 'Which alert type should I use?').",
+   "message": "No run-fails alert is configured for the production environment (answered by the user or seen on the dashboard Alerts page).",
+   "fix": "On the Alerts page, add a run-fails alert for the production environment; add an error-group alert on the Errors page for new breakages.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/troubleshooting-alerts#which-alert-type-should-i-use"
+  },
+  {
+   "id": "QUE-01",
+   "family": "QUE",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\\bqueue\\s*:\\s*\\{[^{}]*\\bconcurrencyLimit\\s*:"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bqueues\\s*\\.\\s*(?:overrideConcurrencyLimit|resetConcurrencyLimit)\\s*\\("
+     }
+    ]
+   },
+   "message": "uses the legacy queue concurrency limit (queue: { concurrencyLimit } or queues.overrideConcurrencyLimit / resetConcurrencyLimit); the concurrency option and concurrencyLimits replace them",
+   "fix": "use concurrency: { total, perKey } on the task, or a named concurrencyLimit() shared across tasks; manage it with concurrencyLimits.override / reset",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/concurrency",
+   "examples": {
+    "bad": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const sendEmail = task({\n  id: \"send-email\",\n  queue: { concurrencyLimit: 5 },\n  run: async (payload: { to: string }) => payload,\n});\n",
+     "import { queues } from \"@trigger.dev/sdk\";\n\nexport async function throttleEmails() {\n  await queues.overrideConcurrencyLimit({ type: \"task\", name: \"send-email\" }, 2);\n}\n"
+    ],
+    "good": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const sendEmail = task({\n  id: \"send-email\",\n  concurrency: { total: 5 },\n  run: async (payload: { to: string }) => payload,\n});\n",
+     "import { concurrencyLimit, concurrencyLimits, task } from \"@trigger.dev/sdk\";\n\nexport const openaiLimit = concurrencyLimit({ name: \"openai\", total: 25 });\n\nexport const summarize = task({\n  id: \"summarize\",\n  concurrency: openaiLimit,\n  run: async (payload: { text: string }) => payload,\n});\n\nexport async function raiseOpenAiLimit() {\n  await concurrencyLimits.override(\"openai\", { total: 50 });\n}\n",
+     "import { queue, task } from \"@trigger.dev/sdk\";\n\n// the old form was queue: { concurrencyLimit: 5 }; the queue now carries its own limit\nexport const emails = queue({ name: \"emails\", concurrencyLimit: 10 });\n\nexport const sendEmail = task({\n  id: \"send-email\",\n  queue: emails,\n  run: async (payload: { to: string }) => payload,\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "QUE-02",
+   "family": "QUE",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "applies_when": "sdk>=4",
+   "match": {
+    "type": "call",
+    "callee": "\\.(?:trigger|triggerAndWait|batchTrigger|batchTriggerAndWait)",
+    "contains": "\\bqueue\\s*:\\s*\\{(?=[^{}]*\\bname\\s*:)(?=[^{}]*\\bconcurrencyLimit\\s*:)"
+   },
+   "message": "trigger options pass a queue object with name and concurrencyLimit; in SDK 4 a queue is declared ahead of time and only referenced by name at trigger time",
+   "fix": "declare const q = queue({ name, concurrencyLimit }) once, set it on the task (queue: q), and trigger with { queue: \"name\" }",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/migrating-from-v3",
+   "examples": {
+    "bad": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const processOrder = task({\n  id: \"process-order\",\n  run: async (payload: { orderId: string }) => payload,\n});\n\nexport async function enqueueOrder(orderId: string) {\n  await processOrder.trigger({ orderId }, { queue: { name: \"orders\", concurrencyLimit: 10 } });\n}\n",
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const processOrder = task({\n  id: \"process-order\",\n  run: async (payload: { orderId: string }) => payload,\n});\n\nexport async function enqueueBatch(orderIds: string[]) {\n  await processOrder.batchTrigger(\n    orderIds.map((orderId) => ({ payload: { orderId }, options: { queue: { name: \"orders\", concurrencyLimit: 10 } } }))\n  );\n}\n"
+    ],
+    "good": [
+     "import { queue, task } from \"@trigger.dev/sdk\";\n\nexport const orders = queue({ name: \"orders\", concurrencyLimit: 10 });\n\nexport const processOrder = task({\n  id: \"process-order\",\n  queue: orders,\n  run: async (payload: { orderId: string }) => payload,\n});\n\nexport async function enqueueOrder(orderId: string) {\n  await processOrder.trigger({ orderId }, { queue: \"orders\" });\n}\n",
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const processOrder = task({\n  id: \"process-order\",\n  queue: { name: \"orders\", concurrencyLimit: 10 },\n  run: async (payload: { orderId: string }) => payload,\n});\n\nexport async function enqueueOrder(orderId: string) {\n  await processOrder.trigger({ orderId });\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "QUE-03",
+   "family": "QUE",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "needs_builtin": "undeclared-queue",
+   "match": null,
+   "message": "trigger options name a queue that no task in the project declares with queue({ name }); runs on it stay in Pending version until a deployed task declares it",
+   "fix": "declare const q = queue({ name }) and set it on a task (queue: q), or trigger with the name of a queue that is declared",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/troubleshooting#runs-stuck-in-pending-version",
+   "examples": {
+    "bad": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const sendReport = task({\n  id: \"send-report\",\n  run: async (payload: { id: string }) => payload,\n});\n\nexport async function kickOff(id: string) {\n  await sendReport.trigger({ id }, { queue: \"reports\" });\n}\n"
+    ],
+    "good": [
+     "import { queue, task } from \"@trigger.dev/sdk\";\n\nexport const reports = queue({ name: \"reports\" });\n\nexport const sendReport = task({\n  id: \"send-report\",\n  queue: reports,\n  run: async (payload: { id: string }) => payload,\n});\n\nexport async function kickOff(id: string) {\n  await sendReport.trigger({ id }, { queue: \"reports\" });\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "QUE-04",
+   "family": "QUE",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bconcurrency\\s*:\\s*\\{(?![^{}]*\\btotal\\s*:)[^{}]*\\bperKey\\s*:"
+   },
+   "message": "concurrency sets perKey without total; each key gets its own cap, but the total across all keys is unbounded",
+   "fix": "add total to the same concurrency object to bound all runs together",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/concurrency#per-key-and-total-limits-together",
+   "examples": {
+    "bad": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const syncAccount = task({\n  id: \"sync-account\",\n  concurrency: { perKey: 2 },\n  run: async (payload: { accountId: string }) => payload,\n});\n",
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const syncAccount = task({\n  id: \"sync-account\",\n  run: async (payload: { accountId: string }) => payload,\n});\n\nexport async function enqueueSync(accountId: string) {\n  await syncAccount.trigger({ accountId }, { concurrency: { perKey: 1 } });\n}\n"
+    ],
+    "good": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const syncAccount = task({\n  id: \"sync-account\",\n  concurrency: { perKey: 1, total: 10 },\n  run: async (payload: { accountId: string }) => payload,\n});\n",
+     "import { concurrencyLimit, task } from \"@trigger.dev/sdk\";\n\nexport const tenantLimit = concurrencyLimit({ name: \"tenant\", perKey: 10 });\n\nexport const processWebhook = task({\n  id: \"process-webhook\",\n  concurrency: [{ perKey: 2 }, tenantLimit],\n  run: async (payload: { tenantId: string }) => payload,\n});\n",
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const syncAccount = task({\n  id: \"sync-account\",\n  concurrency: { total: 1 },\n  run: async (payload: { accountId: string }) => payload,\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "QUE-05",
+   "family": "QUE",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Look for a task whose run fans out to a rate-limited third-party API (LLM, email, payments, scraping) through batchTrigger / batchTriggerAndWait, a loop or map of .trigger() calls, or triggerAndWait inside a loop. Answer yes only if no cap bounds the parallel calls: no concurrency option on the task, no queue() with concurrencyLimit, and no concurrencyLimit() shared by the task. Answer no for internal work (database, in-process) and when a cap exists. Report the file and line of the fan-out.",
+   "message": "fans out calls to a rate-limited API, and no concurrency cap on the task or its queue bounds the parallel calls",
+   "fix": "add concurrency: { total: N } to the task, or share a concurrencyLimit({ name, total }) across the tasks that call the API",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/concurrency"
+  },
+  {
+   "id": "QUE-06",
+   "family": "QUE",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\\bqueue\\s*(?:\\(\\s*\\{\\s*name\\s*:|:\\s*\\{\\s*name\\s*:|:)\\s*[\"'\\x60]limit/"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bqueue\\s*(?:\\(\\s*\\{\\s*name\\s*:|:\\s*\\{\\s*name\\s*:|:)\\s*[\"'\\x60][^\"'\\x60\\n]{129,}[\"'\\x60]"
+     }
+    ]
+   },
+   "message": "queue name starts with \"limit/\" (reserved for concurrency limits, rejected at deploy time) or is longer than 128 characters",
+   "fix": "rename the queue: drop the \"limit/\" prefix and keep the name at 128 characters or fewer",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/queues",
+   "examples": {
+    "bad": [
+     "import { queue, task } from \"@trigger.dev/sdk\";\n\nexport const openai = queue({ name: \"limit/openai\" });\n\nexport const callOpenAi = task({\n  id: \"call-openai\",\n  queue: openai,\n  run: async (payload: { prompt: string }) => payload,\n});\n",
+     "import { queue } from \"@trigger.dev/sdk\";\n\nexport const longQueue = queue({ name: \"orders-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\" });\n",
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const callOpenAi = task({\n  id: \"call-openai\",\n  run: async (payload: { prompt: string }) => payload,\n});\n\nexport async function kickOff() {\n  await callOpenAi.trigger({ prompt: \"hi\" }, { queue: \"limit/openai\" });\n}\n"
+    ],
+    "good": [
+     "import { queue, task } from \"@trigger.dev/sdk\";\n\nexport const emails = queue({ name: \"emails\" });\n\nexport const sendEmail = task({\n  id: \"send-email\",\n  queue: emails,\n  run: async (payload: { to: string }) => payload,\n});\n",
+     "import { queue } from \"@trigger.dev/sdk\";\n\nexport const maxQueue = queue({ name: \"emails-yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\" });\n",
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const callOpenAi = task({\n  id: \"call-openai\",\n  run: async (payload: { prompt: string }) => payload,\n});\n\nexport async function kickOff() {\n  await callOpenAi.trigger({ prompt: \"hi\" }, { queue: \"reports/limit/daily\" });\n}\n"
+    ]
+   }
+  },
+  {
    "id": "RT-01",
    "family": "RT",
    "severity": "error",
@@ -312,6 +2070,225 @@
    }
   },
   {
+   "id": "RT-03",
+   "family": "RT",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does a trigger hook (useTaskTrigger, useRealtimeTaskTrigger or useRealtimeTaskTriggerWithStreams from @trigger.dev/react-hooks) receive as accessToken a Public Access Token created with read scopes (auth.createPublicToken), or a read-only token passed through from the backend, instead of a trigger token from auth.createTriggerPublicToken? Report only when the token's origin is visible in the code or the same component; if the origin is unknown, do not report.",
+   "message": "a trigger hook is given a read-scoped public access token; trigger hooks need a trigger token",
+   "fix": "create the token on the backend with auth.createTriggerPublicToken(taskId) and pass it as accessToken",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/realtime/auth#trigger-tokens-for-frontend-triggering-only"
+  },
+  {
+   "id": "RT-04",
+   "family": "RT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "import",
+    "from": "^@trigger\\.dev/react-hooks(?:/|$)",
+    "unless": "^\\s*[\"']use client[\"']"
+   },
+   "message": "imports @trigger.dev/react-hooks and has no \"use client\" directive; in an App Router tree this file is a Server Component, where these hooks cannot run",
+   "fix": "add \"use client\"; as the first line if this file is in a Next.js App Router (RSC) tree",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/realtime/react-hooks/subscribe",
+   "examples": {
+    "bad": [
+     "import { useRealtimeRun } from '@trigger.dev/react-hooks';\n\nexport function RunStatus({ runId }: { runId: string }) {\n  const { run } = useRealtimeRun(runId);\n  return run?.status ?? 'loading';\n}\n"
+    ],
+    "good": [
+     "'use client';\n\nimport { useRealtimeRun } from '@trigger.dev/react-hooks';\n\nexport function RunStatus({ runId }: { runId: string }) {\n  const { run } = useRealtimeRun(runId);\n  return run?.status ?? 'loading';\n}\n",
+     "\"use client\";\n\nimport { useRealtimeRun } from '@trigger.dev/react-hooks';\n\nexport function RunStatus({ runId }: { runId: string }) {\n  const { run } = useRealtimeRun(runId);\n  return run?.status ?? 'loading';\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "RT-05",
+   "family": "RT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "call",
+    "callee": "\\buseRun",
+    "argsMatch": "refreshInterval\\s*:\\s*(?:[1-9]|0?\\.0*[1-9])"
+   },
+   "message": "useRun() polls on refreshInterval > 0; useRealtimeRun() subscribes to the run by ID instead",
+   "fix": "use useRealtimeRun(runId) for live updates",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/realtime/react-hooks/swr",
+   "examples": {
+    "bad": [
+     "import { useRun } from '@trigger.dev/react-hooks';\n\nexport function RunStatus({ runId }: { runId: string }) {\n  const { run } = useRun(runId, { refreshInterval: 1000 });\n  return run?.status ?? 'loading';\n}\n"
+    ],
+    "good": [
+     "import { useRun } from '@trigger.dev/react-hooks';\n\nexport function RunStatus({ runId }: { runId: string }) {\n  const { run } = useRun(runId, { refreshInterval: 0 });\n  return run?.status ?? 'loading';\n}\n",
+     "import { useRealtimeRun } from '@trigger.dev/react-hooks';\n\nexport function RunStatus({ runId }: { runId: string }) {\n  const { run } = useRealtimeRun(runId);\n  return run?.status ?? 'loading';\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "RT-06",
+   "family": "RT",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Is this a component or hook that subscribes to a run (useRealtimeRun or useRealtimeTaskTrigger) and reads only status-like fields (status, a progress or completion badge), never run.payload or run.output, while the hook options have no skipColumns? Report only when no payload or output field is read from the returned run.",
+   "message": "subscribes to the full run for status only; payload and output are streamed without being read",
+   "fix": "pass skipColumns: [\"payload\", \"output\"] in the hook options",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/realtime/react-hooks/subscribe"
+  },
+  {
+   "id": "RT-07",
+   "family": "RT",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does a realtime hook (useRealtimeRun, useRealtimeTaskTrigger) receive an id that can be undefined at first render, such as handle?.id from a trigger whose handle does not exist yet, with no enabled option in its options? Report only when the id can be undefined.",
+   "message": "a realtime hook is given an id that is undefined until the trigger returns, and has no enabled option",
+   "fix": "pass enabled: !!handle in the hook options",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/realtime/react-hooks/triggering"
+  },
+  {
+   "id": "RT-08",
+   "family": "RT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Is there a for-await loop over runs.subscribeToRunsWithTag(...) or runs.subscribeToBatch(...) whose body contains no break and no return? Report only when no break or return can exit the loop.",
+   "message": "for-await loop over runs.subscribeToRunsWithTag / runs.subscribeToBatch has no break; the iterator never completes by itself",
+   "fix": "break (or return) once the completion condition is met",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/realtime/backend/subscribe"
+  },
+  {
+   "id": "RT-09",
+   "family": "RT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "prefilter": "\\.url\\b",
+   "match": {
+    "type": "call",
+    "callee": "\\bfetch",
+    "contains": "\\b\\w*[Tt]oken\\w*\\.url\\b",
+    "require": "[\"']use client[\"']|@trigger\\.dev/react-hooks|from\\s+[\"']react[\"']"
+   },
+   "message": "client-side code calls fetch() on a wait token's token.url; that webhook URL is for server-to-server use and has no CORS headers",
+   "fix": "complete from the browser with the token's publicAccessToken (CORS-enabled endpoint), or use useWaitToken",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/wait-for-token",
+   "examples": {
+    "bad": [
+     "'use client';\n\nimport { useEffect } from 'react';\n\nexport function Approve({ token }: { token: { url: string } }) {\n  useEffect(() => {\n    fetch(token.url, { method: 'POST' });\n  }, [token]);\n  return null;\n}\n"
+    ],
+    "good": [
+     "import { wait } from '@trigger.dev/sdk';\n\nexport async function notify(token: { url: string }) {\n  await fetch(token.url, { method: 'POST' });\n}\n",
+     "'use client';\n\nexport function Approve({ id }: { id: string }) {\n  fetch('/api/approve/' + id, { method: 'POST' });\n  return null;\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "RT-10",
+   "family": "RT",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "call",
+    "callee": "\\bwait\\.createToken",
+    "lacks": "\\btimeout\\b|\\.\\.\\.|^\\s*[A-Za-z_$][\\w$.]*\\s*$"
+   },
+   "message": "wait.createToken() is called without a timeout, so the token has none",
+   "fix": "pass a timeout, e.g. wait.createToken({ timeout: '10m' })",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/wait-for-token",
+   "examples": {
+    "bad": [
+     "import { wait } from '@trigger.dev/sdk';\n\nexport async function requestApproval() {\n  const token = await wait.createToken({ tags: ['approval'] });\n  return token;\n}\n",
+     "import { wait } from '@trigger.dev/sdk';\n\nexport async function requestApproval() {\n  const token = await wait.createToken();\n  return token;\n}\n"
+    ],
+    "good": [
+     "import { wait } from '@trigger.dev/sdk';\n\nexport async function requestApproval() {\n  const token = await wait.createToken({ timeout: '10m' });\n  return token;\n}\n",
+     "import { wait } from '@trigger.dev/sdk';\n\nexport async function requestApproval(opts: { timeout: string }) {\n  return wait.createToken(opts);\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "RT-11",
+   "family": "RT",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "prefilter": "api\\.trigger\\.dev",
+   "match": {
+    "type": "regex",
+    "pattern": "https://api\\.trigger\\.dev",
+    "notNear": "TRIGGER_API_URL|process\\.env|import\\.meta\\.env"
+   },
+   "message": "hard-codes https://api.trigger.dev as the API base URL; self-hosted installs set TRIGGER_API_URL instead",
+   "fix": "read the base URL from TRIGGER_API_URL (or pass baseURL to configure) instead of a literal",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/apikeys",
+   "examples": {
+    "bad": [
+     "export async function ping() {\n  const res = await fetch('https://api.trigger.dev/', { method: 'GET' });\n  return res.status;\n}\n"
+    ],
+    "good": [
+     "const base = process.env.TRIGGER_API_URL ?? 'https://api.trigger.dev';\n\nexport async function ping() {\n  return fetch(base, { method: 'GET' });\n}\n",
+     "// Cloud default is https://api.trigger.dev; self-hosters set TRIGGER_API_URL.\nimport { tasks } from '@trigger.dev/sdk';\n\nexport const run = () => tasks.trigger('a', {});\n"
+    ]
+   }
+  },
+  {
+   "id": "RT-12",
+   "family": "RT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "prefilter": "/trigger(?:/|['\"])",
+   "match": {
+    "type": "import",
+    "from": "(?:^|/)trigger(?:/|$)",
+    "skipTypeOnly": true,
+    "unless": "\\btask\\s*\\(\\s*\\{|\\bschedules\\.task\\s*\\(|\\bschemaTask\\s*\\("
+   },
+   "message": "app code imports a task module as a value; only its type is needed to trigger it",
+   "fix": "import type { task } from the module and call tasks.trigger<typeof task>(\"task-id\", payload)",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/triggering",
+   "examples": {
+    "bad": [
+     "import { emailSequence } from '~/trigger/emails';\n\nexport async function signup(email: string) {\n  return emailSequence.trigger({ email });\n}\n"
+    ],
+    "good": [
+     "import type { emailSequence } from '~/trigger/emails';\nimport { tasks } from '@trigger.dev/sdk';\n\nexport async function signup(email: string) {\n  return tasks.trigger<typeof emailSequence>('email-sequence', { email });\n}\n",
+     "import { task } from '@trigger.dev/sdk';\nimport { sendMail } from '~/trigger/mail';\n\nexport const emailSequence = task({ id: 'email-sequence', run: async (payload: { email: string }) => { await sendMail(payload.email); } });\n"
+    ]
+   },
+   "judge": "Confirm the importing file is app or client code. A task file importing a sibling task by value is fine; an app route, page or client component importing task modules by value pulls task code into the app bundle."
+  },
+  {
    "id": "SCH-01",
    "family": "SCH",
    "severity": "error",
@@ -363,6 +2340,103 @@
    }
   },
   {
+   "id": "SCH-03",
+   "family": "SCH",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bcron\\s*:\\s*[\"'\\x60][^\"'\\x60\\n]+[\"'\\x60]",
+    "notNear": "\\btimezone\\s*:"
+   },
+   "judge": "The matcher found a string cron, which always runs in UTC. Decide whether the time of day was meant as a business or user local time: read the comment above it, the task id and name, and nearby docs (words like local, office, Berlin, customer, 9am). Report when it is local time: the UTC hour stays fixed while the local clock moves with the zone offset and with DST changes. Dismiss when the schedule is meant in UTC (system jobs, every N hours, midnight UTC) or when a timezone is set in the same call.",
+   "message": "string cron has no timezone, so it runs at this UTC time of day (a string cron is always UTC)",
+   "fix": "use { pattern, timezone } with an IANA name, e.g. cron: { pattern: \"0 9 * * 1-5\", timezone: \"Europe/Berlin\" }",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/tasks/scheduled",
+   "examples": {
+    "bad": [
+     "import { schedules } from \"@trigger.dev/sdk\";\nexport const digest = schedules.task({\n  id: \"morning-digest\",\n  // 9am Berlin time\n  cron: \"0 9 * * 1-5\",\n  run: async () => {},\n});",
+     "import { schedules } from \"@trigger.dev/sdk\";\nawait schedules.create({\n  task: \"morning-digest\",\n  cron: \"0 9 * * 1-5\",\n  deduplicationKey: \"morning-digest-berlin\",\n});"
+    ],
+    "good": [
+     "import { schedules } from \"@trigger.dev/sdk\";\nexport const digest = schedules.task({\n  id: \"morning-digest\",\n  cron: { pattern: \"0 9 * * 1-5\", timezone: \"Europe/Berlin\" },\n  run: async () => {},\n});",
+     "import { schedules } from \"@trigger.dev/sdk\";\nawait schedules.create({\n  task: \"morning-digest\",\n  cron: \"0 9 * * 1-5\",\n  timezone: \"Europe/Berlin\",\n  deduplicationKey: \"morning-digest-berlin\",\n});"
+    ]
+   }
+  },
+  {
+   "id": "SCH-04",
+   "family": "SCH",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Find schedules.create(...) calls and any code that builds their deduplicationKey. Report when the key does not name the environment: it is a fixed string or built only from user or task data, with no environment value and no literal environment segment such as prod or dev, and the same code runs against more than one environment. Deduplication keys are unique per project, not per environment, so the same key in dev, staging and production points at the same schedule slot. Dismiss when the key already includes the environment, or when the call only runs in a single environment.",
+   "message": "deduplicationKey has no environment part; keys are unique per project, so every environment that runs this code shares the same key",
+   "fix": "include the environment name in deduplicationKey (one key per schedule and environment)",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/tasks/scheduled"
+  },
+  {
+   "id": "SCH-05",
+   "family": "SCH",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Find schedules.task(...) definitions that have a cron (declarative, or attached in code with schedules.create) and no ttl option. Estimate whether one run can last longer than the interval between two fires: long waits, batch triggers, AI or network calls with retries, or a loop over many items on a frequent cron. Report when a run can outlast its interval. Dismiss when ttl is already set on the task, or when the run is short and bounded.",
+   "message": "scheduled task has no ttl; when a schedule fires while the previous run is still executing, the new run is queued with no expiry",
+   "fix": "set ttl on the schedules.task, e.g. ttl: \"5m\", so runs not dequeued in time expire",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/tasks/scheduled"
+  },
+  {
+   "id": "SCH-06",
+   "family": "SCH",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "target": "cloud",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bcron\\s*:\\s*(?:\\{[^{}]*?\\bpattern\\s*:\\s*)?[\"'\\x60]\\s*(?:\\*|\\*/(?:[1-9]|[1-5]\\d)|\\d+(?:,\\d+)+)\\s+\\S+\\s+\\S+\\s+\\S+\\s+\\S+\\s*[\"'\\x60]"
+   },
+   "message": "cron fires more often than hourly; Trigger.dev Cloud Free rejects schedules more frequent than once an hour",
+   "fix": "use an hourly or slower cron, or a paid plan",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/tasks/scheduled",
+   "examples": {
+    "bad": [
+     "import { schedules } from \"@trigger.dev/sdk\";\nexport const t = schedules.task({ id: \"t\", cron: \"*/15 * * * *\", run: async () => {} });",
+     "import { schedules } from \"@trigger.dev/sdk\";\nexport const t = schedules.task({ id: \"t\", cron: { pattern: \"0,30 * * * *\", timezone: \"UTC\" }, run: async () => {} });"
+    ],
+    "good": [
+     "import { schedules } from \"@trigger.dev/sdk\";\nexport const t = schedules.task({ id: \"t\", cron: \"0 * * * *\", run: async () => {} });",
+     "import { schedules } from \"@trigger.dev/sdk\";\nexport const t = schedules.task({ id: \"t\", cron: \"30 9 * * 1-5\", run: async () => {} });"
+    ]
+   }
+  },
+  {
+   "id": "SCH-07",
+   "family": "SCH",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Find schedules.task(...) definitions that have no cron property. Then search the repo for a schedules.create(...) call whose task argument names this task id, and for a cron set on this task in another file. Report when neither exists. Dismiss when a comment or doc in the repo says the schedule is attached in the dashboard, because schedules can be attached there without any code.",
+   "message": "schedules.task has no cron and no schedules.create() in this repo targets it, so no schedule fires it",
+   "fix": "attach a schedule: add cron to schedules.task, call schedules.create() with this task id, or attach one in the dashboard",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/tasks/scheduled"
+  },
+  {
    "id": "TSK-01",
    "family": "TSK",
    "severity": "error",
@@ -405,6 +2479,827 @@
      "import { task } from \"@trigger.dev/sdk\";\nexport const p = task({ id: \"p\", run: async () => {\n  // Promise.all([a.triggerAndWait(), b.triggerAndWait()]) was removed\n  await a.triggerAndWait({});\n} });"
     ]
    }
+  },
+  {
+   "id": "TSK-02",
+   "family": "TSK",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\\b(?:const|let|var)\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*await\\s+[\\w$.]*\\.(?:triggerAndWait|batchTriggerAndWait)\\s*\\((?:(?!\\b\\1\\.(?:ok|unwrap)\\b)[\\s\\S])*?\\b\\1\\.output\\b"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\.(?:triggerAndWait|batchTriggerAndWait)\\s*\\((?:[^()]|\\([^()]*\\))*\\)\\s*\\)?\\s*\\.output\\b"
+     }
+    ]
+   },
+   "judge": "Is .output of a triggerAndWait or batchTriggerAndWait result read on a path where .ok was never checked and .unwrap() was not called? Report only that case. A read after an .ok check, or a result that is only passed on, is not a hit.",
+   "message": "reads .output of a triggerAndWait result before any .ok check or .unwrap() call; the child run may have failed",
+   "fix": "check result.ok before reading result.output, or call .unwrap() to get the output or a throw",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/triggering",
+   "examples": {
+    "bad": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\nimport { childTask } from \"./child\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload) => {\n    const result = await childTask.triggerAndWait({ id: payload.id });\n    return result.output;\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\nimport { childTask } from \"./child\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload) => {\n    const output = (await childTask.triggerAndWait({ id: payload.id })).output;\n    return output;\n  },\n});"
+    ],
+    "good": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\nimport { childTask } from \"./child\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload) => {\n    const result = await childTask.triggerAndWait({ id: payload.id });\n    if (!result.ok) {\n      throw new Error(\"child failed\");\n    }\n    return result.output;\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\nimport { childTask } from \"./child\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload) => {\n    const output = await childTask.triggerAndWait({ id: payload.id }).unwrap();\n    return output;\n  },\n});"
+    ]
+   }
+  },
+  {
+   "id": "TSK-03",
+   "family": "TSK",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "(?<=[;{}]\\s*)^[ \\t]*(?!(?:await|return|const|let|var|yield)\\b)[\\w$.]+\\.(?:trigger|batchTrigger)\\s*\\(",
+    "flags": "m",
+    "require": "\\btask\\s*\\("
+   },
+   "message": "trigger() or batchTrigger() runs as a bare statement, without await or return, inside a task; the parent can finish before the child is queued",
+   "fix": "await the trigger call (or return it)",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/troubleshooting#when-triggering-subtasks-the-parent-task-finishes-too-soon",
+   "examples": {
+    "bad": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload) => {\n    tasks.trigger(\"child\", { ids: payload.ids });\n    return { queued: true };\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload) => {\n    tasks.batchTrigger(\"child\", payload.ids.map((id) => ({ payload: { id } })));\n    return { queued: true };\n  },\n});"
+    ],
+    "good": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload) => {\n    await tasks.trigger(\"child\", payload);\n    return { queued: true };\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload) => {\n    return tasks.trigger(\"child\", payload);\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload) => {\n    const handles = await Promise.all(\n      tasks.trigger(\"child\", payload)\n    );\n    return handles.length;\n  },\n});"
+    ]
+   }
+  },
+  {
+   "id": "TSK-04",
+   "family": "TSK",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\.(?:triggerAndWait|batchTriggerAndWait)\\s*\\(|\\bwait\\.(?:for|until|forToken)\\s*\\(",
+    "unless": "\\btask\\s*\\("
+   },
+   "message": "triggerAndWait or a wait.* call is in a file that defines no task(); this looks like a route handler, outside task code",
+   "fix": "move the wait into a task and trigger that task from the app with tasks.trigger",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/triggering",
+   "examples": {
+    "bad": [
+     "import { tasks } from \"@trigger.dev/sdk\";\nimport { childTask } from \"@/src/trigger/child\";\n\nexport async function POST(req: Request) {\n  const body = await req.json();\n  const result = await childTask.triggerAndWait({ id: body.id });\n  return Response.json({ ok: result.ok });\n}"
+    ],
+    "good": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const reminder = task({\n  id: \"reminder\",\n  run: async (payload) => {\n    await wait.for({ hours: 1 });\n    return { sent: payload.userId };\n  },\n});"
+    ]
+   },
+   "judge": "Confirm the file is route, page or server-action code and not task code. A helper that is only ever called from inside a task() is fine; a Next.js route handler, an Express handler or a server action that awaits triggerAndWait or a wait.* call is the bug."
+  },
+  {
+   "id": "TSK-05",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "\\.(?:map|forEach)",
+      "contains": "\\.trigger\\s*\\("
+     },
+     {
+      "type": "regex",
+      "pattern": "\\b(?:for|while)\\s*\\([^)]*\\)\\s*\\{[^}]*\\.trigger\\s*\\("
+     }
+    ]
+   },
+   "message": "trigger() runs once per loop, map or forEach item; batchTrigger sends the same items as one batch call",
+   "fix": "collect the payloads and call batchTrigger once",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/limits#rate-limits",
+   "examples": {
+    "bad": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const fanout = task({\n  id: \"fanout\",\n  run: async (payload) => {\n    for (const id of payload.ids) {\n      await tasks.trigger(\"child\", { id });\n    }\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const fanout = task({\n  id: \"fanout\",\n  run: async (payload) => {\n    payload.ids.forEach((id) => tasks.trigger(\"child\", { id }));\n  },\n});"
+    ],
+    "good": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const fanout = task({\n  id: \"fanout\",\n  run: async (payload) => {\n    await tasks.batchTrigger(\"child\", payload.ids.map((id) => ({ payload: { id } })));\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const fanout = task({\n  id: \"fanout\",\n  run: async (payload) => {\n    for (const id of payload.ids) {\n      console.log(id);\n    }\n  },\n});"
+    ]
+   }
+  },
+  {
+   "id": "TSK-06",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "\\.batchTrigger",
+      "contains": {
+       "pattern": "\\bpayload\\s*:",
+       "min": 1001
+      }
+     },
+     {
+      "type": "call",
+      "callee": "\\.batchTrigger",
+      "unless": "BatchTriggerError|isRateLimited"
+     }
+    ]
+   },
+   "judge": "Is a batchTrigger call given a literal batch of more than 1,000 items, or is it made with no BatchTriggerError or isRateLimited handling on its failure path? Report only those cases. A batch built from a runtime list that is chunked, or a call whose catch branch checks BatchTriggerError, is not a hit.",
+   "message": "batchTrigger has a literal batch over 1,000 items, or this file has no BatchTriggerError or isRateLimited handling",
+   "fix": "chunk the batch to 1,000 items or fewer; catch BatchTriggerError and back off when isRateLimited is true",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/limits#batch-trigger-rate-limits",
+   "examples": {
+    "bad": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const bulk = task({\n  id: \"bulk\",\n  run: async (payload) => {\n    await tasks.batchTrigger(\"child\", [{ payload: { n: 0 } }, { payload: { n: 1 } }, { payload: { n: 2 } }, { payload: { n: 3 } }, { payload: { n: 4 } }, { payload: { n: 5 } }, { payload: { n: 6 } }, { payload: { n: 7 } }, { payload: { n: 8 } }, { payload: { n: 9 } }, { payload: { n: 10 } }, { payload: { n: 11 } }, { payload: { n: 12 } }, { payload: { n: 13 } }, { payload: { n: 14 } }, { payload: { n: 15 } }, { payload: { n: 16 } }, { payload: { n: 17 } }, { payload: { n: 18 } }, { payload: { n: 19 } }, { payload: { n: 20 } }, { payload: { n: 21 } }, { payload: { n: 22 } }, { payload: { n: 23 } }, { payload: { n: 24 } }, { payload: { n: 25 } }, { payload: { n: 26 } }, { payload: { n: 27 } }, { payload: { n: 28 } }, { payload: { n: 29 } }, { payload: { n: 30 } }, { payload: { n: 31 } }, { payload: { n: 32 } }, { payload: { n: 33 } }, { payload: { n: 34 } }, { payload: { n: 35 } }, { payload: { n: 36 } }, { payload: { n: 37 } }, { payload: { n: 38 } }, { payload: { n: 39 } }, { payload: { n: 40 } }, { payload: { n: 41 } }, { payload: { n: 42 } }, { payload: { n: 43 } }, { payload: { n: 44 } }, { payload: { n: 45 } }, { payload: { n: 46 } }, { payload: { n: 47 } }, { payload: { n: 48 } }, { payload: { n: 49 } }, { payload: { n: 50 } }, { payload: { n: 51 } }, { payload: { n: 52 } }, { payload: { n: 53 } }, { payload: { n: 54 } }, { payload: { n: 55 } }, { payload: { n: 56 } }, { payload: { n: 57 } }, { payload: { n: 58 } }, { payload: { n: 59 } }, { payload: { n: 60 } }, { payload: { n: 61 } }, { payload: { n: 62 } }, { payload: { n: 63 } }, { payload: { n: 64 } }, { payload: { n: 65 } }, { payload: { n: 66 } }, { payload: { n: 67 } }, { payload: { n: 68 } }, { payload: { n: 69 } }, { payload: { n: 70 } }, { payload: { n: 71 } }, { payload: { n: 72 } }, { payload: { n: 73 } }, { payload: { n: 74 } }, { payload: { n: 75 } }, { payload: { n: 76 } }, { payload: { n: 77 } }, { payload: { n: 78 } }, { payload: { n: 79 } }, { payload: { n: 80 } }, { payload: { n: 81 } }, { payload: { n: 82 } }, { payload: { n: 83 } }, { payload: { n: 84 } }, { payload: { n: 85 } }, { payload: { n: 86 } }, { payload: { n: 87 } }, { payload: { n: 88 } }, { payload: { n: 89 } }, { payload: { n: 90 } }, { payload: { n: 91 } }, { payload: { n: 92 } }, { payload: { n: 93 } }, { payload: { n: 94 } }, { payload: { n: 95 } }, { payload: { n: 96 } }, { payload: { n: 97 } }, { payload: { n: 98 } }, { payload: { n: 99 } }, { payload: { n: 100 } }, { payload: { n: 101 } }, { payload: { n: 102 } }, { payload: { n: 103 } }, { payload: { n: 104 } }, { payload: { n: 105 } }, { payload: { n: 106 } }, { payload: { n: 107 } }, { payload: { n: 108 } }, { payload: { n: 109 } }, { payload: { n: 110 } }, { payload: { n: 111 } }, { payload: { n: 112 } }, { payload: { n: 113 } }, { payload: { n: 114 } }, { payload: { n: 115 } }, { payload: { n: 116 } }, { payload: { n: 117 } }, { payload: { n: 118 } }, { payload: { n: 119 } }, { payload: { n: 120 } }, { payload: { n: 121 } }, { payload: { n: 122 } }, { payload: { n: 123 } }, { payload: { n: 124 } }, { payload: { n: 125 } }, { payload: { n: 126 } }, { payload: { n: 127 } }, { payload: { n: 128 } }, { payload: { n: 129 } }, { payload: { n: 130 } }, { payload: { n: 131 } }, { payload: { n: 132 } }, { payload: { n: 133 } }, { payload: { n: 134 } }, { payload: { n: 135 } }, { payload: { n: 136 } }, { payload: { n: 137 } }, { payload: { n: 138 } }, { payload: { n: 139 } }, { payload: { n: 140 } }, { payload: { n: 141 } }, { payload: { n: 142 } }, { payload: { n: 143 } }, { payload: { n: 144 } }, { payload: { n: 145 } }, { payload: { n: 146 } }, { payload: { n: 147 } }, { payload: { n: 148 } }, { payload: { n: 149 } }, { payload: { n: 150 } }, { payload: { n: 151 } }, { payload: { n: 152 } }, { payload: { n: 153 } }, { payload: { n: 154 } }, { payload: { n: 155 } }, { payload: { n: 156 } }, { payload: { n: 157 } }, { payload: { n: 158 } }, { payload: { n: 159 } }, { payload: { n: 160 } }, { payload: { n: 161 } }, { payload: { n: 162 } }, { payload: { n: 163 } }, { payload: { n: 164 } }, { payload: { n: 165 } }, { payload: { n: 166 } }, { payload: { n: 167 } }, { payload: { n: 168 } }, { payload: { n: 169 } }, { payload: { n: 170 } }, { payload: { n: 171 } }, { payload: { n: 172 } }, { payload: { n: 173 } }, { payload: { n: 174 } }, { payload: { n: 175 } }, { payload: { n: 176 } }, { payload: { n: 177 } }, { payload: { n: 178 } }, { payload: { n: 179 } }, { payload: { n: 180 } }, { payload: { n: 181 } }, { payload: { n: 182 } }, { payload: { n: 183 } }, { payload: { n: 184 } }, { payload: { n: 185 } }, { payload: { n: 186 } }, { payload: { n: 187 } }, { payload: { n: 188 } }, { payload: { n: 189 } }, { payload: { n: 190 } }, { payload: { n: 191 } }, { payload: { n: 192 } }, { payload: { n: 193 } }, { payload: { n: 194 } }, { payload: { n: 195 } }, { payload: { n: 196 } }, { payload: { n: 197 } }, { payload: { n: 198 } }, { payload: { n: 199 } }, { payload: { n: 200 } }, { payload: { n: 201 } }, { payload: { n: 202 } }, { payload: { n: 203 } }, { payload: { n: 204 } }, { payload: { n: 205 } }, { payload: { n: 206 } }, { payload: { n: 207 } }, { payload: { n: 208 } }, { payload: { n: 209 } }, { payload: { n: 210 } }, { payload: { n: 211 } }, { payload: { n: 212 } }, { payload: { n: 213 } }, { payload: { n: 214 } }, { payload: { n: 215 } }, { payload: { n: 216 } }, { payload: { n: 217 } }, { payload: { n: 218 } }, { payload: { n: 219 } }, { payload: { n: 220 } }, { payload: { n: 221 } }, { payload: { n: 222 } }, { payload: { n: 223 } }, { payload: { n: 224 } }, { payload: { n: 225 } }, { payload: { n: 226 } }, { payload: { n: 227 } }, { payload: { n: 228 } }, { payload: { n: 229 } }, { payload: { n: 230 } }, { payload: { n: 231 } }, { payload: { n: 232 } }, { payload: { n: 233 } }, { payload: { n: 234 } }, { payload: { n: 235 } }, { payload: { n: 236 } }, { payload: { n: 237 } }, { payload: { n: 238 } }, { payload: { n: 239 } }, { payload: { n: 240 } }, { payload: { n: 241 } }, { payload: { n: 242 } }, { payload: { n: 243 } }, { payload: { n: 244 } }, { payload: { n: 245 } }, { payload: { n: 246 } }, { payload: { n: 247 } }, { payload: { n: 248 } }, { payload: { n: 249 } }, { payload: { n: 250 } }, { payload: { n: 251 } }, { payload: { n: 252 } }, { payload: { n: 253 } }, { payload: { n: 254 } }, { payload: { n: 255 } }, { payload: { n: 256 } }, { payload: { n: 257 } }, { payload: { n: 258 } }, { payload: { n: 259 } }, { payload: { n: 260 } }, { payload: { n: 261 } }, { payload: { n: 262 } }, { payload: { n: 263 } }, { payload: { n: 264 } }, { payload: { n: 265 } }, { payload: { n: 266 } }, { payload: { n: 267 } }, { payload: { n: 268 } }, { payload: { n: 269 } }, { payload: { n: 270 } }, { payload: { n: 271 } }, { payload: { n: 272 } }, { payload: { n: 273 } }, { payload: { n: 274 } }, { payload: { n: 275 } }, { payload: { n: 276 } }, { payload: { n: 277 } }, { payload: { n: 278 } }, { payload: { n: 279 } }, { payload: { n: 280 } }, { payload: { n: 281 } }, { payload: { n: 282 } }, { payload: { n: 283 } }, { payload: { n: 284 } }, { payload: { n: 285 } }, { payload: { n: 286 } }, { payload: { n: 287 } }, { payload: { n: 288 } }, { payload: { n: 289 } }, { payload: { n: 290 } }, { payload: { n: 291 } }, { payload: { n: 292 } }, { payload: { n: 293 } }, { payload: { n: 294 } }, { payload: { n: 295 } }, { payload: { n: 296 } }, { payload: { n: 297 } }, { payload: { n: 298 } }, { payload: { n: 299 } }, { payload: { n: 300 } }, { payload: { n: 301 } }, { payload: { n: 302 } }, { payload: { n: 303 } }, { payload: { n: 304 } }, { payload: { n: 305 } }, { payload: { n: 306 } }, { payload: { n: 307 } }, { payload: { n: 308 } }, { payload: { n: 309 } }, { payload: { n: 310 } }, { payload: { n: 311 } }, { payload: { n: 312 } }, { payload: { n: 313 } }, { payload: { n: 314 } }, { payload: { n: 315 } }, { payload: { n: 316 } }, { payload: { n: 317 } }, { payload: { n: 318 } }, { payload: { n: 319 } }, { payload: { n: 320 } }, { payload: { n: 321 } }, { payload: { n: 322 } }, { payload: { n: 323 } }, { payload: { n: 324 } }, { payload: { n: 325 } }, { payload: { n: 326 } }, { payload: { n: 327 } }, { payload: { n: 328 } }, { payload: { n: 329 } }, { payload: { n: 330 } }, { payload: { n: 331 } }, { payload: { n: 332 } }, { payload: { n: 333 } }, { payload: { n: 334 } }, { payload: { n: 335 } }, { payload: { n: 336 } }, { payload: { n: 337 } }, { payload: { n: 338 } }, { payload: { n: 339 } }, { payload: { n: 340 } }, { payload: { n: 341 } }, { payload: { n: 342 } }, { payload: { n: 343 } }, { payload: { n: 344 } }, { payload: { n: 345 } }, { payload: { n: 346 } }, { payload: { n: 347 } }, { payload: { n: 348 } }, { payload: { n: 349 } }, { payload: { n: 350 } }, { payload: { n: 351 } }, { payload: { n: 352 } }, { payload: { n: 353 } }, { payload: { n: 354 } }, { payload: { n: 355 } }, { payload: { n: 356 } }, { payload: { n: 357 } }, { payload: { n: 358 } }, { payload: { n: 359 } }, { payload: { n: 360 } }, { payload: { n: 361 } }, { payload: { n: 362 } }, { payload: { n: 363 } }, { payload: { n: 364 } }, { payload: { n: 365 } }, { payload: { n: 366 } }, { payload: { n: 367 } }, { payload: { n: 368 } }, { payload: { n: 369 } }, { payload: { n: 370 } }, { payload: { n: 371 } }, { payload: { n: 372 } }, { payload: { n: 373 } }, { payload: { n: 374 } }, { payload: { n: 375 } }, { payload: { n: 376 } }, { payload: { n: 377 } }, { payload: { n: 378 } }, { payload: { n: 379 } }, { payload: { n: 380 } }, { payload: { n: 381 } }, { payload: { n: 382 } }, { payload: { n: 383 } }, { payload: { n: 384 } }, { payload: { n: 385 } }, { payload: { n: 386 } }, { payload: { n: 387 } }, { payload: { n: 388 } }, { payload: { n: 389 } }, { payload: { n: 390 } }, { payload: { n: 391 } }, { payload: { n: 392 } }, { payload: { n: 393 } }, { payload: { n: 394 } }, { payload: { n: 395 } }, { payload: { n: 396 } }, { payload: { n: 397 } }, { payload: { n: 398 } }, { payload: { n: 399 } }, { payload: { n: 400 } }, { payload: { n: 401 } }, { payload: { n: 402 } }, { payload: { n: 403 } }, { payload: { n: 404 } }, { payload: { n: 405 } }, { payload: { n: 406 } }, { payload: { n: 407 } }, { payload: { n: 408 } }, { payload: { n: 409 } }, { payload: { n: 410 } }, { payload: { n: 411 } }, { payload: { n: 412 } }, { payload: { n: 413 } }, { payload: { n: 414 } }, { payload: { n: 415 } }, { payload: { n: 416 } }, { payload: { n: 417 } }, { payload: { n: 418 } }, { payload: { n: 419 } }, { payload: { n: 420 } }, { payload: { n: 421 } }, { payload: { n: 422 } }, { payload: { n: 423 } }, { payload: { n: 424 } }, { payload: { n: 425 } }, { payload: { n: 426 } }, { payload: { n: 427 } }, { payload: { n: 428 } }, { payload: { n: 429 } }, { payload: { n: 430 } }, { payload: { n: 431 } }, { payload: { n: 432 } }, { payload: { n: 433 } }, { payload: { n: 434 } }, { payload: { n: 435 } }, { payload: { n: 436 } }, { payload: { n: 437 } }, { payload: { n: 438 } }, { payload: { n: 439 } }, { payload: { n: 440 } }, { payload: { n: 441 } }, { payload: { n: 442 } }, { payload: { n: 443 } }, { payload: { n: 444 } }, { payload: { n: 445 } }, { payload: { n: 446 } }, { payload: { n: 447 } }, { payload: { n: 448 } }, { payload: { n: 449 } }, { payload: { n: 450 } }, { payload: { n: 451 } }, { payload: { n: 452 } }, { payload: { n: 453 } }, { payload: { n: 454 } }, { payload: { n: 455 } }, { payload: { n: 456 } }, { payload: { n: 457 } }, { payload: { n: 458 } }, { payload: { n: 459 } }, { payload: { n: 460 } }, { payload: { n: 461 } }, { payload: { n: 462 } }, { payload: { n: 463 } }, { payload: { n: 464 } }, { payload: { n: 465 } }, { payload: { n: 466 } }, { payload: { n: 467 } }, { payload: { n: 468 } }, { payload: { n: 469 } }, { payload: { n: 470 } }, { payload: { n: 471 } }, { payload: { n: 472 } }, { payload: { n: 473 } }, { payload: { n: 474 } }, { payload: { n: 475 } }, { payload: { n: 476 } }, { payload: { n: 477 } }, { payload: { n: 478 } }, { payload: { n: 479 } }, { payload: { n: 480 } }, { payload: { n: 481 } }, { payload: { n: 482 } }, { payload: { n: 483 } }, { payload: { n: 484 } }, { payload: { n: 485 } }, { payload: { n: 486 } }, { payload: { n: 487 } }, { payload: { n: 488 } }, { payload: { n: 489 } }, { payload: { n: 490 } }, { payload: { n: 491 } }, { payload: { n: 492 } }, { payload: { n: 493 } }, { payload: { n: 494 } }, { payload: { n: 495 } }, { payload: { n: 496 } }, { payload: { n: 497 } }, { payload: { n: 498 } }, { payload: { n: 499 } }, { payload: { n: 500 } }, { payload: { n: 501 } }, { payload: { n: 502 } }, { payload: { n: 503 } }, { payload: { n: 504 } }, { payload: { n: 505 } }, { payload: { n: 506 } }, { payload: { n: 507 } }, { payload: { n: 508 } }, { payload: { n: 509 } }, { payload: { n: 510 } }, { payload: { n: 511 } }, { payload: { n: 512 } }, { payload: { n: 513 } }, { payload: { n: 514 } }, { payload: { n: 515 } }, { payload: { n: 516 } }, { payload: { n: 517 } }, { payload: { n: 518 } }, { payload: { n: 519 } }, { payload: { n: 520 } }, { payload: { n: 521 } }, { payload: { n: 522 } }, { payload: { n: 523 } }, { payload: { n: 524 } }, { payload: { n: 525 } }, { payload: { n: 526 } }, { payload: { n: 527 } }, { payload: { n: 528 } }, { payload: { n: 529 } }, { payload: { n: 530 } }, { payload: { n: 531 } }, { payload: { n: 532 } }, { payload: { n: 533 } }, { payload: { n: 534 } }, { payload: { n: 535 } }, { payload: { n: 536 } }, { payload: { n: 537 } }, { payload: { n: 538 } }, { payload: { n: 539 } }, { payload: { n: 540 } }, { payload: { n: 541 } }, { payload: { n: 542 } }, { payload: { n: 543 } }, { payload: { n: 544 } }, { payload: { n: 545 } }, { payload: { n: 546 } }, { payload: { n: 547 } }, { payload: { n: 548 } }, { payload: { n: 549 } }, { payload: { n: 550 } }, { payload: { n: 551 } }, { payload: { n: 552 } }, { payload: { n: 553 } }, { payload: { n: 554 } }, { payload: { n: 555 } }, { payload: { n: 556 } }, { payload: { n: 557 } }, { payload: { n: 558 } }, { payload: { n: 559 } }, { payload: { n: 560 } }, { payload: { n: 561 } }, { payload: { n: 562 } }, { payload: { n: 563 } }, { payload: { n: 564 } }, { payload: { n: 565 } }, { payload: { n: 566 } }, { payload: { n: 567 } }, { payload: { n: 568 } }, { payload: { n: 569 } }, { payload: { n: 570 } }, { payload: { n: 571 } }, { payload: { n: 572 } }, { payload: { n: 573 } }, { payload: { n: 574 } }, { payload: { n: 575 } }, { payload: { n: 576 } }, { payload: { n: 577 } }, { payload: { n: 578 } }, { payload: { n: 579 } }, { payload: { n: 580 } }, { payload: { n: 581 } }, { payload: { n: 582 } }, { payload: { n: 583 } }, { payload: { n: 584 } }, { payload: { n: 585 } }, { payload: { n: 586 } }, { payload: { n: 587 } }, { payload: { n: 588 } }, { payload: { n: 589 } }, { payload: { n: 590 } }, { payload: { n: 591 } }, { payload: { n: 592 } }, { payload: { n: 593 } }, { payload: { n: 594 } }, { payload: { n: 595 } }, { payload: { n: 596 } }, { payload: { n: 597 } }, { payload: { n: 598 } }, { payload: { n: 599 } }, { payload: { n: 600 } }, { payload: { n: 601 } }, { payload: { n: 602 } }, { payload: { n: 603 } }, { payload: { n: 604 } }, { payload: { n: 605 } }, { payload: { n: 606 } }, { payload: { n: 607 } }, { payload: { n: 608 } }, { payload: { n: 609 } }, { payload: { n: 610 } }, { payload: { n: 611 } }, { payload: { n: 612 } }, { payload: { n: 613 } }, { payload: { n: 614 } }, { payload: { n: 615 } }, { payload: { n: 616 } }, { payload: { n: 617 } }, { payload: { n: 618 } }, { payload: { n: 619 } }, { payload: { n: 620 } }, { payload: { n: 621 } }, { payload: { n: 622 } }, { payload: { n: 623 } }, { payload: { n: 624 } }, { payload: { n: 625 } }, { payload: { n: 626 } }, { payload: { n: 627 } }, { payload: { n: 628 } }, { payload: { n: 629 } }, { payload: { n: 630 } }, { payload: { n: 631 } }, { payload: { n: 632 } }, { payload: { n: 633 } }, { payload: { n: 634 } }, { payload: { n: 635 } }, { payload: { n: 636 } }, { payload: { n: 637 } }, { payload: { n: 638 } }, { payload: { n: 639 } }, { payload: { n: 640 } }, { payload: { n: 641 } }, { payload: { n: 642 } }, { payload: { n: 643 } }, { payload: { n: 644 } }, { payload: { n: 645 } }, { payload: { n: 646 } }, { payload: { n: 647 } }, { payload: { n: 648 } }, { payload: { n: 649 } }, { payload: { n: 650 } }, { payload: { n: 651 } }, { payload: { n: 652 } }, { payload: { n: 653 } }, { payload: { n: 654 } }, { payload: { n: 655 } }, { payload: { n: 656 } }, { payload: { n: 657 } }, { payload: { n: 658 } }, { payload: { n: 659 } }, { payload: { n: 660 } }, { payload: { n: 661 } }, { payload: { n: 662 } }, { payload: { n: 663 } }, { payload: { n: 664 } }, { payload: { n: 665 } }, { payload: { n: 666 } }, { payload: { n: 667 } }, { payload: { n: 668 } }, { payload: { n: 669 } }, { payload: { n: 670 } }, { payload: { n: 671 } }, { payload: { n: 672 } }, { payload: { n: 673 } }, { payload: { n: 674 } }, { payload: { n: 675 } }, { payload: { n: 676 } }, { payload: { n: 677 } }, { payload: { n: 678 } }, { payload: { n: 679 } }, { payload: { n: 680 } }, { payload: { n: 681 } }, { payload: { n: 682 } }, { payload: { n: 683 } }, { payload: { n: 684 } }, { payload: { n: 685 } }, { payload: { n: 686 } }, { payload: { n: 687 } }, { payload: { n: 688 } }, { payload: { n: 689 } }, { payload: { n: 690 } }, { payload: { n: 691 } }, { payload: { n: 692 } }, { payload: { n: 693 } }, { payload: { n: 694 } }, { payload: { n: 695 } }, { payload: { n: 696 } }, { payload: { n: 697 } }, { payload: { n: 698 } }, { payload: { n: 699 } }, { payload: { n: 700 } }, { payload: { n: 701 } }, { payload: { n: 702 } }, { payload: { n: 703 } }, { payload: { n: 704 } }, { payload: { n: 705 } }, { payload: { n: 706 } }, { payload: { n: 707 } }, { payload: { n: 708 } }, { payload: { n: 709 } }, { payload: { n: 710 } }, { payload: { n: 711 } }, { payload: { n: 712 } }, { payload: { n: 713 } }, { payload: { n: 714 } }, { payload: { n: 715 } }, { payload: { n: 716 } }, { payload: { n: 717 } }, { payload: { n: 718 } }, { payload: { n: 719 } }, { payload: { n: 720 } }, { payload: { n: 721 } }, { payload: { n: 722 } }, { payload: { n: 723 } }, { payload: { n: 724 } }, { payload: { n: 725 } }, { payload: { n: 726 } }, { payload: { n: 727 } }, { payload: { n: 728 } }, { payload: { n: 729 } }, { payload: { n: 730 } }, { payload: { n: 731 } }, { payload: { n: 732 } }, { payload: { n: 733 } }, { payload: { n: 734 } }, { payload: { n: 735 } }, { payload: { n: 736 } }, { payload: { n: 737 } }, { payload: { n: 738 } }, { payload: { n: 739 } }, { payload: { n: 740 } }, { payload: { n: 741 } }, { payload: { n: 742 } }, { payload: { n: 743 } }, { payload: { n: 744 } }, { payload: { n: 745 } }, { payload: { n: 746 } }, { payload: { n: 747 } }, { payload: { n: 748 } }, { payload: { n: 749 } }, { payload: { n: 750 } }, { payload: { n: 751 } }, { payload: { n: 752 } }, { payload: { n: 753 } }, { payload: { n: 754 } }, { payload: { n: 755 } }, { payload: { n: 756 } }, { payload: { n: 757 } }, { payload: { n: 758 } }, { payload: { n: 759 } }, { payload: { n: 760 } }, { payload: { n: 761 } }, { payload: { n: 762 } }, { payload: { n: 763 } }, { payload: { n: 764 } }, { payload: { n: 765 } }, { payload: { n: 766 } }, { payload: { n: 767 } }, { payload: { n: 768 } }, { payload: { n: 769 } }, { payload: { n: 770 } }, { payload: { n: 771 } }, { payload: { n: 772 } }, { payload: { n: 773 } }, { payload: { n: 774 } }, { payload: { n: 775 } }, { payload: { n: 776 } }, { payload: { n: 777 } }, { payload: { n: 778 } }, { payload: { n: 779 } }, { payload: { n: 780 } }, { payload: { n: 781 } }, { payload: { n: 782 } }, { payload: { n: 783 } }, { payload: { n: 784 } }, { payload: { n: 785 } }, { payload: { n: 786 } }, { payload: { n: 787 } }, { payload: { n: 788 } }, { payload: { n: 789 } }, { payload: { n: 790 } }, { payload: { n: 791 } }, { payload: { n: 792 } }, { payload: { n: 793 } }, { payload: { n: 794 } }, { payload: { n: 795 } }, { payload: { n: 796 } }, { payload: { n: 797 } }, { payload: { n: 798 } }, { payload: { n: 799 } }, { payload: { n: 800 } }, { payload: { n: 801 } }, { payload: { n: 802 } }, { payload: { n: 803 } }, { payload: { n: 804 } }, { payload: { n: 805 } }, { payload: { n: 806 } }, { payload: { n: 807 } }, { payload: { n: 808 } }, { payload: { n: 809 } }, { payload: { n: 810 } }, { payload: { n: 811 } }, { payload: { n: 812 } }, { payload: { n: 813 } }, { payload: { n: 814 } }, { payload: { n: 815 } }, { payload: { n: 816 } }, { payload: { n: 817 } }, { payload: { n: 818 } }, { payload: { n: 819 } }, { payload: { n: 820 } }, { payload: { n: 821 } }, { payload: { n: 822 } }, { payload: { n: 823 } }, { payload: { n: 824 } }, { payload: { n: 825 } }, { payload: { n: 826 } }, { payload: { n: 827 } }, { payload: { n: 828 } }, { payload: { n: 829 } }, { payload: { n: 830 } }, { payload: { n: 831 } }, { payload: { n: 832 } }, { payload: { n: 833 } }, { payload: { n: 834 } }, { payload: { n: 835 } }, { payload: { n: 836 } }, { payload: { n: 837 } }, { payload: { n: 838 } }, { payload: { n: 839 } }, { payload: { n: 840 } }, { payload: { n: 841 } }, { payload: { n: 842 } }, { payload: { n: 843 } }, { payload: { n: 844 } }, { payload: { n: 845 } }, { payload: { n: 846 } }, { payload: { n: 847 } }, { payload: { n: 848 } }, { payload: { n: 849 } }, { payload: { n: 850 } }, { payload: { n: 851 } }, { payload: { n: 852 } }, { payload: { n: 853 } }, { payload: { n: 854 } }, { payload: { n: 855 } }, { payload: { n: 856 } }, { payload: { n: 857 } }, { payload: { n: 858 } }, { payload: { n: 859 } }, { payload: { n: 860 } }, { payload: { n: 861 } }, { payload: { n: 862 } }, { payload: { n: 863 } }, { payload: { n: 864 } }, { payload: { n: 865 } }, { payload: { n: 866 } }, { payload: { n: 867 } }, { payload: { n: 868 } }, { payload: { n: 869 } }, { payload: { n: 870 } }, { payload: { n: 871 } }, { payload: { n: 872 } }, { payload: { n: 873 } }, { payload: { n: 874 } }, { payload: { n: 875 } }, { payload: { n: 876 } }, { payload: { n: 877 } }, { payload: { n: 878 } }, { payload: { n: 879 } }, { payload: { n: 880 } }, { payload: { n: 881 } }, { payload: { n: 882 } }, { payload: { n: 883 } }, { payload: { n: 884 } }, { payload: { n: 885 } }, { payload: { n: 886 } }, { payload: { n: 887 } }, { payload: { n: 888 } }, { payload: { n: 889 } }, { payload: { n: 890 } }, { payload: { n: 891 } }, { payload: { n: 892 } }, { payload: { n: 893 } }, { payload: { n: 894 } }, { payload: { n: 895 } }, { payload: { n: 896 } }, { payload: { n: 897 } }, { payload: { n: 898 } }, { payload: { n: 899 } }, { payload: { n: 900 } }, { payload: { n: 901 } }, { payload: { n: 902 } }, { payload: { n: 903 } }, { payload: { n: 904 } }, { payload: { n: 905 } }, { payload: { n: 906 } }, { payload: { n: 907 } }, { payload: { n: 908 } }, { payload: { n: 909 } }, { payload: { n: 910 } }, { payload: { n: 911 } }, { payload: { n: 912 } }, { payload: { n: 913 } }, { payload: { n: 914 } }, { payload: { n: 915 } }, { payload: { n: 916 } }, { payload: { n: 917 } }, { payload: { n: 918 } }, { payload: { n: 919 } }, { payload: { n: 920 } }, { payload: { n: 921 } }, { payload: { n: 922 } }, { payload: { n: 923 } }, { payload: { n: 924 } }, { payload: { n: 925 } }, { payload: { n: 926 } }, { payload: { n: 927 } }, { payload: { n: 928 } }, { payload: { n: 929 } }, { payload: { n: 930 } }, { payload: { n: 931 } }, { payload: { n: 932 } }, { payload: { n: 933 } }, { payload: { n: 934 } }, { payload: { n: 935 } }, { payload: { n: 936 } }, { payload: { n: 937 } }, { payload: { n: 938 } }, { payload: { n: 939 } }, { payload: { n: 940 } }, { payload: { n: 941 } }, { payload: { n: 942 } }, { payload: { n: 943 } }, { payload: { n: 944 } }, { payload: { n: 945 } }, { payload: { n: 946 } }, { payload: { n: 947 } }, { payload: { n: 948 } }, { payload: { n: 949 } }, { payload: { n: 950 } }, { payload: { n: 951 } }, { payload: { n: 952 } }, { payload: { n: 953 } }, { payload: { n: 954 } }, { payload: { n: 955 } }, { payload: { n: 956 } }, { payload: { n: 957 } }, { payload: { n: 958 } }, { payload: { n: 959 } }, { payload: { n: 960 } }, { payload: { n: 961 } }, { payload: { n: 962 } }, { payload: { n: 963 } }, { payload: { n: 964 } }, { payload: { n: 965 } }, { payload: { n: 966 } }, { payload: { n: 967 } }, { payload: { n: 968 } }, { payload: { n: 969 } }, { payload: { n: 970 } }, { payload: { n: 971 } }, { payload: { n: 972 } }, { payload: { n: 973 } }, { payload: { n: 974 } }, { payload: { n: 975 } }, { payload: { n: 976 } }, { payload: { n: 977 } }, { payload: { n: 978 } }, { payload: { n: 979 } }, { payload: { n: 980 } }, { payload: { n: 981 } }, { payload: { n: 982 } }, { payload: { n: 983 } }, { payload: { n: 984 } }, { payload: { n: 985 } }, { payload: { n: 986 } }, { payload: { n: 987 } }, { payload: { n: 988 } }, { payload: { n: 989 } }, { payload: { n: 990 } }, { payload: { n: 991 } }, { payload: { n: 992 } }, { payload: { n: 993 } }, { payload: { n: 994 } }, { payload: { n: 995 } }, { payload: { n: 996 } }, { payload: { n: 997 } }, { payload: { n: 998 } }, { payload: { n: 999 } }, { payload: { n: 1000 } }]);\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const bulk = task({\n  id: \"bulk\",\n  run: async (payload) => {\n    await tasks.batchTrigger(\"child\", [{ payload: { id: \"1\" } }, { payload: { id: \"2\" } }]);\n  },\n});"
+    ],
+    "good": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\nimport { BatchTriggerError } from \"@trigger.dev/sdk\";\n\nexport const bulk = task({\n  id: \"bulk\",\n  run: async (payload) => {\n    try {\n      await tasks.batchTrigger(\"child\", [{ payload: { id: \"1\" } }, { payload: { id: \"2\" } }]);\n    } catch (error) {\n      if (error instanceof BatchTriggerError && error.isRateLimited) {\n        console.error(\"rate limited\");\n      }\n      throw error;\n    }\n  },\n});"
+    ]
+   }
+  },
+  {
+   "id": "TSK-07",
+   "family": "TSK",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\\b(?:const|let|var)\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*await\\s+import\\s*\\((?:[^()]|\\([^()]*\\))*\\)[\\s\\S]*?\\b\\1(?:\\.[A-Za-z_$][\\w$]*)?\\.(?:trigger|batchTrigger)\\s*\\("
+     },
+     {
+      "type": "regex",
+      "pattern": "\\b(?:const|let|var)\\s*\\{\\s*([A-Za-z_$][\\w$]*)[^}]*\\}\\s*=\\s*await\\s+import\\s*\\((?:[^()]|\\([^()]*\\))*\\)[\\s\\S]*?\\b\\1\\.(?:trigger|batchTrigger)\\s*\\("
+     }
+    ]
+   },
+   "message": "triggers a task through a binding loaded with await import(); see COULD_NOT_FIND_EXECUTOR in the troubleshooting doc",
+   "fix": "use a top-level import, or tasks.trigger(\"<task-id>\", payload)",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/troubleshooting#could_not_find_executor",
+   "examples": {
+    "bad": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const lazyRunner = task({\n  id: \"lazyRunner\",\n  run: async (payload) => {\n    const mod = await import(\"./tasks/child\");\n    await mod.childTask.trigger({ n: 1 });\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const lazyRunner = task({\n  id: \"lazyRunner\",\n  run: async (payload) => {\n    const { childTask } = await import(\"./tasks/child\");\n    await childTask.trigger({ n: 1 });\n  },\n});"
+    ],
+    "good": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const lazyRunner = task({\n  id: \"lazyRunner\",\n  run: async (payload) => {\n    const mod = await import(\"./utils/format\");\n    return mod.format(1);\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const lazyRunner = task({\n  id: \"lazyRunner\",\n  run: async (payload) => {\n    await tasks.trigger(\"child\", { n: 1 });\n  },\n});"
+    ]
+   }
+  },
+  {
+   "id": "TSK-08",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does a catch block inside run() log or swallow the error and then return normally, without rethrowing and without throwing AbortTaskRunError? Report only that case. A catch that rethrows, or throws AbortTaskRunError, is not a hit.",
+   "message": "a catch inside run() logs the error and returns normally, so the run finishes as Completed",
+   "fix": "rethrow the error, or throw AbortTaskRunError when a retry cannot help",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/errors-retrying"
+  },
+  {
+   "id": "TSK-09",
+   "family": "TSK",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "For each error thrown in run(): is AbortTaskRunError used for a failure a retry could fix (timeout, 429, 5xx, network reset), or is a plain Error thrown for a failure no retry can fix (validation, 4xx other than 429, record not found)? Report only a clear mismatch.",
+   "message": "AbortTaskRunError turns off retries for that attempt; a plain Error is retried under the retry settings of the task",
+   "fix": "choose by retryability: AbortTaskRunError for permanent failures, a plain Error for transient ones; use catchError for per-error handling",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/errors-retrying"
+  },
+  {
+   "id": "TSK-10",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does a payment, email or charge call inside run() send no provider idempotency key? A key built from ctx.run.id or a business id is not a hit, and neither is a call that only reads data.",
+   "message": "a payment, email or charge call inside run() has no provider idempotency key, so a retried attempt can repeat it",
+   "fix": "pass a provider idempotency key built from ctx.run.id or a business id",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/idempotency"
+  },
+  {
+   "id": "TSK-11",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bidempotencyKey\\s*:\\s*[^,}\\n]*?\\b(?:randomUUID|uuid\\w*|v4|nanoid|Date\\.now|Math\\.random)\\s*\\("
+   },
+   "message": "idempotencyKey is built from randomUUID, uuid, nanoid, Date.now or Math.random, so each trigger gets a new key and deduplication never matches",
+   "fix": "derive the key from a stable business id",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/idempotency",
+   "examples": {
+    "bad": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\nimport { randomUUID } from \"node:crypto\";\n\nexport const enqueue = task({\n  id: \"enqueue\",\n  run: async (payload) => {\n    await tasks.trigger(\"charge\", payload, { idempotencyKey: randomUUID() });\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const enqueue = task({\n  id: \"enqueue\",\n  run: async (payload) => {\n    await tasks.trigger(\"charge\", payload, { idempotencyKey: `charge-${Date.now()}` });\n  },\n});"
+    ],
+    "good": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const enqueue = task({\n  id: \"enqueue\",\n  run: async (payload) => {\n    await tasks.trigger(\"charge\", payload, { idempotencyKey: `charge-${payload.orderId}` });\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\nimport { idempotencyKeys } from \"@trigger.dev/sdk\";\n\nexport const enqueue = task({\n  id: \"enqueue\",\n  run: async (payload) => {\n    const key = await idempotencyKeys.create(\"charge\");\n    await tasks.trigger(\"charge\", payload, { idempotencyKey: key });\n  },\n});"
+    ]
+   }
+  },
+  {
+   "id": "TSK-12",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Inside a task, is a raw-string idempotency key, or a key from idempotencyKeys.create() with the default scope, meant to make work happen once ever across runs? Report only that case. A key from idempotencyKeys.create() with scope \"global\" is not a hit.",
+   "message": "a raw-string idempotency key inside a task defaults to run scope, so it dedupes only within one run; once-ever needs scope \"global\"",
+   "fix": "create the key with idempotencyKeys.create(key, { scope: \"global\" }) when it must hold across runs",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/idempotency"
+  },
+  {
+   "id": "TSK-13",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Look for synchronous CPU-heavy loops inside task code (parsing, hashing, image or data crunching, nested loops over large arrays) that run longer than about a minute without awaiting anything. Such a loop blocks the event loop, so heartbeats stop and the run is marked stalled after about 5 minutes. Fix: await heartbeats.yield() inside the loop, move the work to a worker thread, or use a bigger machine.",
+   "message": "a synchronous loop with no await in its body runs with no heartbeats.yield(); a long CPU loop can stop heartbeats",
+   "fix": "await heartbeats.yield() inside the loop, move the work to a worker thread, or use a larger machine",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/runs/heartbeats"
+  },
+  {
+   "id": "TSK-14",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bsetInterval\\s*\\(|\\bsetTimeout\\s*\\((?:[^,()]*,\\s*)?(?:\\d{5,}|\\d{2,3}_\\d{3})\\b|\\bsleep\\s*\\(\\s*(?:\\d{5,}|\\d{2,3}_\\d{3})\\b",
+    "require": "\\btask\\s*\\("
+   },
+   "message": "setInterval, or setTimeout or sleep with a delay of 10 s or more, is used in a task file; the run keeps executing for the whole delay",
+   "fix": "use wait.for() for the delay",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/wait",
+   "examples": {
+    "bad": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const remind = task({\n  id: \"remind\",\n  run: async (payload) => {\n    await new Promise((resolve) => setTimeout(resolve, 300000));\n    return { done: true };\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const remind = task({\n  id: \"remind\",\n  run: async (payload) => {\n    await sleep(60_000);\n    return { done: true };\n  },\n});"
+    ],
+    "good": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const remind = task({\n  id: \"remind\",\n  run: async (payload) => {\n    await new Promise((resolve) => setTimeout(resolve, 500));\n    await wait.for({ minutes: 5 });\n  },\n});"
+    ]
+   }
+  },
+  {
+   "id": "TSK-15",
+   "family": "TSK",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\b(?:for|while)\\s*\\([^)]*\\)\\s*\\{(?:[^{}]|\\{[^{}]*\\})*?\\bwait\\.for\\s*\\(\\s*\\{\\s*seconds\\s*:\\s*[0-5]?\\d\\b(?!\\s*[*\\d_])"
+   },
+   "message": "wait.for({ seconds }) under 60 inside a polling loop; below 60 s the run keeps its concurrency slot for the whole wait",
+   "fix": "use an interval of 60 seconds or more, or a waitpoint token",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/concurrency#short-time-based-waits-keep-their-slot",
+   "examples": {
+    "bad": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const poll = task({\n  id: \"poll\",\n  run: async (payload) => {\n    for (let attempt = 0; attempt < 10; attempt++) {\n      const res = await fetch(payload.url);\n      if (res.ok) return { attempt };\n      await wait.for({ seconds: 15 });\n    }\n    throw new Error(\"gave up\");\n  },\n});"
+    ],
+    "good": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const once = task({\n  id: \"once\",\n  run: async (payload) => {\n    await wait.for({ seconds: 5 });\n    return {};\n  },\n});",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const poll = task({\n  id: \"poll\",\n  run: async (payload) => {\n    for (let attempt = 0; attempt < 10; attempt++) {\n      if (await check()) break;\n      await wait.for({ seconds: 60 });\n    }\n  },\n});"
+    ]
+   }
+  },
+  {
+   "id": "TSK-16",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "config",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bdefineConfig\\s*\\(",
+    "unless": "\\bmaxDuration\\s*:"
+   },
+   "message": "defineConfig sets no default maxDuration; the max-duration page says one must be set, the config page lists it as optional",
+   "fix": "add a default maxDuration to trigger.config; use timeout.None where unlimited is intended",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/runs/max-duration",
+   "examples": {
+    "bad": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  dirs: [\"./trigger\"],\n});\n"
+    ],
+    "good": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  dirs: [\"./trigger\"],\n  maxDuration: 60,\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "TSK-17",
+   "family": "TSK",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bmaxDuration\\s*:\\s*[0-4](?:\\.\\d+)?(?=\\s*[,})])"
+   },
+   "message": "maxDuration is below 5 seconds, the documented minimum",
+   "fix": "set maxDuration to 5 or more, or timeout.None where no limit is intended",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/runs/max-duration",
+   "examples": {
+    "bad": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const quick = task({\n  id: \"quick\",\n  maxDuration: 3,\n  run: async () => {},\n});\n"
+    ],
+    "good": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const quick = task({\n  id: \"quick\",\n  maxDuration: 300,\n  run: async () => {},\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "TSK-18",
+   "family": "TSK",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Is critical cleanup (releasing a lock, marking a row, cancelling an external job) only inside cleanup, onSuccess or onFailure, in a task whose maxDuration is short for its work? Those hooks do not run when the run exceeds maxDuration. Answer yes only when the cleanup matters for correctness.",
+   "message": "critical cleanup lives only in cleanup, onSuccess or onFailure, which are skipped when maxDuration is exceeded",
+   "fix": "make the cleanup idempotent and also run it where it still executes on timeout",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/runs/max-duration#maxduration-and-lifecycle-functions"
+  },
+  {
+   "id": "TSK-19",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does a task payload or return value carry bytes by value (Buffer, base64 string, whole file contents), or can an output exceed 10 MB? Answer yes only when the data really travels inside the payload or output, not when it is a reference.",
+   "message": "a payload or output carries binary or whole-file content by value",
+   "fix": "pass a reference (URL, storage key, id) and load the bytes inside the task",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/limits#task-payloads-and-outputs"
+  },
+  {
+   "id": "TSK-20",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "\\.(?:trigger|triggerAndWait|batchTrigger|batchTriggerAndWait)",
+      "contains": "\\bmetadata\\s*:\\s*(?:\\[|[\"'`])"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bmetadata\\s*\\.\\s*replace\\s*\\(\\s*(?:\\[|[\"'`])"
+     },
+     {
+      "type": "regex",
+      "mask": "comments+strings",
+      "pattern": "(?:\\bfor\\b|\\bwhile\\b|\\.forEach\\s*\\(|\\.map\\s*\\()[^}]{0,300}?\\bmetadata\\s*\\.\\s*(?:parent\\s*\\.\\s*|root\\s*\\.\\s*)?append\\s*\\("
+     }
+    ]
+   },
+   "judge": "Is the metadata value a top-level array or string, or does the append run in a loop that can grow without bound? Metadata is an object capped at 256 KB. Answer yes only for those cases; a fixed number of appends is fine.",
+   "message": "metadata is set to a top-level array or string, or appended in a loop; metadata is an object capped at 256 KB",
+   "fix": "pass metadata as an object; bound the appended list or store the bulk data elsewhere",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/runs/metadata",
+   "examples": {
+    "bad": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload: { ids: string[] }) => {\n    await tasks.trigger(\"child\", { id: payload.ids[0] }, { metadata: [\"queued\"] });\n    return payload;\n  },\n});\n",
+     "import { task, metadata } from \"@trigger.dev/sdk\";\n\nexport const report = task({\n  id: \"report\",\n  run: async () => {\n    metadata.replace(\"done\");\n  },\n});\n",
+     "import { task, metadata } from \"@trigger.dev/sdk\";\n\nexport const rows = task({\n  id: \"rows\",\n  run: async (payload: { rows: string[] }) => {\n    for (const row of payload.rows) {\n      metadata.append(\"logs\", row);\n    }\n  },\n});\n"
+    ],
+    "good": [
+     "import { task, metadata } from \"@trigger.dev/sdk\";\n\nexport const steps = task({\n  id: \"steps\",\n  run: async () => {\n    metadata.set(\"progress\", 0);\n    metadata.append(\"logs\", \"started\");\n    metadata.replace({ status: \"running\" });\n    return {};\n  },\n});\n",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload: { id: string }) => {\n    await tasks.trigger(\"child\", { id: payload.id }, { metadata: { parentId: payload.id } });\n    return payload;\n  },\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "TSK-21",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does this child task depend on tags, metadata or limits that only the parent run has, and that are not passed to it explicitly at trigger time? Answer yes only when the child's behaviour changes with the parent's value.",
+   "message": "child task reads parent-run tags, metadata or limits that it does not receive explicitly",
+   "fix": "pass them explicitly at trigger time (metadata.current(), ctx.run.tags) instead of relying on inheritance",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/runs/metadata"
+  },
+  {
+   "id": "TSK-22",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\\btags\\s*:\\s*\\[(?:\\s*([\"'`])[^\"'`\\n]*\\1\\s*,){10}\\s*([\"'`])"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\btags\\s*:\\s*\\[[^\\]]*?([\"'`])[^\"'`\\n]{129,}\\1"
+     }
+    ]
+   },
+   "message": "tags array holds more than 10 entries or a tag longer than 128 characters; a run takes 10 tags, each 1 to 128 characters",
+   "fix": "trim the list to 10 tags and shorten any tag over 128 characters",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/tags",
+   "examples": {
+    "bad": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const tagged = task({\n  id: \"tagged\",\n  run: async () => {},\n});\n\nexport async function tag() {\n  return tagged.trigger({}, { tags: [\"t01\",\"t02\",\"t03\",\"t04\",\"t05\",\"t06\",\"t07\",\"t08\",\"t09\",\"t10\",\"t11\"] });\n}\n",
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const tagged = task({\n  id: \"tagged\",\n  run: async () => {},\n});\n\nexport async function tag() {\n  return tagged.trigger({}, { tags: [\"this tag is intentionally written long enough to exceed the one hundred and twenty eight character limit for trigger tags so it is flagged by the rule\"] });\n}\n"
+    ],
+    "good": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const tagged = task({\n  id: \"tagged\",\n  run: async () => {},\n});\n\nexport async function tag() {\n  return tagged.trigger({}, { tags: [\"t01\",\"t02\",\"t03\",\"t04\",\"t05\",\"t06\",\"t07\",\"t08\",\"t09\",\"t10\"] });\n}\n",
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const tagged = task({\n  id: \"tagged\",\n  run: async () => {},\n});\n\nexport async function tag() {\n  return tagged.trigger({}, { tags: [\"short-tag\", \"another\"] });\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "TSK-23",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "\\.(?:trigger|triggerAndWait)",
+      "contains": "\\bdebounce\\s*:",
+      "lacks": "maxDelay"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bdelay\\s*:\\s*([\"'`])(\\d+(?:ms|s|m|h|d))\\1[^}]{0,200}?\\bmaxDelay\\s*:\\s*\\1\\2\\1"
+     }
+    ]
+   },
+   "message": "debounce is set without maxDelay, so repeated triggers can push the run back indefinitely (an error when triggered with triggerAndWait); or delay equals maxDelay, which leaves no room to debounce",
+   "fix": "set maxDelay greater than delay",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/triggering",
+   "examples": {
+    "bad": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const sync = task({\n  id: \"sync\",\n  run: async (payload: { id: string }) => {\n    return payload;\n  },\n});\n\nexport async function onEdit(id: string) {\n  await tasks.trigger(\"sync\", { id }, { debounce: { key: id, delay: \"5s\" } });\n}\n",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const sync = task({\n  id: \"sync\",\n  run: async () => {},\n});\n\nexport async function onEdit(id: string) {\n  await tasks.trigger(\"sync\", { id }, { debounce: { key: id, delay: \"5s\", maxDelay: \"5s\" } });\n}\n"
+    ],
+    "good": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const sync = task({\n  id: \"sync\",\n  run: async () => {},\n});\n\nexport async function onEdit(id: string) {\n  await tasks.trigger(\"sync\", { id }, { debounce: { key: id, delay: \"5s\", maxDelay: \"30s\" } });\n}\n",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const sync = task({\n  id: \"sync\",\n  run: async () => {},\n});\n\nexport async function onEdit(id: string) {\n  await tasks.trigger(\"sync\", { id });\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "TSK-24",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "\\bcreateClient",
+      "argsMatch": "^\\s*\\{",
+      "unless": "\\.on\\(\\s*[\"']error[\"']"
+     },
+     {
+      "type": "call",
+      "callee": "\\bnew\\s+(?:Pool|Kafka|MongoClient)\\b",
+      "unless": "\\.on\\(\\s*[\"']error[\"']"
+     }
+    ]
+   },
+   "message": "creates a client (createClient, Pool, Kafka or MongoClient) and this file registers no error listener",
+   "fix": "register an error listener on the client",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/troubleshooting#uncaught-exceptions",
+   "examples": {
+    "bad": [
+     "import { createClient } from \"redis\";\nimport { task } from \"@trigger.dev/sdk\";\n\nconst redis = createClient({ url: process.env.REDIS_URL });\n\nexport const cache = task({\n  id: \"cache\",\n  run: async () => {\n    await redis.connect();\n    await redis.set(\"k\", \"v\");\n  },\n});\n",
+     "import { Pool } from \"pg\";\nimport { task } from \"@trigger.dev/sdk\";\n\nconst pool = new Pool({ connectionString: process.env.DATABASE_URL });\n\nexport const query = task({\n  id: \"query\",\n  run: async () => {\n    await pool.query(\"select 1\");\n  },\n});\n"
+    ],
+    "good": [
+     "import { createClient } from \"redis\";\nimport { task } from \"@trigger.dev/sdk\";\n\nconst redis = createClient({ url: process.env.REDIS_URL });\nredis.on(\"error\", (err) => console.error(err));\n\nexport const cache = task({\n  id: \"cache\",\n  run: async () => {\n    await redis.connect();\n    await redis.set(\"k\", \"v\");\n  },\n});\n",
+     "import { Pool } from \"pg\";\nimport { task } from \"@trigger.dev/sdk\";\n\nconst pool = new Pool({ connectionString: process.env.DATABASE_URL });\npool.on(\"error\", (err) => console.error(err));\n\nexport const query = task({\n  id: \"query\",\n  run: async () => {\n    await pool.query(\"select 1\");\n  },\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "TSK-25",
+   "family": "TSK",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "call",
+    "callee": "\\bNestFactory\\s*\\.\\s*createApplicationContext"
+   },
+   "message": "calls NestFactory.createApplicationContext in a file that imports @trigger.dev/",
+   "fix": "use the service directly inside the task instead of booting a Nest application context",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/troubleshooting",
+   "examples": {
+    "bad": [
+     "import { NestFactory } from \"@nestjs/core\";\nimport { task } from \"@trigger.dev/sdk\";\nimport { AppModule } from \"./app.module\";\n\nexport const t = task({\n  id: \"t\",\n  run: async () => {\n    const app = await NestFactory.createApplicationContext(AppModule);\n    return app.get(\"Service\");\n  },\n});\n"
+    ],
+    "good": [
+     "import { task } from \"@trigger.dev/sdk\";\nimport { ReportService } from \"./report.service\";\n\nexport const t = task({\n  id: \"t\",\n  run: async () => {\n    return new ReportService().run();\n  },\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "TSK-26",
+   "family": "TSK",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": null,
+   "needs_builtin": "duplicate-task-ids",
+   "message": "this task id literal is also declared by another task in the project",
+   "fix": "give each task a unique id",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/tasks/overview",
+   "examples": {
+    "bad": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const a = task({ id: \"send-email\", run: async () => {} });\nexport const b = task({ id: \"send-email\", run: async () => {} });\n"
+    ],
+    "good": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const a = task({ id: \"send-email\", run: async () => {} });\nexport const b = task({ id: \"send-receipt\", run: async () => {} });\n"
+    ]
+   }
+  },
+  {
+   "id": "TSK-27",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "config",
+   "match": null,
+   "needs_builtin": "task-dirs",
+   "message": "trigger.config dirs does not cover the folder that holds a task, or lists a folder that does not exist",
+   "fix": "fix dirs so every task folder is listed and exists",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/config-file",
+   "examples": {
+    "bad": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  dirs: [\"./jobs\"],\n});\n"
+    ],
+    "good": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  dirs: [\"./trigger\"],\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "TSK-28",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "mask": "comments+strings",
+    "pattern": "(?:\\bfor\\b|\\bwhile\\b|\\.forEach\\s*\\(|\\.map\\s*\\()[^}]{0,300}?\\bruns\\s*\\.\\s*list\\s*\\("
+   },
+   "message": "runs.list is called inside a loop",
+   "fix": "replace polling with idempotency keys, waits or realtime subscriptions",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/runs/list-best-practices",
+   "examples": {
+    "bad": [
+     "import { runs, task } from \"@trigger.dev/sdk\";\n\nexport const poll = task({\n  id: \"poll\",\n  run: async (payload: { ids: string[] }) => {\n    for (const id of payload.ids) {\n      const page = await runs.list({ limit: 10 });\n      console.log(id, page.data.length);\n    }\n  },\n});\n"
+    ],
+    "good": [
+     "import { runs } from \"@trigger.dev/sdk\";\n\nexport async function GET() {\n  const page = await runs.list({ limit: 10 });\n  return Response.json(page.data);\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "TSK-29",
+   "family": "TSK",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does this task process large in-memory data (big files, large arrays, image, video or model work) on the default machine, with no retry.outOfMemory configured? Answer yes only when the memory need can plausibly exceed the default machine.",
+   "message": "task processes large in-memory data with no outOfMemory retry configured",
+   "fix": "choose a larger machine preset or add an OOM retry through retry.outOfMemory",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/machines"
+  },
+  {
+   "id": "TSK-30",
+   "family": "TSK",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does this task open a stream (.pipe(), .append() or .writer()) and then wait for an hour or more (wait.for or wait.until) without writing to the stream in between? Answer yes only for that sequence.",
+   "message": "a stream is opened and then the task waits an hour or more with no writes in between",
+   "fix": "close the stream before the long wait, or write heartbeat chunks during it",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/tasks/streams"
+  },
+  {
+   "id": "WH-01",
+   "family": "WH",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does a webhooks.waiter.create(...) call in this file run after the provider call that makes the provider send the webhook (for example the API request that starts a payment or a build)? Report only when the provider call comes first in the same flow. Silent when the waiter is created first, or when the file creates no waiter.",
+   "message": "webhooks.waiter.create() is called after the provider call that makes the provider send the webhook; a waiter only matches deliveries that arrive after it was created.",
+   "fix": "Create the waiter before the provider call, then wait on it after. Without the beta waiter: create a waitpoint token before the call and complete it from your webhook route.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/webhooks/waiters"
+  },
+  {
+   "id": "WH-02",
+   "family": "WH",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "\\bwebhooks\\.waiter\\.create\\b",
+      "lacks": "\\bidempotencyKey\\b"
+     },
+     {
+      "type": "call",
+      "callee": "\\bwebhooks\\.custom\\b",
+      "lacks": "\\bidempotencyField\\b"
+     }
+    ]
+   },
+   "message": "webhooks.waiter.create() has no idempotencyKey (a retried attempt creates a new waiter that can miss an event already delivered), or webhooks.custom() has no idempotencyField (deduplication falls back to a key derived from the raw body, timestamp and signature).",
+   "fix": "Pass idempotencyKey to webhooks.waiter.create() and idempotencyField (for example { from: \"body\", name: \"id\" }) to webhooks.custom(). Without the beta: dedupe the route's tasks.trigger() on the provider event id (WH-06).",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/webhooks/deliveries#deduplication",
+   "examples": {
+    "bad": [
+     "import { task, webhooks } from '@trigger.dev/sdk';\nimport { stripe } from './stripe';\n\nexport const payOrder = task({\n  id: 'pay-order',\n  run: async ({ orderId }: { orderId: string }) => {\n    const waiter = await webhooks.waiter.create(stripe, {\n      match: { 'event.data.object.metadata.orderId': orderId },\n    });\n    const { event } = await webhooks.waiter.wait(waiter).unwrap();\n    return event;\n  },\n});\n",
+     "import { webhooks } from '@trigger.dev/sdk';\n\nexport const internal = webhooks.endpoint.define({\n  id: 'internal',\n  source: webhooks.custom<{ id: string; message: string }>(\n    {\n      scheme: 'hmac',\n      algorithm: 'sha256',\n      encoding: 'hex',\n      signatureHeader: 'x-webhook-signature',\n      signingString: 'raw',\n    },\n    { setupPrompt: 'Paste the signing secret under Settings > Webhooks.' }\n  ),\n});\n"
+    ],
+    "good": [
+     "import { task, webhooks } from '@trigger.dev/sdk';\nimport { stripe } from './stripe';\n\nexport const payOrder = task({\n  id: 'pay-order',\n  run: async ({ orderId }: { orderId: string }) => {\n    const waiter = await webhooks.waiter.create(stripe, {\n      match: { 'event.data.object.metadata.orderId': orderId },\n      idempotencyKey: `payment-${orderId}`,\n    });\n    const { event } = await webhooks.waiter.wait(waiter).unwrap();\n    return event;\n  },\n});\n",
+     "import { webhooks } from '@trigger.dev/sdk';\n\nexport const internal = webhooks.endpoint.define({\n  id: 'internal',\n  source: webhooks.custom<{ id: string; message: string }>(\n    {\n      scheme: 'hmac',\n      algorithm: 'sha256',\n      encoding: 'hex',\n      signatureHeader: 'x-webhook-signature',\n      signingString: 'raw',\n      idempotencyField: { from: 'body', name: 'id' },\n    },\n    { setupPrompt: 'Paste the signing secret under Settings > Webhooks.' }\n  ),\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "WH-03",
+   "family": "WH",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "L",
+   "scope": "code",
+   "match": null,
+   "live": "MCP list_webhook_endpoints (environment-level, not per file): report each endpoint whose signing secret status is \"Needs secret\" instead of \"Ready\".",
+   "message": "Endpoint shows \"Needs secret\" in the Signing secret column; every delivery to it is rejected until the secret is set.",
+   "fix": "Set the endpoint's signing secret until its status reads Ready. Without hosted endpoints: verify the signature in your own route, then trigger the task with the provider event id as idempotencyKey (WH-06).",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/webhooks/connect"
+  },
+  {
+   "id": "WH-04",
+   "family": "WH",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does a webhook() subscriber in this file read fields of the incoming event (for example event.data.x, or a body or form field) without checking them at runtime (schema parse, type guard, explicit field check)? The type parameter of webhooks.custom<T>() and of provider sources is compile-time only. Silent when every field read is checked first, or when the handler reads no event fields.",
+   "message": "The handler reads event fields that are typed only at compile time; the request body is not checked against that type at runtime.",
+   "fix": "Validate the event at runtime (schema parse or type guard) before reading its fields. Without the beta: validate the request body in your own route before tasks.trigger().",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/webhooks/filters"
+  },
+  {
+   "id": "WH-05",
+   "family": "WH",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "message": "An exported chat.event() is not in any chat.agent events list, or two agents compute the same session key.",
+   "fix": "List each chat.event() in the events array of the agent that should receive it, and give each agent its own key with a constant prefix (for example \"billing-{event.data.object.customer}\"). Without the beta: keep one agent per endpoint.",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/webhooks/session-routing",
+   "judge": "Check that each exported chat.event() appears in some chat.agent events list, and that no two agents compute the same session key."
+  },
+  {
+   "id": "WH-06",
+   "family": "WH",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Is this a route handler that receives a provider webhook (it reads the request body or headers the provider sent) and calls tasks.trigger(...) with that payload? If yes, is an idempotencyKey derived from the provider's event id passed in the options? Report when no key is passed. Silent when the key is present, or when the trigger is not fed by a webhook request.",
+   "message": "tasks.trigger() in a webhook route passes no idempotencyKey from the provider event id; a redelivery of the same event starts another run.",
+   "fix": "Pass an idempotencyKey derived from the provider event id to tasks.trigger().",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/idempotency"
   }
  ]
 }

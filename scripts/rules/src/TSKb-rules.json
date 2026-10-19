@@ -1,0 +1,369 @@
+{
+ "rules": [
+  {
+   "id": "TSK-16",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "config",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bdefineConfig\\s*\\(",
+    "unless": "\\bmaxDuration\\s*:"
+   },
+   "message": "defineConfig sets no default maxDuration; the max-duration page says one must be set, the config page lists it as optional",
+   "fix": "add a default maxDuration to trigger.config; use timeout.None where unlimited is intended",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/runs/max-duration",
+   "examples": {
+    "bad": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  dirs: [\"./trigger\"],\n});\n"
+    ],
+    "good": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  dirs: [\"./trigger\"],\n  maxDuration: 60,\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "TSK-17",
+   "family": "TSK",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\bmaxDuration\\s*:\\s*[0-4](?:\\.\\d+)?(?=\\s*[,})])"
+   },
+   "message": "maxDuration is below 5 seconds, the documented minimum",
+   "fix": "set maxDuration to 5 or more, or timeout.None where no limit is intended",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/runs/max-duration",
+   "examples": {
+    "bad": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const quick = task({\n  id: \"quick\",\n  maxDuration: 3,\n  run: async () => {},\n});\n"
+    ],
+    "good": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const quick = task({\n  id: \"quick\",\n  maxDuration: 300,\n  run: async () => {},\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "TSK-18",
+   "family": "TSK",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Is critical cleanup (releasing a lock, marking a row, cancelling an external job) only inside cleanup, onSuccess or onFailure, in a task whose maxDuration is short for its work? Those hooks do not run when the run exceeds maxDuration. Answer yes only when the cleanup matters for correctness.",
+   "message": "critical cleanup lives only in cleanup, onSuccess or onFailure, which are skipped when maxDuration is exceeded",
+   "fix": "make the cleanup idempotent and also run it where it still executes on timeout",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/runs/max-duration#maxduration-and-lifecycle-functions"
+  },
+  {
+   "id": "TSK-19",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does a task payload or return value carry bytes by value (Buffer, base64 string, whole file contents), or can an output exceed 10 MB? Answer yes only when the data really travels inside the payload or output, not when it is a reference.",
+   "message": "a payload or output carries binary or whole-file content by value",
+   "fix": "pass a reference (URL, storage key, id) and load the bytes inside the task",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/limits#task-payloads-and-outputs"
+  },
+  {
+   "id": "TSK-20",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S+J",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "\\.(?:trigger|triggerAndWait|batchTrigger|batchTriggerAndWait)",
+      "contains": "\\bmetadata\\s*:\\s*(?:\\[|[\"'`])"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bmetadata\\s*\\.\\s*replace\\s*\\(\\s*(?:\\[|[\"'`])"
+     },
+     {
+      "type": "regex",
+      "mask": "comments+strings",
+      "pattern": "(?:\\bfor\\b|\\bwhile\\b|\\.forEach\\s*\\(|\\.map\\s*\\()[^}]{0,300}?\\bmetadata\\s*\\.\\s*(?:parent\\s*\\.\\s*|root\\s*\\.\\s*)?append\\s*\\("
+     }
+    ]
+   },
+   "judge": "Is the metadata value a top-level array or string, or does the append run in a loop that can grow without bound? Metadata is an object capped at 256 KB. Answer yes only for those cases; a fixed number of appends is fine.",
+   "message": "metadata is set to a top-level array or string, or appended in a loop; metadata is an object capped at 256 KB",
+   "fix": "pass metadata as an object; bound the appended list or store the bulk data elsewhere",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/runs/metadata",
+   "examples": {
+    "bad": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload: { ids: string[] }) => {\n    await tasks.trigger(\"child\", { id: payload.ids[0] }, { metadata: [\"queued\"] });\n    return payload;\n  },\n});\n",
+     "import { task, metadata } from \"@trigger.dev/sdk\";\n\nexport const report = task({\n  id: \"report\",\n  run: async () => {\n    metadata.replace(\"done\");\n  },\n});\n",
+     "import { task, metadata } from \"@trigger.dev/sdk\";\n\nexport const rows = task({\n  id: \"rows\",\n  run: async (payload: { rows: string[] }) => {\n    for (const row of payload.rows) {\n      metadata.append(\"logs\", row);\n    }\n  },\n});\n"
+    ],
+    "good": [
+     "import { task, metadata } from \"@trigger.dev/sdk\";\n\nexport const steps = task({\n  id: \"steps\",\n  run: async () => {\n    metadata.set(\"progress\", 0);\n    metadata.append(\"logs\", \"started\");\n    metadata.replace({ status: \"running\" });\n    return {};\n  },\n});\n",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const parent = task({\n  id: \"parent\",\n  run: async (payload: { id: string }) => {\n    await tasks.trigger(\"child\", { id: payload.id }, { metadata: { parentId: payload.id } });\n    return payload;\n  },\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "TSK-21",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does this child task depend on tags, metadata or limits that only the parent run has, and that are not passed to it explicitly at trigger time? Answer yes only when the child's behaviour changes with the parent's value.",
+   "message": "child task reads parent-run tags, metadata or limits that it does not receive explicitly",
+   "fix": "pass them explicitly at trigger time (metadata.current(), ctx.run.tags) instead of relying on inheritance",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/runs/metadata"
+  },
+  {
+   "id": "TSK-22",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "regex",
+      "pattern": "\\btags\\s*:\\s*\\[(?:\\s*([\"'`])[^\"'`\\n]*\\1\\s*,){10}\\s*([\"'`])"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\btags\\s*:\\s*\\[[^\\]]*?([\"'`])[^\"'`\\n]{129,}\\1"
+     }
+    ]
+   },
+   "message": "tags array holds more than 10 entries or a tag longer than 128 characters; a run takes 10 tags, each 1 to 128 characters",
+   "fix": "trim the list to 10 tags and shorten any tag over 128 characters",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/tags",
+   "examples": {
+    "bad": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const tagged = task({\n  id: \"tagged\",\n  run: async () => {},\n});\n\nexport async function tag() {\n  return tagged.trigger({}, { tags: [\"t01\",\"t02\",\"t03\",\"t04\",\"t05\",\"t06\",\"t07\",\"t08\",\"t09\",\"t10\",\"t11\"] });\n}\n",
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const tagged = task({\n  id: \"tagged\",\n  run: async () => {},\n});\n\nexport async function tag() {\n  return tagged.trigger({}, { tags: [\"this tag is intentionally written long enough to exceed the one hundred and twenty eight character limit for trigger tags so it is flagged by the rule\"] });\n}\n"
+    ],
+    "good": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const tagged = task({\n  id: \"tagged\",\n  run: async () => {},\n});\n\nexport async function tag() {\n  return tagged.trigger({}, { tags: [\"t01\",\"t02\",\"t03\",\"t04\",\"t05\",\"t06\",\"t07\",\"t08\",\"t09\",\"t10\"] });\n}\n",
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const tagged = task({\n  id: \"tagged\",\n  run: async () => {},\n});\n\nexport async function tag() {\n  return tagged.trigger({}, { tags: [\"short-tag\", \"another\"] });\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "TSK-23",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "\\.(?:trigger|triggerAndWait)",
+      "contains": "\\bdebounce\\s*:",
+      "lacks": "maxDelay"
+     },
+     {
+      "type": "regex",
+      "pattern": "\\bdelay\\s*:\\s*([\"'`])(\\d+(?:ms|s|m|h|d))\\1[^}]{0,200}?\\bmaxDelay\\s*:\\s*\\1\\2\\1"
+     }
+    ]
+   },
+   "message": "debounce is set without maxDelay, so repeated triggers can push the run back indefinitely (an error when triggered with triggerAndWait); or delay equals maxDelay, which leaves no room to debounce",
+   "fix": "set maxDelay greater than delay",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/triggering",
+   "examples": {
+    "bad": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const sync = task({\n  id: \"sync\",\n  run: async (payload: { id: string }) => {\n    return payload;\n  },\n});\n\nexport async function onEdit(id: string) {\n  await tasks.trigger(\"sync\", { id }, { debounce: { key: id, delay: \"5s\" } });\n}\n",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const sync = task({\n  id: \"sync\",\n  run: async () => {},\n});\n\nexport async function onEdit(id: string) {\n  await tasks.trigger(\"sync\", { id }, { debounce: { key: id, delay: \"5s\", maxDelay: \"5s\" } });\n}\n"
+    ],
+    "good": [
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const sync = task({\n  id: \"sync\",\n  run: async () => {},\n});\n\nexport async function onEdit(id: string) {\n  await tasks.trigger(\"sync\", { id }, { debounce: { key: id, delay: \"5s\", maxDelay: \"30s\" } });\n}\n",
+     "import { task, tasks } from \"@trigger.dev/sdk\";\n\nexport const sync = task({\n  id: \"sync\",\n  run: async () => {},\n});\n\nexport async function onEdit(id: string) {\n  await tasks.trigger(\"sync\", { id });\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "TSK-24",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "any",
+    "of": [
+     {
+      "type": "call",
+      "callee": "\\bcreateClient",
+      "argsMatch": "^\\s*\\{",
+      "unless": "\\.on\\(\\s*[\"']error[\"']"
+     },
+     {
+      "type": "call",
+      "callee": "\\bnew\\s+(?:Pool|Kafka|MongoClient)\\b",
+      "unless": "\\.on\\(\\s*[\"']error[\"']"
+     }
+    ]
+   },
+   "message": "creates a client (createClient, Pool, Kafka or MongoClient) and this file registers no error listener",
+   "fix": "register an error listener on the client",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/troubleshooting#uncaught-exceptions",
+   "examples": {
+    "bad": [
+     "import { createClient } from \"redis\";\nimport { task } from \"@trigger.dev/sdk\";\n\nconst redis = createClient({ url: process.env.REDIS_URL });\n\nexport const cache = task({\n  id: \"cache\",\n  run: async () => {\n    await redis.connect();\n    await redis.set(\"k\", \"v\");\n  },\n});\n",
+     "import { Pool } from \"pg\";\nimport { task } from \"@trigger.dev/sdk\";\n\nconst pool = new Pool({ connectionString: process.env.DATABASE_URL });\n\nexport const query = task({\n  id: \"query\",\n  run: async () => {\n    await pool.query(\"select 1\");\n  },\n});\n"
+    ],
+    "good": [
+     "import { createClient } from \"redis\";\nimport { task } from \"@trigger.dev/sdk\";\n\nconst redis = createClient({ url: process.env.REDIS_URL });\nredis.on(\"error\", (err) => console.error(err));\n\nexport const cache = task({\n  id: \"cache\",\n  run: async () => {\n    await redis.connect();\n    await redis.set(\"k\", \"v\");\n  },\n});\n",
+     "import { Pool } from \"pg\";\nimport { task } from \"@trigger.dev/sdk\";\n\nconst pool = new Pool({ connectionString: process.env.DATABASE_URL });\npool.on(\"error\", (err) => console.error(err));\n\nexport const query = task({\n  id: \"query\",\n  run: async () => {\n    await pool.query(\"select 1\");\n  },\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "TSK-25",
+   "family": "TSK",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "call",
+    "callee": "\\bNestFactory\\s*\\.\\s*createApplicationContext"
+   },
+   "message": "calls NestFactory.createApplicationContext in a file that imports @trigger.dev/",
+   "fix": "use the service directly inside the task instead of booting a Nest application context",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/troubleshooting",
+   "examples": {
+    "bad": [
+     "import { NestFactory } from \"@nestjs/core\";\nimport { task } from \"@trigger.dev/sdk\";\nimport { AppModule } from \"./app.module\";\n\nexport const t = task({\n  id: \"t\",\n  run: async () => {\n    const app = await NestFactory.createApplicationContext(AppModule);\n    return app.get(\"Service\");\n  },\n});\n"
+    ],
+    "good": [
+     "import { task } from \"@trigger.dev/sdk\";\nimport { ReportService } from \"./report.service\";\n\nexport const t = task({\n  id: \"t\",\n  run: async () => {\n    return new ReportService().run();\n  },\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "TSK-26",
+   "family": "TSK",
+   "severity": "error",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": null,
+   "needs_builtin": "duplicate-task-ids",
+   "message": "this task id literal is also declared by another task in the project",
+   "fix": "give each task a unique id",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/tasks/overview",
+   "examples": {
+    "bad": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const a = task({ id: \"send-email\", run: async () => {} });\nexport const b = task({ id: \"send-email\", run: async () => {} });\n"
+    ],
+    "good": [
+     "import { task } from \"@trigger.dev/sdk\";\n\nexport const a = task({ id: \"send-email\", run: async () => {} });\nexport const b = task({ id: \"send-receipt\", run: async () => {} });\n"
+    ]
+   }
+  },
+  {
+   "id": "TSK-27",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "config",
+   "match": null,
+   "needs_builtin": "task-dirs",
+   "message": "trigger.config dirs does not cover the folder that holds a task, or lists a folder that does not exist",
+   "fix": "fix dirs so every task folder is listed and exists",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/config/config-file",
+   "examples": {
+    "bad": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  dirs: [\"./jobs\"],\n});\n"
+    ],
+    "good": [
+     "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  dirs: [\"./trigger\"],\n});\n"
+    ]
+   }
+  },
+  {
+   "id": "TSK-28",
+   "family": "TSK",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "S",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "mask": "comments+strings",
+    "pattern": "(?:\\bfor\\b|\\bwhile\\b|\\.forEach\\s*\\(|\\.map\\s*\\()[^}]{0,300}?\\bruns\\s*\\.\\s*list\\s*\\("
+   },
+   "message": "runs.list is called inside a loop",
+   "fix": "replace polling with idempotency keys, waits or realtime subscriptions",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/runs/list-best-practices",
+   "examples": {
+    "bad": [
+     "import { runs, task } from \"@trigger.dev/sdk\";\n\nexport const poll = task({\n  id: \"poll\",\n  run: async (payload: { ids: string[] }) => {\n    for (const id of payload.ids) {\n      const page = await runs.list({ limit: 10 });\n      console.log(id, page.data.length);\n    }\n  },\n});\n"
+    ],
+    "good": [
+     "import { runs } from \"@trigger.dev/sdk\";\n\nexport async function GET() {\n  const page = await runs.list({ limit: 10 });\n  return Response.json(page.data);\n}\n"
+    ]
+   }
+  },
+  {
+   "id": "TSK-29",
+   "family": "TSK",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does this task process large in-memory data (big files, large arrays, image, video or model work) on the default machine, with no retry.outOfMemory configured? Answer yes only when the memory need can plausibly exceed the default machine.",
+   "message": "task processes large in-memory data with no outOfMemory retry configured",
+   "fix": "choose a larger machine preset or add an OOM retry through retry.outOfMemory",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/machines"
+  },
+  {
+   "id": "TSK-30",
+   "family": "TSK",
+   "severity": "info",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": null,
+   "judge": "Does this task open a stream (.pipe(), .append() or .writer()) and then wait for an hour or more (wait.for or wait.until) without writing to the stream in between? Answer yes only for that sequence.",
+   "message": "a stream is opened and then the task waits an hour or more with no writes in between",
+   "fix": "close the stream before the long wait, or write heartbeat chunks during it",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/tasks/streams"
+  }
+ ]
+}
