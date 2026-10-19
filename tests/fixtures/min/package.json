@@ -1,0 +1,1 @@
+{ "name": "min", "scripts": { "deploy:trigger": "trigger deploy", "deploy:staging": "trigger deploy --env staging", "build": "tsc" }, "dependencies": { "@trigger.dev/sdk": "4.7.4" }, "devDependencies": { "@trigger.dev/build": "4.7.4" } }

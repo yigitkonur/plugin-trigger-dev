@@ -24,7 +24,19 @@ export function collectUrls(root = ROOT) {
         const t = fs.readFileSync(f, "utf8");
         for (const m of t.matchAll(URL_RE)) {
           const u = m[0].replace(/[.,;:]+$/, "");
+          if (/\/docs\/?$/.test(u)) continue; // a bare base URL in prose
           if (!urls.has(u)) urls.set(u, path.relative(root, f));
+        }
+        if (e.name === "link-index.md") {
+          // rows list pages relative to the docs root; check them (and their anchors) like full URLs
+          for (const line of t.split("\n")) {
+            const cells = line.split("|").map((c) => c.trim());
+            if (cells.length < 7 || !line.startsWith("|") || /^[-\s|]+$/.test(line) || cells[1] === "key") continue;
+            for (const p of cells[2].split(",").map((x) => x.trim()).filter((x) => /^[a-z0-9][\w/#.-]*$/i.test(x))) {
+              const u = `https://trigger.dev/docs/${p}`;
+              if (!urls.has(u)) urls.set(u, path.relative(root, f));
+            }
+          }
         }
       }
     }

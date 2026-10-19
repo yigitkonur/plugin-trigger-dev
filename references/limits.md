@@ -1,0 +1,30 @@
+# Decision-relevant limits
+
+Numbers that change a design choice, each with its source. Plan-dependent values are named, not quoted: read them from https://trigger.dev/docs/limits and https://trigger.dev/pricing for the user's plan. Self-hosted instances set their own limits.
+
+| Limit | Value | Changes which decision | Source |
+|---|---|---|---|
+| Task payload | ≤ 3 MB (auto-offload above 128 KB since 4.5.0) | pass a reference (object-store key, row id), not the data | https://trigger.dev/docs/limits#task-payloads-and-outputs |
+| Task output | ≤ 10 MB | return ids, not blobs | https://trigger.dev/docs/limits#task-payloads-and-outputs |
+| Batch trigger size | ≤ 1,000 items (since 4.3.1) | chunk larger sets | https://trigger.dev/docs/limits#batch-trigger-rate-limits |
+| API rate limit | 1,500 requests/min (Cloud) | batch instead of `trigger()` in a loop | https://trigger.dev/docs/limits#rate-limits |
+| Metadata | 256 KB per run | store large state elsewhere | https://trigger.dev/docs/runs/metadata |
+| Tags | ≤ 10 per run, ≤ 128 characters | trim | https://trigger.dev/docs/tags |
+| Idempotency | key ≤ 2,048 characters; TTL 30 days | key from stable business ids | https://trigger.dev/docs/idempotency |
+| `maxDuration` | ≥ 5 s; counts CPU time, not waits | it does not bound wall-clock time | https://trigger.dev/docs/runs/max-duration |
+| Waits | < 60 s keep the concurrency slot; ≤ 5 s are billed; checkpoint at 60 s | use `wait.for` ≥ 60 s or tokens, not polling | https://trigger.dev/docs/wait · https://trigger.dev/docs/concurrency#short-time-based-waits-keep-their-slot |
+| Heartbeat stall | about 5 minutes without a heartbeat | sync CPU loops need `heartbeats.yield()` | https://trigger.dev/docs/runs/heartbeats |
+| Run TTL | max 14 days (Cloud); dev run TTL 10 minutes | `ttl` on overlapping schedules | https://trigger.dev/docs/runs |
+| Streams | 28-day retention, 300 MiB per stream; empty streams are deleted | long waits with no writes lose the stream | https://trigger.dev/docs/tasks/streams |
+| Chat records | about 1 MiB (`ChatChunkTooLargeError`) | persist big tool outputs, emit an id | https://trigger.dev/docs/ai-chat/patterns/large-payloads |
+| Schedules (Cloud Free) | not more often than hourly; new schedules get a 60-minute spreading window | `window: "0m"` for the exact minute | https://trigger.dev/docs/tasks/scheduled |
+| Plan-dependent | environment concurrency, queue sizes, schedule counts, preview branches, realtime connections, log retention, query lookback, API-key presets | ask only when the recommendation depends on it | https://trigger.dev/docs/limits |
+
+## Docs that disagree (cite the conservative reading)
+
+| Topic | Reading A | Reading B | Use |
+|---|---|---|---|
+| Payload limit | 3 MB (limits) | "> 10 MB" offload (triggering) | 3 MB |
+| Output limit | 10 MB (limits) | 100 MB elsewhere | 10 MB |
+| Default `maxDuration` | "must set" (runs/max-duration) | "unbounded by default" (config-file) | set a default |
+| Heartbeat interval | 20 s | 30 s | cite the page, no number |

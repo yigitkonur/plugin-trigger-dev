@@ -1,0 +1,18 @@
+{
+  "name": "trigger-tasks",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "trigger dev",
+    "deploy:staging": "trigger deploy --env staging",
+    "deploy:prod": "trigger deploy --env prod"
+  },
+  "dependencies": {
+    "@trigger.dev/sdk": "^4.7.4"
+  },
+  "devDependencies": {
+    "@trigger.dev/build": "^4.7.4",
+    "trigger.dev": "^4.7.4",
+    "typescript": "^5.6.0"
+  }
+}

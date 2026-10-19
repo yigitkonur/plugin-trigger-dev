@@ -1,0 +1,28 @@
+name: freshness
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Every cited doc URL and anchor resolves
+        run: node scripts/trigger-ctx.mjs links-check --anchors | tee /tmp/links.json | node -e 'const j=JSON.parse(require("fs").readFileSync(0,"utf8"));console.log(`${j.result.checkedPages} pages, ${j.result.failed} failures`);for(const f of j.result.failures)console.log(f.status,f.url,"in",f.file);process.exit(j.result.failed?1:0)'
+      - name: llms.txt coverage, local-docs parity, staleness report
+        run: node scripts/ci/docs-parity.mjs
+  mcp-surface:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: tools/list of the official MCP server matches the committed snapshot
+        run: |
+          node scripts/ci/mcp-tools-snapshot.mjs > /tmp/snapshot.json
+          diff scripts/ci/mcp-tools.snapshot.json /tmp/snapshot.json

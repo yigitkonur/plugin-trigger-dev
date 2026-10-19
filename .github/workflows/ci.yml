@@ -1,0 +1,39 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Rule fixtures, guard and detect tests
+        run: |
+          node tests/rules.test.mjs
+          node tests/guard.test.mjs
+          node tests/detect.test.mjs
+      - name: Generated files are up to date
+        run: |
+          node scripts/build-hooks.mjs --check
+          node scripts/rules/build.mjs
+          node scripts/rules/render-catalog.mjs
+          git diff --exit-code -- scripts/rules/rules.json references/rule-catalog.md
+      - name: Skill and agent frontmatter parses
+        run: |
+          python3 -m pip install --quiet pyyaml
+          python3 scripts/ci/check-frontmatter.py
+      - name: Templates typecheck against the latest SDK
+        run: |
+          mkdir /tmp/tc && cp -R skills/init/templates/. /tmp/tc/ && cd /tmp/tc
+          echo '{"name":"tc","private":true,"type":"module"}' > package.json
+          echo '{"compilerOptions":{"target":"ES2022","module":"ESNext","moduleResolution":"Bundler","strict":true,"jsx":"react-jsx","esModuleInterop":true,"skipLibCheck":true,"noEmit":true,"types":[]},"include":["manual-config.ts","polyglot-subpackage/src","polyglot-subpackage/trigger.config.ts","realtime"]}' > tsconfig.json
+          npm i --silent --no-audit --no-fund @trigger.dev/sdk@latest @trigger.dev/build@latest @trigger.dev/react-hooks@latest react@19 @types/react@19 typescript@5
+          npx tsc -p tsconfig.json
+      - name: Plugin spec validates
+        run: |
+          npm i -g @anthropic-ai/claude-code
+          claude plugin validate --strict .
