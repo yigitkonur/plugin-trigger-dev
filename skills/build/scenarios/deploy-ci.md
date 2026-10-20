@@ -7,7 +7,7 @@
 - `TRIGGER_ACCESS_TOKEN` per environment — because the key must belong to the environment the deploy targets.
 - `deploy --env preview` — because each PR gets a preview branch that archives when the PR closes.
 - `dev --branch <name>` / `TRIGGER_DEV_BRANCH` — because each branch is its own dev session, for parallel worktrees and agents.
-- `syncEnvVars` build extension — because it syncs variables at deploy time and is a no-op in `dev`; set other values with `env set --env <env>` (defaults to prod).
+- `syncEnvVars` build extension — because it syncs variables during `deploy`, before the build starts, and `trigger dev` does not run it; set other values with `env set --env <env>` (defaults to prod).
 - Rejected: `${{ github.sha }}` on PR workflows — because on `pull_request` it is the merge commit; use `github.event.pull_request.head.sha`.
 - Rejected: `syncVercelEnvVars` — because the pinned Vercel page marks it deprecated; remove it.
 

@@ -4,7 +4,7 @@ Numbers that change a design choice, each with its source. Plan-dependent values
 
 | Limit | Value | Changes which decision | Source |
 |---|---|---|---|
-| Task payload | ≤ 3 MB (auto-offload above 128 KB since 4.5.0) | pass a reference (object-store key, row id), not the data | https://trigger.dev/docs/limits#task-payloads-and-outputs |
+| Task payload | ≤ 3 MB per trigger (the SDK uploads payloads over 128 KB itself: `trigger` since 4.5.0, batch calls since 4.5.2) | pass a reference (object-store key, row id), not the data | https://trigger.dev/docs/limits#task-payloads-and-outputs |
 | Task output | ≤ 10 MB | return ids, not blobs | https://trigger.dev/docs/limits#task-payloads-and-outputs |
 | Batch trigger size | ≤ 1,000 items (since 4.3.1) | chunk larger sets | https://trigger.dev/docs/limits#batch-trigger-rate-limits |
 | API rate limit | 1,500 requests/min (Cloud) | batch instead of `trigger()` in a loop | https://trigger.dev/docs/limits#rate-limits |
@@ -17,7 +17,7 @@ Numbers that change a design choice, each with its source. Plan-dependent values
 | Run TTL | max 14 days (Cloud); dev run TTL 10 minutes | `ttl` on overlapping schedules | https://trigger.dev/docs/runs |
 | Streams | 28-day retention, 300 MiB per stream; empty streams are deleted | long waits with no writes lose the stream | https://trigger.dev/docs/tasks/streams |
 | Chat records | about 1 MiB (`ChatChunkTooLargeError`) | persist big tool outputs, emit an id | https://trigger.dev/docs/ai-chat/patterns/large-payloads |
-| Schedules (Cloud Free) | not more often than hourly; new schedules get a 60-minute spreading window | `window: "0m"` for the exact minute | https://trigger.dev/docs/tasks/scheduled |
+| Schedules (Cloud Free) | not more often than hourly; new schedules get a 60-minute spreading window | paid plans: `window: "0m"` for the exact minute; Free treats it as the 60-minute minimum | https://trigger.dev/docs/tasks/scheduled |
 | Plan-dependent | environment concurrency, queue sizes, schedule counts, preview branches, realtime connections, log retention, query lookback, API-key presets | ask only when the recommendation depends on it | https://trigger.dev/docs/limits |
 
 ## Machine presets: relative cost (Cloud list prices)
@@ -40,7 +40,7 @@ So `large-2x` costs about 10x `small-2x`, not 16x. Each run also pays an invocat
 
 | Topic | Reading A | Reading B | Use |
 |---|---|---|---|
-| Payload limit | 3 MB (limits) | "> 10 MB" offload (triggering) | 3 MB |
+| Payload limit | 3 MB per trigger (limits) | "hard limit above 10 MB" and offload above 512 KB (triggering) | 3 MB |
 | Output limit | 10 MB (limits) | 100 MB elsewhere | 10 MB |
-| Default `maxDuration` | "must set" (runs/max-duration) | "unbounded by default" (config-file) | set a default |
+| Default `maxDuration` | "must set", minimum 5 s (runs/max-duration) | shown as an optional setting (config-file) | set a default |
 | Heartbeat interval | 20 s | 30 s | cite the page, no number |

@@ -7,7 +7,7 @@
 - Return the run id to your caller at once and expose a status route that calls `GET /api/v3/runs/{runId}` with the same Bearer key (`status`, `output`, `error`) — because a long task must not hold the request open; use `requests` timeouts and `raise_for_status()` on both calls.
 - Read the key from `TRIGGER_SECRET_KEY` in backend env or a secret manager — because keys never belong in source control or frontend code.
 - Read the base URL from `TRIGGER_API_URL` (Cloud default when unset) — because self-hosting requires it; never hard-code a host without that override.
-- Send `x-trigger-branch: <branch>` only for preview targeting — because it applies only in `preview`/`dev` environments.
+- Send `x-trigger-branch: <branch>` only to target a preview or named dev branch — because it applies only to those environments (the SDK sends it from `TRIGGER_PREVIEW_BRANCH`).
 - Rejected: `pythonExtension` as a client — because it runs Python scripts inside tasks; it gives a Python backend no trigger call.
 - Rejected: a fresh `uuid4()` key per attempt — because each retry then starts a second run.
 
@@ -41,4 +41,4 @@ def trigger_report(order_id: str, payload: dict) -> dict:
 - Random idempotency key per attempt, or none on retries: each retry starts a second run; use a stable business id (TSK-11)
 - `pythonExtension` scripts not globbed (`scripts: ["./python/**/*.py"]`), or `requirementsFile` expected in dev (CFG-04)
 
-**Docs:** https://trigger.dev/docs/management/tasks/trigger (web only) · https://trigger.dev/docs/management/runs/retrieve (web only) · https://trigger.dev/docs/management/authentication (web only) · https://trigger.dev/docs/apikeys · `config/extensions/pythonExtension`
+**Docs:** https://trigger.dev/docs/management/tasks/trigger (web only) · https://trigger.dev/docs/management/runs/retrieve (web only) · https://trigger.dev/docs/management/authentication (web only) · https://trigger.dev/docs/apikeys · https://trigger.dev/docs/config/extensions/pythonExtension

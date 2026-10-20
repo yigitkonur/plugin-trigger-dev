@@ -8,7 +8,7 @@
 - `schedules.task` with `cron` — because fixed schedules are code-owned and sync on `trigger dev` or deploy.
 - `schedules.create({ task, cron, timezone, externalId, deduplicationKey })` — because per-user schedules are created at runtime; one schedule per `deduplicationKey`.
 - `delay` — because a single future run needs no cron; there is no maximum on `delay`, and the TTL clock starts only after it elapses.
-- `window` — because new schedules spread runs over a 60-minute default; `"0m"` fires on the exact cron minute.
+- `window` — because new schedules spread runs over a 60-minute default; `"0m"` fires on the exact cron minute on paid plans (Free treats it as the 60-minute minimum).
 - Rejected: `schedules.create` for fixed schedules — because the docs prefer declarative for them, and imperative schedules need per-environment keys.
 
 **Gates:** Cloud plan limits. Free: cron no more often than hourly, 60-minute minimum window, 10 schedules per project (Hobby 100, Pro 1,000+). Self-hosted deployments are unrestricted. No beta flag or version gate in the pinned docs.

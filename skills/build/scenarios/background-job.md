@@ -39,4 +39,4 @@ await tasks.trigger<typeof sendReport>("send-report", { orderId, userId }, { ide
 - A thrown plain `Error` retries; throw `AbortTaskRunError` for permanent failures (TSK-09; COST-02 for the spend).
 - Pass ids, not files or base64 (TSK-19). Never put secrets in payloads; read them from env inside the task.
 
-**Docs:** https://trigger.dev/docs/tasks/overview · https://trigger.dev/docs/triggering · `tasks/schemaTask` · https://trigger.dev/docs/errors-retrying · https://trigger.dev/docs/idempotency · https://trigger.dev/docs/apikeys
+**Docs:** https://trigger.dev/docs/tasks/overview · https://trigger.dev/docs/triggering · https://trigger.dev/docs/tasks/schemaTask · https://trigger.dev/docs/errors-retrying · https://trigger.dev/docs/idempotency · https://trigger.dev/docs/apikeys

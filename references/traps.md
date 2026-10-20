@@ -31,8 +31,8 @@ The block above is read by the weekly freshness job: it counts these names in th
 | `pythonExtension` from `@trigger.dev/build` | `@trigger.dev/python/extension` | each extension has its own import path | CFG-04 · https://trigger.dev/docs/config/extensions/overview |
 | "only `project` and `dirs` are required" | `dirs` is optional; set a default `maxDuration` | docs require a default `maxDuration` | TSK-16 · https://trigger.dev/docs/config/config-file |
 | every task must be a named export | hidden tasks: non-exported tasks can be triggered in v4 | | https://trigger.dev/docs/hidden-tasks |
-| Prisma extension without `mode` | `mode` is required since 4.1.1 (`legacy` / `modern`) and needs a generate step | | CFG-02 · https://trigger.dev/docs/config/extensions/prismaExtension |
-| extensions run in `trigger dev` | extensions are no-ops in dev; they only apply to deployed builds | test the build with `deploy --dry-run` | https://trigger.dev/docs/config/config-file |
+| Prisma extension without `mode` | `mode` is required since 4.1.1: `legacy` runs `prisma generate` for you, `modern` and `engine-only` need your own generate step | | CFG-02 · https://trigger.dev/docs/config/extensions/prismaExtension |
+| extensions run in `trigger dev` | most (`puppeteer`, `playwright`, `additionalPackages`) only affect deployed builds; `pythonExtension` also moves scripts in dev | test the build with `deploy --dry-run` | https://trigger.dev/docs/config/extensions/overview |
 | `ffmpeg` extension alone | also mark `fluent-ffmpeg` external | | CFG-03 · https://trigger.dev/docs/config/extensions/ffmpeg |
 | `runtime: "node"` is pinned | `node` floats with LTS; pin `node-24` for reproducibility; `bun` is experimental and the CLI still needs Node | | MIG-10 · https://trigger.dev/docs/config/config-file |
 | hard-coded `retries.enabledInDev: false` | the docs disagree on the init default; state it, don't assume it | | https://trigger.dev/docs/errors-retrying |
@@ -92,15 +92,15 @@ The block above is read by the weekly freshness job: it counts these names in th
 | `--external-id ${{ github.sha }}` on pull requests | use the PR head sha | | DEP-04 · https://trigger.dev/docs/deployment/atomic-deployment |
 | `syncVercelEnvVars` with the Vercel integration | remove it; the integration syncs | | DEP-07 · https://trigger.dev/docs/vercel-integration |
 | `deploy --env-file` loads task env vars | it only hydrates the CLI process | | DEP-09 · https://trigger.dev/docs/cli-deploy-commands |
-| parallel `trigger dev` sessions share a worker | each session needs `--branch` / `TRIGGER_DEV_BRANCH`, or runs split | | https://trigger.dev/docs/deployment/dev-branches |
+| parallel `trigger dev` sessions share a worker | `dev --branch` / `TRIGGER_DEV_BRANCH` gives each session its own branch; the troubleshooting page still says to keep one `dev` per project, so use branches and name the conflict | | https://trigger.dev/docs/deployment/dev-branches · https://trigger.dev/docs/troubleshooting#runs-never-dequeue-in-dev |
 
 ## Cost
 
 | Old (or wrong) | Current | Rule |
 |---|---|---|
-| "waits over 5 s are free" | they release the slot only at 60 s; billed up to 5 s | https://trigger.dev/docs/wait |
+| "a wait under 60 s is harmless" | waits over 5 s are not billed, but any wait under 60 s keeps the concurrency slot, and waits of 5 s or less are billed | https://trigger.dev/docs/wait |
 | machine cost ratios from memory | read them from https://trigger.dev/docs/machines and https://trigger.dev/pricing; per-run invocation cost applies too | COST-01 |
-| "sequential → batch saves compute" | it saves wall time, not compute | https://trigger.dev/docs/how-to-reduce-your-spend |
+| "sequential → batch saves compute" | a batch mainly saves wall time and API calls; whether it saves compute depends on the work (no page gives a comparison) | https://trigger.dev/docs/how-to-reduce-your-spend |
 
 ## Docs that disagree with each other
 

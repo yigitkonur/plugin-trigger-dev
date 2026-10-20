@@ -24,7 +24,7 @@ Not asked at setup (they belong to `ship`): CI system, preview branches, Vercel 
 | streamed text | `streams.define` + `useRealtimeStream` (`progress-ui`) | `tasks/streams`, `realtime/react-hooks/streams` |
 | the browser starts the work | trigger token + `useTaskTrigger` (`progress-ui`) | `realtime/auth` |
 | an external webhook | own route + `idempotencyKey` from the provider event id; hosted webhooks only if access is confirmed (`webhook-driven`) | `idempotency`, `webhooks/overview` (beta) |
-| browser, media, Python | extension(s) + machine preset; extensions are no-ops in dev (`heavy-compute`) | per-extension page, `machines` |
+| browser, media, Python | extension(s) + machine preset; most extensions only affect deployed builds (`heavy-compute`) | per-extension page, `machines` |
 | bursts from many users | `concurrency: { total, perKey }` + `concurrencyKey` (`fan-out-batch`) | `concurrency` |
 | large batches | `batchTrigger(AndWait)` in chunks of at most 1,000 (`fan-out-batch`) | `triggering`, `limits` |
 | a rate-limited API | a named `concurrencyLimit` + `retry.fetch` with a 429 strategy + debounce (`fan-out-batch`) | `concurrency`, `errors-retrying` |

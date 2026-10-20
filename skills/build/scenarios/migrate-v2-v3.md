@@ -30,7 +30,7 @@ export const sendEmail = task({
   run: async (payload: { to: string }, { ctx }) => {},
 });
 
-const handle = await tasks.batchTrigger([[sendEmail, { to: "a@example.com" }]]);
+const handle = await tasks.batchTrigger<typeof sendEmail>("send-email", [{ payload: { to: "a@example.com" } }]);
 const result = await batch.retrieve(handle.batchId); // result.runs, not handle.runs
 ```
 

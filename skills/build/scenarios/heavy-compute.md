@@ -9,7 +9,7 @@
 - `heartbeats.yield()` — because a synchronous CPU loop blocks heartbeats; a run with no heartbeat for 5 minutes is stalled.
 - Rejected: `aptGet({ packages: ["ffmpeg"] })` — because it only installs the package in the image; `ffmpeg()` also wires the `fluent-ffmpeg` paths.
 
-**Gates:** Deploy-time only: `puppeteer()` does nothing in `dev`, and `requirementsFile` is prod-only (`devPythonBinaryPath` covers dev).. No beta or version gate on these pages.
+**Gates:** Deploy-time only: `puppeteer()` does nothing in `dev`, and `requirementsFile` is prod-only (`devPythonBinaryPath` covers dev). No beta or version gate on these pages.
 
 **Ask only if unknown:**
 1. Peak memory per run, and is it known from the payload? Decides a bigger preset up front, a per-trigger `machine` override, or only the OOM retry.
@@ -41,4 +41,4 @@ export const render = task({
 - Synchronous CPU loop without `heartbeats.yield()`; the run is marked stalled after 5 minutes. (TSK-13)
 - Memory-heavy task on the default `small-1x` (0.5 GB) with no OOM escalation; ffmpeg children count toward the limit. (TSK-29)
 
-**Docs:** https://trigger.dev/docs/config/extensions/overview · https://trigger.dev/docs/machines · https://trigger.dev/docs/runs/heartbeats · https://trigger.dev/docs/config/extensions/puppeteer · https://trigger.dev/docs/config/extensions/ffmpeg · `config/extensions/pythonExtension` · `config/extensions/aptGet`
+**Docs:** https://trigger.dev/docs/config/extensions/overview · https://trigger.dev/docs/machines · https://trigger.dev/docs/runs/heartbeats · https://trigger.dev/docs/config/extensions/puppeteer · https://trigger.dev/docs/config/extensions/ffmpeg · https://trigger.dev/docs/config/extensions/pythonExtension · https://trigger.dev/docs/config/extensions/aptGet

@@ -18,7 +18,7 @@ Use the "Trigger.dev project facts" block from the session context (roots, SDK v
 2. `triggerAndWait` and `wait.forToken` return a Result: check `.ok` or call `.unwrap()`.
 3. Never put waits in `Promise.all`. Use `batchTriggerAndWait` or await sequentially.
 4. App code triggers with a type-only import and `tasks.trigger<typeof t>("id", payload)` (or REST), and awaits every trigger.
-5. Idempotency keys come from stable business ids. Plain keys are run-scoped since 4.3.1. Side effects also use the provider's own idempotency key.
+5. Idempotency keys come from stable business ids. Plain string keys are run-scoped since 4.3.1 inside a task; from app code every scope acts global. Side effects also use the provider's own idempotency key.
 6. Waits under 60 s keep the concurrency slot; waits up to 5 s are billed. Wait for external events with tokens, not polling.
 7. The secret key stays on the server. Browsers get scoped public or trigger tokens. No secrets in payloads.
 8. The environment is always explicit: the CLI defaults to prod, MCP project tools default to dev. Every `deploy`, `promote`, `env`, `runs` or `report` command you show carries `--env <name>`, prod included (`trigger deploy --env prod`); say that prod is the CLI default, never that the flag can be left off. Gate features on the installed SDK version.

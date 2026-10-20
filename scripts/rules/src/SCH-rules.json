@@ -51,8 +51,8 @@
    "scope": "code",
    "match": null,
    "judge": "Find schedules.task(...) definitions that have a cron (declarative, or attached in code with schedules.create) and no ttl option. Estimate whether one run can last longer than the interval between two fires: long waits, batch triggers, AI or network calls with retries, or a loop over many items on a frequent cron. Report when a run can outlast its interval. Dismiss when ttl is already set on the task, or when the run is short and bounded.",
-   "message": "scheduled task has no ttl; when a schedule fires while the previous run is still executing, the new run is queued with no expiry",
-   "fix": "set ttl on the schedules.task, e.g. ttl: \"5m\", so runs not dequeued in time expire",
+   "message": "scheduled task has no ttl; when a tick fires while the previous run is still executing and the task is capped (for example concurrency total 1), the new run waits in the queue with no expiry",
+   "fix": "set ttl on the schedules.task, e.g. ttl: \"5m\", so stale queued ticks expire; ttl does not stop overlap itself, cap that with concurrency: { total: 1 }",
    "fix_mode": "flag-only",
    "doc": "https://trigger.dev/docs/tasks/scheduled"
   },

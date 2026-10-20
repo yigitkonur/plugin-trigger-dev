@@ -5,7 +5,7 @@ Always run the first check with an explicit environment. Doc paths are relative 
 | Symptom | Likely causes (ranked) | First check | Doc |
 |---|---|---|---|
 | Runs stuck QUEUED (deployed) | environment concurrency saturated; a restrictive queue limit; stalled runs holding slots; short waits holding slots; billing limit | MCP `get_report` (`key: "health"`, env prod); SDK `concurrencyLimits.retrieve` | `troubleshooting#runs-waiting-in-queue-due-to-concurrency-limits`, `concurrency` |
-| Runs never start in dev | a second `trigger dev` instance (parallel sessions); dev server down; dev TTL of 10 minutes | `dev_server_status`; use `trigger dev --branch <name>` per session | `troubleshooting#runs-never-dequeue-in-dev`, `deployment/dev-branches` |
+| Runs never start in dev | a second `trigger dev` instance on the same dev environment (the anchor below says one per project; `dev --branch` gives each parallel session its own); dev server down; dev TTL of 10 minutes | `dev_server_status`; use `trigger dev --branch <name>` per session | `troubleshooting#runs-never-dequeue-in-dev`, `deployment/dev-branches` |
 | PENDING_VERSION | task or queue not in the deployed version; key for the wrong environment; skew pin not landed | `get_current_worker` (env); `list_deploys` | `troubleshooting#runs-stuck-in-pending-version` |
 | `TASK_RUN_STALLED_EXECUTING` | blocked event loop (sync CPU work); dev Ctrl-C; machine too small | `get_run_details`; TRQL CPU for the run | `troubleshooting#task-run-stalled-executing`, `runs/heartbeats` |
 | Timed out (`MAX_DURATION_EXCEEDED`) | `maxDuration` too low (it counts CPU time, not waits); a runaway loop | `get_run_details`; p95 `usage_duration` | `runs/max-duration` |

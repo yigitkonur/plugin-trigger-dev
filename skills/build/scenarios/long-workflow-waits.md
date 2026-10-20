@@ -8,7 +8,7 @@
 - Rejected: `setTimeout`/`sleep` in `run()`. Because `wait.*` is the call that checkpoints, a timer keeps the run executing and holding its slot.
 - Rejected: `wait.for` under 60 s in a polling loop. It stays `EXECUTING` and holds its slot for the whole wait.
 
-**Gates:** Cloud-only billing. Paused time is not charged on Trigger.dev Cloud, and that no-charge note does not apply to self-host. Waits under 60 s don't checkpoint, so they are not paused time. No version or beta gate on these pages.
+**Gates:** Cloud-only billing. Waits over 5 s are not billed on Trigger.dev Cloud (waits of 5 s or less are), and that no-charge note does not apply to self-host. A wait of 60 s or more checkpoints and frees the concurrency slot; a shorter one keeps the slot while it is unbilled past 5 s. No version or beta gate on these pages.
 
 **Ask only if unknown:**
 - Cloud or self-host? This decides whether the no-charge note applies to the cost estimate.
