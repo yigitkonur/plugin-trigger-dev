@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.1
+
+A second, direct read of the shipped content (see `docs/spikes.md`, item 22). Two hook bugs and a set of guidance errors, all found by reading rather than by the eval suite.
+
+- **Fixed: the edit tripwire and the `package.json`-script guard did not arm in the session that creates the project.** The marker that gates them was written only at SessionStart, so `/trigger-dev:init` in a repo that started without Trigger.dev got no checks on its first tasks. `marker-gate.sh` now makes one shell-only signal check when no marker exists and writes it (`hooks/signal.sh`, shared with `session-start.sh`); the PowerShell path does the same.
+- **Fixed: no tripwire for project paths with non-ASCII characters on macOS** (for example `~/Masaüstü/...`): the shell built the marker key per character and Node per byte. The shell side is now byte-wise (`LC_ALL=C tr`).
+- **Fixed guidance that contradicted the docs:** `chat.createSession` supports Head Start since 4.5.0; with `storage` the resume cursors arrive in `save` as `changeset.cursors`; approvals auto-submit with `lastAssistantMessageIsCompleteWithApprovalResponses`; waits over 5 s are unbilled while waits under 60 s keep the slot; `tasks.batchTrigger(id, items)`; `window: "0m"` is the 60-minute minimum on Free; the run-scoped idempotency default holds inside a task only; most extensions affect deployed builds only; and more (15 items). Every `Docs:` line is a full URL.
+- **Fixed: the claim that four MCP tools work while logged out.** With no login MCP `whoami` hangs; `init` and `doctor` now check the login with the CLI first.
+- **Narrowed skill permissions:** `init` no longer pre-approves every `npx trigger.dev@latest` subcommand (including an explicit `deploy --env prod`), `doctor` only `claude plugin list`, `ship` only `git branch --show-current`.
+- **Honesty:** the README no longer calls the 14 hook rules "high-precision" (the public-repo corpus exercised one of them); `run-investigator` says what its Bash is for.
+- **Tests:** `tests/marker.test.mjs` (10 checks; 6 fail on 0.1.0). Eval re-run for this release: original positive cases 0.98 (was 0.99), +0.43 over no plugin; two flaky cases moved and are measured against 0.1.0 in `docs/spikes.md`.
+
 ## 0.1.0
 
 First release.
