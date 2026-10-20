@@ -1,0 +1,43 @@
+{
+  "recordedWith": "Claude Code 2.1.302, headless sessions, 2026-10-20, plugin trigger-dev 0.1.0",
+  "note": "hook outputs captured from --include-hook-events; paths replaced by __ROOT__. tool inputs are what the model really sent.",
+  "sessionStart": {
+    "output": "{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"Trigger.dev project facts (plugin trigger-dev):\\n- root .: trigger.config.ts, project proj_fixturefixture, dirs ./src/trigger\\n- @trigger.dev/sdk 4.7.4 · @trigger.dev/build 4.7.4 (aligned)\\n- package manager npm\\n- target: Trigger.dev Cloud\\n- environments: CLI deploy/promote/env/runs default to prod, so always write --env <name>; MCP project tools default to dev\\n- pinned docs: node_modules/@trigger.dev/sdk/docs/\"}}"
+  },
+  "guard": [
+    {
+      "name": "bash implicit-prod deploy, default mode",
+      "permission_mode": "default",
+      "tool_name": "Bash",
+      "tool_input": {
+        "command": "./node_modules/.bin/trigger deploy"
+      },
+      "output": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"ask\",\"permissionDecisionReason\":\"trigger deploy deploys to prod when --env is omitted. Add --env staging|preview|prod to be explicit (https://trigger.dev/docs/cli-deploy-commands).\"}}"
+    },
+    {
+      "name": "bash implicit-prod deploy, bypassPermissions",
+      "permission_mode": "bypassPermissions",
+      "tool_name": "Bash",
+      "tool_input": {
+        "command": "./node_modules/.bin/trigger deploy"
+      },
+      "output": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"trigger deploy deploys to prod when --env is omitted. Add --env staging|preview|prod to be explicit (https://trigger.dev/docs/cli-deploy-commands).\"}}"
+    },
+    {
+      "name": "mcp trigger_task environment prod",
+      "permission_mode": "default",
+      "tool_name": "mcp__plugin_trigger-dev_trigger__trigger_task",
+      "tool_input": {
+        "taskId": "hello",
+        "payload": {},
+        "environment": "prod"
+      },
+      "output": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"ask\",\"permissionDecisionReason\":\"Trigger.dev trigger_task with environment \\\"prod\\\" runs your production task with real side effects (https://trigger.dev/docs/mcp-tools).\"}}"
+    }
+  ],
+  "tripwire": {
+    "file": "src/trigger/bad.ts",
+    "content": "import { task } from \"@trigger.dev/sdk\";\nimport { childA, childB } from \"./children\";\n\nexport const bad = task({\n  id: \"bad\",\n  run: async () => {\n    const [a, b] = await Promise.all([childA.triggerAndWait({}), childB.triggerAndWait({})]);\n  },\n});\n",
+    "output": "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"Trigger.dev tripwire (plugin trigger-dev), 1 hit:\\n- src/trigger/bad.ts:7 — more than one wait runs inside Promise.all/allSettled/race (\\\"Parallel waits are not supported\\\") → use childTask.batchTriggerAndWait([...]) for fan-out, or await the waits one after another (https://trigger.dev/docs/troubleshooting#parallel-waits-are-not-supported)\"}}"
+  }
+}

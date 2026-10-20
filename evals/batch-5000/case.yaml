@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: batch-5000
+context:
+  scaffold_script: fixture.sh

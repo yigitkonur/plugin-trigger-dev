@@ -64,6 +64,7 @@ The session fingerprint and edit checks are shell-form hooks and need Git Bash (
 
 ```
 node tests/rules.test.mjs        # every rule hits its bad examples and stays silent on its good ones
+node tests/replay.test.mjs       # hook outputs equal what real Claude Code sessions recorded
 node scripts/rules/build.mjs     # scripts/rules/src/* -> rules.json, then render-catalog.mjs
 node scripts/build-hooks.mjs     # regenerate hooks/hooks.json (CI runs --check)
 claude plugin validate --strict .
