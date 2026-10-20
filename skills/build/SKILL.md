@@ -21,7 +21,7 @@ Use the "Trigger.dev project facts" block from the session context (roots, SDK v
 5. Idempotency keys come from stable business ids. Plain keys are run-scoped since 4.3.1. Side effects also use the provider's own idempotency key.
 6. Waits under 60 s keep the concurrency slot; waits up to 5 s are billed. Wait for external events with tokens, not polling.
 7. The secret key stays on the server. Browsers get scoped public or trigger tokens. No secrets in payloads.
-8. The environment is always explicit: the CLI defaults to prod, MCP project tools default to dev. Gate features on the installed SDK version.
+8. The environment is always explicit: the CLI defaults to prod, MCP project tools default to dev. Every `deploy`, `promote`, `env`, `runs` or `report` command you show carries `--env <name>`, prod included (`trigger deploy --env prod`); say that prod is the CLI default, never that the flag can be left off. Gate features on the installed SDK version.
 
 The plugin checks several of these after every edit and says so; treat a tripwire message as a fact about your code, not as noise.
 

@@ -422,6 +422,7 @@ export function brief(fp, max = 700) {
   if (stack.length) L.push(`- ${stack.join(" · ")}`);
   if (fp.features.length) L.push(`- in use: ${fp.features.join(", ")}`);
   L.push(fp.target.kind === "self-host" ? `- target: self-hosted ${fp.target.url}` : "- target: Trigger.dev Cloud");
+  L.push("- environments: CLI deploy/promote/env/runs default to prod, so always write --env <name>; MCP project tools default to dev");
   if (r0 && r0.dir !== ".") L.push(`- MCP calls for this root: configPath=${r0.config}${r0.projectRef ? ` projectRef=${r0.projectRef}` : ""}`);
   if (fp.pinnedDocs) L.push(`- pinned docs: ${fp.pinnedDocs}`);
   if (fp.overlaps.officialSkills.length || fp.overlaps.claudeMdPointer) L.push("- official trigger-* skills also present (see /trigger-dev:doctor)");
