@@ -5,7 +5,7 @@
 **Primitives:**
 - `npx trigger.dev@latest update` — because it upgrades every Trigger.dev package in one step; deploys fail on version mismatch.
 - `import { task, schemaTask } from "@trigger.dev/sdk"` — because the `/v3` path still works only until it is removed.
-- `catchError`, plus `locals` and middleware for setup — because `handleError` is renamed and `init` is deprecated.
+- `catchError` and `onStartAttempt`, plus `locals` and middleware for setup and teardown — because `handleError` is renamed, `onStart` is deprecated for `onStartAttempt` (it runs on every attempt), and `init`/`cleanup` are deprecated.
 - `schemaTask` + AI SDK `tool()` + `ai.toolExecute()` — because it is the v4 replacement for `toolTask`.
 - `queue()` declared on the task — because queues can no longer be created on demand from trigger options.
 - `batch.retrieve(handle.batchId)` — because `batchTrigger` no longer returns `runs` on its handle.
@@ -25,7 +25,7 @@ import { task, tasks, batch } from "@trigger.dev/sdk";
 
 export const sendEmail = task({
   id: "send-email",
-  onStart: ({ payload, ctx, task }) => {},
+  onStartAttempt: ({ payload, ctx, task }) => {},
   catchError: ({ payload, ctx, task, error }) => {},
   run: async (payload: { to: string }, { ctx }) => {},
 });
@@ -37,7 +37,7 @@ const result = await batch.retrieve(handle.batchId); // result.runs, not handle.
 **Pitfalls → rules:**
 - `trigger.dev` and `@trigger.dev/*` versions differ across package.json files, or a 3.x remains. Align them all, then run `npx trigger.dev@latest update`. (MIG-08)
 - v2 `defineJob(` / `eventTrigger(` need a rewrite to `task()`, not a rename. (MIG-02)
-- Hooks take one object, not `(payload, { ctx })`. `handleError`, `toolTask` and `init` are replaced. `ctx.attempt.id`/`status` and `ctx.task.exportName` are removed (`ctx.attempt.number` stays). Batch handle `.runs` is removed. Trigger-time queue objects need a predeclared `queue()`. (MIG-03, MIG-04, MIG-05, MIG-06, QUE-02)
+- Hooks take one object, not `(payload, { ctx })`. `handleError`, `onStart`, `toolTask`, `init` and `cleanup` are replaced. (`onStart` still runs but the 4.7 types mark it deprecated.) `ctx.attempt.id`/`status` and `ctx.task.exportName` are removed (`ctx.attempt.number` stays). Batch handle `.runs` is removed. Trigger-time queue objects need a predeclared `queue()`. (MIG-03, MIG-04, MIG-05, MIG-06, MIG-12, QUE-02)
 - Zod below 3.25.56 is unsupported, and overrides can pin an old copy. `instanceof z.ZodError` stops matching Zod 4 errors; read `.issues`. (MIG-09)
 - Cutover: during the drain, runs can use up to 2× concurrency; static IPs may change, so update allowlists before or right after switching. (no rule)
 

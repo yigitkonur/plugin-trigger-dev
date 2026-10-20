@@ -1,0 +1,16 @@
+{
+  "recordedWith": "Claude Code 2.1.304, headless sessions, 2026-10-21, plugin trigger-dev 0.2.0 (round 2)",
+  "note": "hook outputs captured from --include-hook-events; paths replaced by __ROOT__. tool inputs are what the model really sent.",
+  "deprecatedHooks": {
+    "file": "src/trigger/sync-crm.ts",
+    "content": "import { logger, task } from \"@trigger.dev/sdk\";\n\nexport const syncCrm = task({\n  id: \"sync-crm\",\n  onStart: async () => {\n    logger.log(\"starting\");\n  },\n  handleError: async ({ error }) => {\n    logger.error(\"sync-crm failed\", { error });\n  },\n  run: async () => {\n    // TODO: CRM sync logic\n  },\n});\n",
+    "output": "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"Trigger.dev tripwire (plugin trigger-dev), 1 hit:\\n- src/trigger/sync-crm.ts:5 — a task or config option that SDK 4.7 marks @deprecated (handleError → catchError, onStart → onStartAttempt, init and cleanup → middleware with locals) → catchError for the error decision, onStartAttempt for per-attempt work (it also runs on retries; check ctx.run.attempt.number === 1 for first-only), tasks.middleware plus locals for setup and teardown (https://trigger.dev/docs/migrating-from-v3)\"}}"
+  },
+  "editNextToOldHit": {
+    "file": "src/trigger/sync-crm.ts",
+    "original": "import { task } from \"@trigger.dev/sdk/v3\";\n\nexport const syncCrm = task({\n  id: \"sync-crm\",\n  run: async (payload: { accountId: string }) => {\n    const res = await fetch(`https://crm.example.com/accounts/${payload.accountId}/contacts`);\n    if (!res.ok) throw new Error(`CRM answered ${res.status}`);\n    return { contacts: (await res.json()).length };\n  },\n});\n",
+    "old_string": "  id: \"sync-crm\",\n  run:",
+    "new_string": "  id: \"sync-crm\",\n  retry: {\n    maxAttempts: 5,\n    factor: 2,\n    minTimeoutInMs: 1_000,\n    maxTimeoutInMs: 30_000,\n  },\n  run:",
+    "output": "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"Trigger.dev tripwire (plugin trigger-dev), none in this edit:\\nAlready in this file before this edit (not from this change), 1 hit:\\n- src/trigger/sync-crm.ts:1 — imports \\\"@trigger.dev/sdk/v3\\\"; with SDK 4 that path still works but is slated for removal → import from \\\"@trigger.dev/sdk\\\" (https://trigger.dev/docs/migrating-from-v3)\"}}"
+  }
+}

@@ -319,16 +319,63 @@ function dedupeFirst(sessionId, file, ruleId, env = process.env) {
   }
 }
 
-export function formatHits(hits, { max = 5, cap = 1500 } = {}) {
-  const shown = hits.slice(0, max);
-  let out = `Trigger.dev tripwire (plugin trigger-dev), ${hits.length} hit${hits.length === 1 ? "" : "s"}:`;
-  for (const h of shown) {
-    const line = `\n- ${h.file}:${h.line} — ${h.message} → ${h.fix} (${h.doc})`;
-    if (out.length + line.length > cap) break;
-    out += line;
+function formatHit(h) {
+  return `\n- ${h.file}:${h.line} — ${h.message} → ${h.fix} (${h.doc})`;
+}
+
+// own = hits in the lines this edit wrote; older = hits in the rest of the file. Without a split (a Write, or an edit that cannot be located) all hits are own.
+export function formatHits(own, { older = [], max = 5, cap = 1500 } = {}) {
+  const all = own.length + older.length;
+  let out = older.length
+    ? `Trigger.dev tripwire (plugin trigger-dev), ${own.length ? `${own.length} hit${own.length === 1 ? "" : "s"} in this edit` : "none in this edit"}:`
+    : `Trigger.dev tripwire (plugin trigger-dev), ${own.length} hit${own.length === 1 ? "" : "s"}:`;
+  let shown = 0;
+  let broke = false;
+  const add = (list) => {
+    for (const h of list) {
+      const line = formatHit(h);
+      if (shown >= max || out.length + line.length > cap) {
+        broke = true;
+        return;
+      }
+      out += line;
+      shown++;
+    }
+  };
+  add(own);
+  if (older.length && !broke) {
+    out += `\nAlready in this file before this edit (not from this change), ${older.length} hit${older.length === 1 ? "" : "s"}:`;
+    add(older);
   }
-  if (hits.length > shown.length) out += `\n(+${hits.length - shown.length} more)`;
+  if (all > shown) out += `\n(+${all - shown} more)`;
   return out;
+}
+
+// Line ranges (1-based, inclusive) that the edit wrote: where each new_string sits in the file after the edit. null = cannot tell, treat everything as new.
+function editedRanges(payload, text) {
+  const tool = payload?.tool_name;
+  if (tool === "Write") return null;
+  const pieces = tool === "MultiEdit" ? (payload?.tool_input?.edits || []).map((e) => e?.new_string) : [payload?.tool_input?.new_string];
+  const ranges = [];
+  for (const piece of pieces) {
+    if (typeof piece !== "string" || !piece.length) continue;
+    let at = text.indexOf(piece);
+    if (at < 0) return null;
+    while (at >= 0) {
+      const start = text.slice(0, at).split("\n").length;
+      ranges.push([start, start + piece.split("\n").length - 1]);
+      at = text.indexOf(piece, at + 1);
+    }
+  }
+  return ranges.length ? ranges : null;
+}
+
+function realOr(p) {
+  try {
+    return fs.realpathSync(p);
+  } catch {
+    return p;
+  }
 }
 
 export function lintHook(payload, env = process.env) {
@@ -339,11 +386,19 @@ export function lintHook(payload, env = process.env) {
   const text = readText(file, MAX_FILE);
   if (text == null) return null;
   const proj = env.CLAUDE_PROJECT_DIR || payload.cwd || process.cwd();
-  const rel = path.relative(proj, file).startsWith("..") ? file : path.relative(proj, file);
+  let rel = path.relative(proj, file);
+  if (rel.startsWith("..")) {
+    const viaReal = path.relative(realOr(proj), realOr(file)); // /tmp vs /private/tmp on macOS
+    rel = viaReal.startsWith("..") ? file : viaReal;
+  }
   const found = evalFile(file, text, loadRules(), { rel, projectStop: proj, tiers: ["hook"] });
-  const fresh = found.filter((h) => dedupeFirst(payload.session_id || "s", file, h.rule, env));
-  if (!fresh.length) return null;
-  return { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: formatHits(fresh) } };
+  const ranges = editedRanges(payload, text);
+  const inEdit = (h) => !ranges || ranges.some(([a, b]) => h.line >= a - 1 && h.line <= b);
+  const sid = payload.session_id || "s";
+  const own = found.filter((h) => inEdit(h) && dedupeFirst(sid, file, h.rule, env));
+  const older = found.filter((h) => !inEdit(h) && dedupeFirst(sid, file, `${h.rule}:older`, env));
+  if (!own.length && !older.length) return null;
+  return { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: formatHits(own, { older }) } };
 }
 
 /* ---------- CLI entry points ---------- */

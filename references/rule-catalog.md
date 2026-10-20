@@ -5,7 +5,7 @@ Generated from `scripts/rules/rules.json` by `node scripts/rules/render-catalog.
 Severity: **E** error (broken or unsafe) · **W** warning (likely wrong or costly) · **I** info.
 Detection: **S** script · **S+J** script locates, an agent confirms · **J** judgment · **L** live data.
 Tier: **hook** = checked after every edit (precision ≥ 95%); **audit** = checked by `/trigger-dev:audit`.
-`auto` = the audit may apply the fix; everything else is flag-only. 134 rules, 14 hook tier.
+`auto` = the audit may apply the fix; everything else is flag-only. 135 rules, 15 hook tier.
 
 ## MIG: stale APIs and migration
 
@@ -13,7 +13,7 @@ Tier: **hook** = checked after every edit (precision ≥ 95%); **audit** = check
 |---|---|---|---|---|---|---|
 | MIG-01 | W | S | hook, auto | imports "@trigger.dev/sdk/v3"; with SDK 4 that path still works but is slated for removal | import from "@trigger.dev/sdk" | https://trigger.dev/docs/migrating-from-v3 |
 | MIG-02 | E | S | hook | uses the v2 Job API (defineJob/eventTrigger), which no longer exists | rewrite as task({ id, run }) and trigger it with tasks.trigger() | https://trigger.dev/docs/introduction |
-| MIG-03 | W | S | audit | uses a task API that SDK 4 renamed or deprecated (handleError, init, cleanup, toolTask, ai.tool, metadata.stream) | catchError instead of handleError; middleware and locals instead of init/cleanup; schemaTask with ai.toolExecute instead of toolTask/ai.tool; streams.pipe instead of metadata.stream | https://trigger.dev/docs/migrating-from-v3 |
+| MIG-03 | W | S | hook | a task or config option that SDK 4.7 marks @deprecated (handleError → catchError, onStart → onStartAttempt, init and cleanup → middleware with locals) | catchError for the error decision, onStartAttempt for per-attempt work (it also runs on retries; check ctx.run.attempt.number === 1 for first-only), tasks.middleware plus locals for setup and teardown | https://trigger.dev/docs/migrating-from-v3 |
 | MIG-04 | W | S | hook | lifecycle hook uses positional arguments (payload, { ctx }); in SDK 4 hooks receive one object ({ payload, ctx }) | change the hook to ({ payload, ctx, ... }) => {} | https://trigger.dev/docs/migrating-from-v3 |
 | MIG-05 | W | S | hook | ctx.attempt.id, ctx.attempt.status and ctx.task.exportName were removed in SDK 4 (ctx.attempt.number remains) | use ctx.attempt.number, or drop the field | https://trigger.dev/docs/migrating-from-v3 |
 | MIG-06 | E | S | hook | batchTrigger() no longer returns the runs list in SDK 4; the handle has no .runs | const b = await batch.retrieve(handle.batchId); then read b.runs | https://trigger.dev/docs/migrating-from-v3 |
@@ -22,6 +22,7 @@ Tier: **hook** = checked after every edit (precision ≥ 95%); **audit** = check
 | MIG-09 | W | S | audit | zod is pinned below 3.25.56 (unsupported by Trigger.dev), or an instanceof z.ZodError check is used, which does not match Zod 4 errors | upgrade zod to ^3.25.56 \|\| ^4.0.0 (including overrides/resolutions); read errors from result.error.issues instead of instanceof z.ZodError; import zod/v4 for composed schemas | https://trigger.dev/docs/troubleshooting-zod |
 | MIG-10 | I | S | audit | trigger.config leaves runtime unset or set to node, so tasks follow the current Node.js LTS | pin a runtime such as node-24 (node-22 and node-26 are also available) when reproducible builds matter | https://trigger.dev/docs/config/config-file |
 | MIG-11 | W | S | audit | an OpenTelemetry exporter pinned to 0.52.x; SDK 4 uses 0.203.x | move the @opentelemetry exporter packages to 0.203.x and pass endpoint and headers as constructor arguments instead of OTEL_* env vars | https://trigger.dev/docs/config/config-file |
+| MIG-12 | W | S | audit | uses a task API that SDK 4 renamed or deprecated (toolTask, ai.tool, metadata.stream) | schemaTask with ai.toolExecute instead of toolTask/ai.tool; streams.pipe instead of metadata.stream | https://trigger.dev/docs/migrating-from-v3 |
 
 ## TSK: task authoring and reliability
 

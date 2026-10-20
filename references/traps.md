@@ -41,9 +41,9 @@ The block above is read by the weekly freshness job: it counts these names in th
 
 | Old (or wrong) | Current | Why / evidence | Rule |
 |---|---|---|---|
-| `handleError` | `catchError` | renamed in v4 | MIG-03 · https://trigger.dev/docs/migrating-from-v3 |
-| `onStart: (payload, { ctx }) =>` | `onStart: ({ payload, ctx }) =>` (all lifecycle hooks take one object; `run` keeps positional args) | | MIG-04 |
-| `init:` / `cleanup:` task hooks | middleware and locals; `onStartAttempt` | | MIG-03 |
+| `handleError` | `catchError` | renamed in v4; `@deprecated` in the 4.7 types | MIG-03 · https://trigger.dev/docs/migrating-from-v3 |
+| `onStart: (payload, { ctx }) =>` | `onStartAttempt: ({ payload, ctx }) =>` (all lifecycle hooks take one object; `run` keeps positional args) | `onStart` is `@deprecated` in the 4.7 types (use `onStartAttempt`, which runs on every attempt) | MIG-04 · MIG-03 |
+| `init:` / `cleanup:` task hooks | `tasks.middleware` plus `locals`; `onStartAttempt` for per-attempt work | `@deprecated` in the 4.7 types ("Use locals and middleware instead") | MIG-03 |
 | `ctx.attempt.id`, `ctx.attempt.status`, `ctx.task.exportName` | removed; `ctx.attempt.number` remains | the /context page still lists them | MIG-05 · https://trigger.dev/docs/migrating-from-v3 |
 | `const h = await x.batchTrigger(…); h.runs` | `const b = await batch.retrieve(h.batchId); b.runs` | | MIG-06 |
 | `queue: { concurrencyLimit }`, `queues.overrideConcurrencyLimit` | `concurrency: { total, perKey }`, `concurrencyLimit()`, `concurrencyLimits.*` | | QUE-01 · https://trigger.dev/docs/concurrency |

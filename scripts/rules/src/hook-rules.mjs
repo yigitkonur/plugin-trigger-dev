@@ -26,6 +26,26 @@ export const hookRules = [
     },
   },
   {
+    id: "MIG-03", family: "MIG", severity: "warning", tier: "hook", detect: "S", scope: "code", applies_when: "sdk>=4",
+    match: { type: "regex", pattern: R`\b(?:handleError|onStart|init|cleanup)\s*:\s*(?:async\s*)?(?:\(|function\b)`, require: R`@trigger\.dev/` },
+    message: "a task or config option that SDK 4.7 marks @deprecated (handleError → catchError, onStart → onStartAttempt, init and cleanup → middleware with locals)",
+    fix: "catchError for the error decision, onStartAttempt for per-attempt work (it also runs on retries; check ctx.run.attempt.number === 1 for first-only), tasks.middleware plus locals for setup and teardown",
+    fix_mode: "flag-only", doc: "https://trigger.dev/docs/migrating-from-v3",
+    examples: {
+      bad: [
+        'import { task } from "@trigger.dev/sdk";\nexport const a = task({\n  id: "a",\n  handleError: async (payload, error) => {},\n  run: async () => {},\n});',
+        'import { task } from "@trigger.dev/sdk";\nexport const a = task({\n  id: "a",\n  init: async () => ({ client: 1 }),\n  run: async (payload, { init }) => {},\n});',
+        'import { task } from "@trigger.dev/sdk";\nexport const a = task({\n  id: "a",\n  cleanup: async () => {},\n  run: async () => {},\n});',
+        'import { task } from "@trigger.dev/sdk";\nexport const a = task({ id: "a", onStart: ({ payload, ctx }) => {}, run: async () => {} });',
+      ],
+      good: [
+        'import { task } from "@trigger.dev/sdk";\nexport const a = task({\n  id: "a",\n  catchError: async ({ error }) => {},\n  onStartAttempt: async ({ ctx }) => {},\n  run: async () => {},\n});',
+        'import { task } from "@trigger.dev/sdk";\n// handleError, init, cleanup and onStart: are deprecated in v4\nexport const a = task({ id: "a", run: async () => {} });',
+        'export const reducer = { init: () => ({ n: 0 }), cleanup: () => {} };',
+      ],
+    },
+  },
+  {
     id: "MIG-04", family: "MIG", severity: "warning", tier: "hook", detect: "S", scope: "code", applies_when: "sdk>=4",
     match: { type: "regex", pattern: R`\b(?:${HOOKS})\s*(?::\s*(?:async\s*)?|(?=\())\(\s*[A-Za-z_$][\w$]*\s*(?::[^,(){}]+)?\s*,` },
     message: "lifecycle hook uses positional arguments (payload, { ctx }); in SDK 4 hooks receive one object ({ payload, ctx })",

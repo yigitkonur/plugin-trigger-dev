@@ -14,7 +14,7 @@ Use the "Trigger.dev project facts" block from the session context (roots, SDK v
 
 ## 2. Invariants (check every snippet before you show it)
 
-1. Import from `@trigger.dev/sdk` (plus `/ai`, `/chat`, `/chat/react`, `/chat-server`). `defineConfig` comes from `@trigger.dev/sdk` too. Never `@trigger.dev/sdk/v3` in a v4 project. Each build extension has its own import path.
+1. Import from `@trigger.dev/sdk` (plus `/ai`, `/chat`, `/chat/react`, `/chat-server`). `defineConfig` comes from `@trigger.dev/sdk` too. Never `@trigger.dev/sdk/v3` in a v4 project. Each build extension has its own import path. Hook names: `catchError`, `onStartAttempt`, middleware with `locals`; the 4.7 types deprecate `handleError`, `onStart`, `init` and `cleanup`.
 2. `triggerAndWait` and `wait.forToken` return a Result: check `.ok` or call `.unwrap()`.
 3. Never put waits in `Promise.all`. Use `batchTriggerAndWait` or await sequentially.
 4. App code triggers with a type-only import and `tasks.trigger<typeof t>("id", payload)` (or REST), and awaits every trigger.

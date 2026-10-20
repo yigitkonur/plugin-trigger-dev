@@ -15,6 +15,8 @@ jobs:
         run: node scripts/trigger-ctx.mjs links-check --anchors | tee /tmp/links.json | node -e 'const j=JSON.parse(require("fs").readFileSync(0,"utf8"));console.log(`${j.result.checkedPages} pages, ${j.result.failed} failures`);for(const f of j.result.failures)console.log(f.status,f.url,"in",f.file);process.exit(j.result.failed?1:0)'
       - name: llms.txt coverage, local-docs parity, staleness report
         run: node scripts/ci/docs-parity.mjs
+      - name: Names the newest SDK types deprecate or no longer declare, taught as current in skills/ and references/
+        run: node scripts/ci/sdk-surface.mjs --latest
   mcp-surface:
     runs-on: ubuntu-latest
     steps:
