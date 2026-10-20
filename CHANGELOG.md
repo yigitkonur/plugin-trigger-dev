@@ -10,7 +10,7 @@ A second, direct read of the shipped content (see `docs/spikes.md`, item 22). Tw
 - **Fixed: the claim that four MCP tools work while logged out.** With no login MCP `whoami` hangs; `init` and `doctor` now check the login with the CLI first.
 - **Narrowed skill permissions:** `init` no longer pre-approves every `npx trigger.dev@latest` subcommand (including an explicit `deploy --env prod`), `doctor` only `claude plugin list`, `ship` only `git branch --show-current`.
 - **Honesty:** the README no longer calls the 14 hook rules "high-precision" (the public-repo corpus exercised one of them); `run-investigator` says what its Bash is for.
-- **Tests:** `tests/marker.test.mjs` (16 checks; 6 fail on 0.1.0). An independent review of the hook diff found one blocking issue (a missing `signal.sh` exits 2 under dash), fixed with a test; the Codex review could not run because its login had expired. Eval re-run for this release: original positive cases 0.98 (was 0.99), +0.43 over no plugin; two flaky cases moved and are measured against 0.1.0 in `docs/spikes.md`.
+- **Tests:** `tests/marker.test.mjs` (16 checks; 6 fail on 0.1.0). An independent review of the hook diff found one blocking issue (a missing `signal.sh` exits 2 under dash), fixed with a test; the Codex review could not run because its login had expired. Eval re-run on the release commit: original positive cases 0.98 (was 0.99), +0.43 over no plugin, everything +0.29; `v4-hooks` is flaky (it fails about a third of runs, on 0.1.0 too; see `docs/spikes.md`).
 
 ## 0.1.0
 
