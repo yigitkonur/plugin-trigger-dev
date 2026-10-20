@@ -11,7 +11,7 @@ A Claude Code plugin that makes the agent good at [Trigger.dev](https://trigger.
 
 One step on Claude Code 2.1.275 or later: `/plugin install trigger-dev --marketplace yigitkonur/plugin-trigger-dev`.
 
-**Install at project scope** (`--scope project`) for repos that use Trigger.dev. At user scope the three skill descriptions and the Trigger.dev MCP tool names load in every repository (about 900 tokens per `claude plugin details trigger-dev`); at project scope other repos pay nothing. Requires Claude Code 2.1.295 or later and Node 18 or later (for the edit checks, the prod guard and `audit`; without Node they skip silently).
+**Install at project scope** (`--scope project`) for repos that use Trigger.dev. At user scope the four skill descriptions and the Trigger.dev MCP tool names load in every repository (about 900 tokens per `claude plugin details trigger-dev`); at project scope other repos pay nothing. Requires Claude Code 2.1.295 or later and Node 18 or later (for the edit checks, the prod guard and `audit`; without Node they skip silently).
 
 ## What you get
 
@@ -23,7 +23,7 @@ One step on Claude Code 2.1.275 or later: `/plugin install trigger-dev --marketp
 | `/trigger-dev:init` | Discovery, an architecture decision you confirm, setup with the human gates named, and a first run proven in dev. |
 | `/trigger-dev:new` | Add one capability to an existing project and prove it runs. |
 | `/trigger-dev:audit` | A rule catalog (stale APIs, silent-failure patterns, config, deploy, cost) run by a deterministic engine plus `code-auditor` agents; writes `trigger-audit/REPORT.md`; `--fix` applies only safe fixes. |
-| `/trigger-dev:ship` | Preflight, the right CI or integration pipeline, an explicit `--env`, verification, rollback. |
+| `/trigger-dev:ship` | Preflight, the right CI or integration pipeline, an explicit `--env`, verification, rollback. Also loads when you ask the agent to deploy the tasks (not the app). |
 | `/trigger-dev:doctor` | Checks Node, login, MCP, versions, duplicate official skills, self-host target and install scope. |
 | Trigger.dev MCP server | The official server (`npx trigger.dev@latest mcp`), unchanged. |
 | Hooks | Three, each tied to a failure. See below. |

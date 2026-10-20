@@ -3,7 +3,7 @@ name: init
 description: Set up Trigger.dev in this repository with a short discovery, an explicit architecture decision, and a first task proven to run.
 argument-hint: "[what you want Trigger.dev to run first]"
 disable-model-invocation: true
-allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(npx trigger.dev@latest whoami*) Bash(npx trigger.dev@latest login*) Bash(npx trigger.dev@latest projects *) Bash(npx trigger.dev@latest init*) Bash(pnpm dlx trigger.dev@latest whoami*) Bash(pnpm dlx trigger.dev@latest login*) Bash(pnpm dlx trigger.dev@latest projects *) Bash(pnpm dlx trigger.dev@latest init*) Bash(yarn dlx trigger.dev@latest whoami*) Bash(yarn dlx trigger.dev@latest login*) Bash(yarn dlx trigger.dev@latest projects *) Bash(yarn dlx trigger.dev@latest init*) Bash(bunx trigger.dev@latest whoami*) Bash(bunx trigger.dev@latest login*) Bash(bunx trigger.dev@latest projects *) Bash(bunx trigger.dev@latest init*)
+allowed-tools: Bash(npx tsc --noEmit*) Bash(pnpm exec tsc --noEmit*) Bash(yarn tsc --noEmit*) Bash(bunx tsc --noEmit*) Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(npx trigger.dev@latest whoami*) Bash(npx trigger.dev@latest login*) Bash(npx trigger.dev@latest projects *) Bash(npx trigger.dev@latest init*) Bash(pnpm dlx trigger.dev@latest whoami*) Bash(pnpm dlx trigger.dev@latest login*) Bash(pnpm dlx trigger.dev@latest projects *) Bash(pnpm dlx trigger.dev@latest init*) Bash(yarn dlx trigger.dev@latest whoami*) Bash(yarn dlx trigger.dev@latest login*) Bash(yarn dlx trigger.dev@latest projects *) Bash(yarn dlx trigger.dev@latest init*) Bash(bunx trigger.dev@latest whoami*) Bash(bunx trigger.dev@latest login*) Bash(bunx trigger.dev@latest projects *) Bash(bunx trigger.dev@latest init*)
 ---
 
 # Set up Trigger.dev here
@@ -12,7 +12,7 @@ Goal from the user: $ARGUMENTS
 
 ## Project facts
 
-!`trigger-ctx detect --brief || true`
+!`node "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs" detect --brief || true`
 
 (If the line above is empty or shows a command error, run `node "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs" detect --brief` yourself.)
 
@@ -51,12 +51,7 @@ At most 15 lines: the primitives, one line of why each, a doc link per primitive
 
 ### Stage 5: prove it runs
 
-1. Start the dev server: MCP `start_dev_server`, then `dev_server_status` until it is ready. Its `configPath` is the project **directory** that holds `trigger.config.*` (a file path fails with `spawn ENOTDIR`); omit it at the repo root and pass the directory in a monorepo. In a linked git worktree run `trigger dev --branch <name>` through Bash in the background instead (the MCP tool takes no branch).
-2. `get_current_worker` with `environment: "dev"` must list the new task.
-3. `trigger_task` with `environment: "dev"` and a payload that matches the task, then `wait_for_run_to_complete`.
-4. Show status and output and the dashboard link. A failure: `get_run_details`, then `trigger-ctx docs "<error text>"` for the matching page; do not retry blindly.
-
-Done means a run reached COMPLETED. If you could not run it (no login, no MCP), say UNVERIFIED and why.
+Follow `${CLAUDE_PLUGIN_ROOT}/skills/build/verify.md` (the login is done in stage 4; the dev run is step 4 there). Done means a run reached COMPLETED. If you could not run it (no login, no MCP), say UNVERIFIED and why.
 
 ### Stage 6: hand-off
 

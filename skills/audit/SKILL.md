@@ -12,7 +12,7 @@ Arguments: $ARGUMENTS (path defaults to the project; `--focus` narrows the rule 
 
 ## Project facts
 
-!`trigger-ctx detect --brief || true`
+!`node "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs" detect --brief || true`
 
 ## Pipeline
 

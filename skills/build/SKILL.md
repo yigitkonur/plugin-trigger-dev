@@ -1,7 +1,8 @@
 ---
 name: build
-description: Design, write, review and answer questions about Trigger.dev (tasks, schedules, batches, waits and approvals, realtime progress UIs, build extensions, deploys and CI, costs and limits). Use whenever the project uses Trigger.dev (trigger.config.*, @trigger.dev/* packages) or the user mentions Trigger.dev, even for a quick question. Not for Celery, Sidekiq, BullMQ, plain cron or other job systems in projects without Trigger.dev.
+description: Design, write, edit, review and answer questions about Trigger.dev (tasks, schedules, batches, waits and approvals, realtime progress UIs, build extensions, deploys and CI, costs and limits). Use before changing any task file or trigger.config.* in a project that uses Trigger.dev (@trigger.dev/* packages), and whenever the user mentions Trigger.dev, even for a quick question. Not for Celery, Sidekiq, BullMQ, plain cron or other job systems in projects without Trigger.dev.
 argument-hint: "[what you are building or asking]"
+allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(npx trigger.dev@latest whoami*) Bash(npx tsc --noEmit*) Bash(pnpm exec tsc --noEmit*) Bash(yarn tsc --noEmit*) Bash(bunx tsc --noEmit*)
 ---
 
 # Trigger.dev: build
@@ -27,10 +28,10 @@ The plugin checks several of these after every edit and says so; treat a tripwir
 
 ## 3. Protocol
 
-1. **Classify**: how-to (API detail) · design ("should I / what fits") · symptom or failing run → hand to `diagnose` · cost → `${CLAUDE_SKILL_DIR}/scenarios/cost-sensitive.md` or `/trigger-dev:audit --focus cost` · deploy or CI → `${CLAUDE_SKILL_DIR}/scenarios/deploy-ci.md` · chat or AI assistant → the `chat-agent` skill.
+1. **Classify**: how-to (API detail) · design ("should I / what fits") · symptom or failing run → hand to `diagnose` · cost → `${CLAUDE_SKILL_DIR}/scenarios/cost-sensitive.md` or `/trigger-dev:audit --focus cost` · deploy or CI → `${CLAUDE_SKILL_DIR}/scenarios/deploy-ci.md`; an actual deploy request → also Read `${CLAUDE_PLUGIN_ROOT}/skills/ship/SKILL.md` and follow it (preflight, explicit `--env`, verification) · chat or AI assistant → the `chat-agent` skill.
 2. **Pick one card** from the table below and read only that file.
 3. **Ask or assume.** Ask at most 2 questions in the whole reply, counting every sentence that ends in a question mark, including one in "next steps" (merge related ones; never a list of three), and only when the answer changes the primitive. Give a default for every other open point ("timezone: UTC unless you say otherwise") and carry on; the user corrects you. The question bank and skip rules are in `${CLAUDE_SKILL_DIR}/discovery.md`. Never ask what the project facts already answer.
-4. **Verify before you write.** Resolve every API name you are about to use with `trigger-ctx docs <topic or name>`. A name (`catchError`, `wait.forToken`) comes back with whether the installed SDK's types declare it, any `@deprecated` note from them (`handleError`: use `catchError`), and the pinned-doc `file:line` that explains it; a name it cannot find is unverified until MCP `search_docs` confirms it. Read that page (`node_modules/@trigger.dev/sdk/docs/<path>.mdx`) or the web one (`https://trigger.dev/docs/<path>.md`). Local wins for API shape; web wins when the user is upgrading. If no tier is reachable (no installed SDK, no web, no MCP), still answer from the card, and list every API name you could not check as unverified with the page that confirms it; never refuse for lack of docs.
+4. **Verify before you write.** `trigger-ctx docs <topic or name>` resolves every API name you are about to use: for a name it reports whether the installed types declare it, any `@deprecated` note (`handleError`: use `catchError`) and the pinned-doc `file:line`; a name it cannot find is unverified until MCP `search_docs` confirms it. Read that page (`node_modules/@trigger.dev/sdk/docs/<path>.mdx`, which matches the installed SDK) or `https://trigger.dev/docs/<path>.md` (wins when the user is upgrading). No tier reachable: answer from the card and list every API name you could not check as unverified; never refuse for lack of docs.
 5. **Apply the gates** the lookup reports: `since` above the installed SDK (offer `npx trigger.dev@latest update`), `beta` (never the default; give the fallback), cloud-only on a self-hosted target, plan-dependent limits.
 6. **Answer in the bridge format:**
 
@@ -40,6 +41,8 @@ Minimal shape: <at most 15 lines, version-checked>
 Watch out for: <at most 3 pitfalls>
 Docs: <local pinned path> · <https://trigger.dev/docs/…>
 ```
+
+7. **Prove it.** After writing task code: typecheck with the project's own `tsc --noEmit` when `node_modules/@trigger.dev/sdk` exists; `npx trigger.dev@latest whoami`; then a dev run (MCP `start_dev_server`, `get_current_worker`, `trigger_task` with `environment: "dev"`, `wait_for_run_to_complete`; details and the worktree case in `${CLAUDE_SKILL_DIR}/verify.md`). Ask before a run that sends messages or spends money. Whatever you could not run is UNVERIFIED, with the reason.
 
 If the docs disagree with each other, cite the conservative reading and name the conflict (`references/traps.md`, `references/limits.md`).
 
@@ -70,4 +73,4 @@ MCP for live account and run data; the CLI for project lifecycle with flags; RES
 - Never invent run data. Without a connected MCP server, say what you could not look at.
 - Never print or log secret values. Env files are read for variable names only.
 - Do not assume Cloud. On a self-hosted target drop cloud-only advice (see the flags in `references/link-index.md`).
-- Related commands the user can run: `/trigger-dev:init` (set up), `/trigger-dev:new` (add a capability), `/trigger-dev:audit` (review a codebase), `/trigger-dev:ship` (deploy), `/trigger-dev:doctor` (check the toolchain).
+- Commands the user can run: `/trigger-dev:init`, `new`, `audit`, `ship`, `doctor`.
