@@ -2,6 +2,26 @@
 
 The single source for "the model remembers this, but it is out of date or wrong". The first column is grep-able: the weekly freshness job checks that none of these names comes back as current in the latest bundled docs. Rule ids point to `scripts/rules/rules.json`.
 
+```deprecated
+handleError
+@trigger.dev/sdk/build
+ctx.attempt.id
+ctx.attempt.status
+ctx.task.exportName
+overrideConcurrencyLimit
+defineJob
+eventTrigger
+chat.createAccessToken
+getStartToken
+hydrateMessages
+toolTask
+ai.tool(
+syncVercelEnvVars
+metadata.stream(
+```
+
+The block above is read by the weekly freshness job: it counts these names in the latest bundled docs (report only) so a name that comes back as current can be spotted.
+
 ## Imports and config
 
 | Old (or wrong) | Current | Why / evidence | Rule |

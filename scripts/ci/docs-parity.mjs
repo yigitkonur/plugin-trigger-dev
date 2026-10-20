@@ -36,7 +36,7 @@ for (const r of missingLocal) console.log(`    NOT BUNDLED ${r.pages[0]} (row "$
 if (missingLocal.length) failed++;
 
 const traps = fs.readFileSync(path.join(root, "references", "traps.md"), "utf8");
-const names = [...new Set([...traps.matchAll(/^\|\s*`([^`|]{4,60})`/gm)].map((m) => m[1]))];
+const names = ((/```deprecated\n([\s\S]*?)```/.exec(traps) || [])[1] || "").split("\n").map((x) => x.trim()).filter(Boolean);
 const all = [];
 const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).forEach((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : all.push(path.join(d, e.name))));
 walk(docsDir);
@@ -49,10 +49,10 @@ for (const n of names) {
 // (6) machine prices: references/machine-prices.json vs the live pricing page
 const prices = JSON.parse(fs.readFileSync(path.join(root, "references", "machine-prices.json"), "utf8"));
 const html = await (await fetch("https://trigger.dev/pricing")).text();
-const text = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+const pricingText = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 const live = {};
 for (const [k, label] of [["micro", "Micro"], ["small-1x", "Small 1x"], ["small-2x", "Small 2x"], ["medium-1x", "Medium 1x"], ["medium-2x", "Medium 2x"], ["large-1x", "Large 1x"], ["large-2x", "Large 2x"]]) {
-  const m = new RegExp(`${label}(?: Default)? [\\d.]+ [\\d.]+ \\$(\\d\\.\\d+)`).exec(text);
+  const m = new RegExp(`${label}(?: Default)? [\\d.]+ [\\d.]+ \\$(\\d\\.\\d+)`).exec(pricingText);
   live[k] = m ? Number(m[1]) : null;
 }
 const drift = Object.entries(prices.perSecond).filter(([k, v]) => live[k] !== v);
