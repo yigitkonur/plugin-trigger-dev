@@ -18,7 +18,7 @@ The Trigger.dev MCP server (`npx trigger.dev@latest mcp`, shipped by this plugin
 | Which account / API URL | MCP `whoami` | CLI `whoami` |
 | Create or choose a project | MCP `list_orgs` / `list_projects`; CLI `projects create` | dashboard |
 | Initialise a repo | CLI `init -y --project-ref … --runtime …` from the package directory | MCP `initialize_project`; manual setup (https://trigger.dev/docs/manual-setup) |
-| Start dev | MCP `start_dev_server` (waits up to 30 s) then `dev_server_status` for logs. It takes only `configPath`: **in a linked git worktree use CLI `dev --branch <name>`** | CLI `dev` in the background |
+| Start dev | MCP `start_dev_server` (waits up to 30 s) then `dev_server_status` for logs. It takes only `configPath`, which must be the project **directory** holding `trigger.config.*` (a file path fails with `spawn ENOTDIR`): **in a linked git worktree use CLI `dev --branch <name>`** | CLI `dev` in the background |
 | List registered tasks and payload schemas | MCP `get_current_worker` (explicit environment) | dev server output; dashboard. There is no `get_tasks` tool |
 | Trigger a test run | MCP `trigger_task` (`environment: "dev"`) | SDK script; REST trigger; dashboard Test |
 | Inspect a run | MCP `get_run_details` (via `run-investigator`), `get_span_details` for one span | CLI `runs get` (no trace); dashboard |

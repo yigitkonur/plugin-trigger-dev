@@ -34,7 +34,7 @@ One AskUserQuestion, at most 4 options: background or scheduled jobs · long wor
 
 ### Stage 2: architecture questions
 
-One AskUserQuestion call with only the questions the repo does not answer (`discovery.md`, Q2 to Q6). State every inferred answer in a line.
+One AskUserQuestion call with at most 2 questions, and only those the repo does not answer (`discovery.md`, Q2 to Q6). State every inferred answer in a line and give a default for everything else; the login and the project choice are human steps in stage 4, not extra questions here.
 
 ### Stage 3: decision record
 
@@ -45,13 +45,13 @@ At most 15 lines: the primitives, one line of why each, a doc link per primitive
 4a. **Auth.** `whoami` (MCP `whoami` or `npx trigger.dev@latest whoami`). If logged out, use the resumable login: `npx trigger.dev@latest login --no-browser --no-wait`, show the URL to the user, and **[you]** approve it in the browser (plus email verification for a new account); then run `npx trigger.dev@latest login --no-browser`. Do not pass `--email` or `--name` unless the user gives them. Never create an account for the user.
 4b. **Project.** `list_projects` (or `npx trigger.dev@latest projects list`). **[you]** choose one, or confirm creating a new one (it creates a cloud resource). A fresh account needs `--project-name` and `--org-name` on `init -y`.
 4c. **Install and config.** From the package directory that will hold the tasks (the Trigger root in a monorepo): `npx trigger.dev@latest init -y --project-ref <proj_…> --runtime node-24` (use the project's package manager: `pnpm dlx`, `yarn dlx`, `bunx`; add `--skip-package-install` when the install should be done another way, `--pkg-args` for package-manager arguments). pnpm 10 may stop with `ERR_PNPM_IGNORED_BUILDS` (esbuild, @depot/cli) before writing anything: rerun with `--allow-build=esbuild --allow-build=@depot/cli`, or use `npx`. If a config already exists, or tasks belong in a new `trigger/` subpackage of a Python/Go/Ruby repo, use the manual path in `templates/` instead.
-4d. **Patch the config.** `defineConfig` from `@trigger.dev/sdk`; `dirs`; a default `maxDuration`; extensions with their own import paths and a pinned `runtime`; `.trigger` in `.gitignore`; the config file in the tsconfig `include`. Verify option names with `trigger-ctx docs config-file`.
+4d. **Patch the config and package.json.** Add `trigger.dev` to devDependencies at the SDK's version, with scripts `"trigger:dev": "trigger dev"`, `"deploy:staging": "trigger deploy --env staging"` and `"deploy:prod": "trigger deploy --env prod"` (the project's own CLI keeps versions aligned in CI). Config: `defineConfig` from `@trigger.dev/sdk`; `dirs`; a default `maxDuration`; extensions with their own import paths and a pinned `runtime`; `.trigger` in `.gitignore`; the config file in the tsconfig `include`. Verify option names with `trigger-ctx docs config-file`.
 4e. **Secret key (only if app code or a REST caller will trigger tasks).** **[you]** copy `TRIGGER_SECRET_KEY` for the right environment from the dashboard (API keys page; restricted presets exist only on Pro and Enterprise) into the git-ignored env file yourself. Do not ask the user to paste it into the chat, and never echo it.
 4f. **First task and call site.** Write the task from the scenario card chosen in stage 3, then the call site: a type-only `tasks.trigger<typeof t>("id", payload)` in TypeScript, or a REST call in the host language with an idempotency key (`templates/rest-call-sites.md`). A realtime page also needs the token route (`templates/realtime-token-route.md`).
 
 ### Stage 5: prove it runs
 
-1. Start the dev server: MCP `start_dev_server` (pass `configPath` in a monorepo), then `dev_server_status` until it is ready. In a linked git worktree run `trigger dev --branch <name>` through Bash in the background instead (the MCP tool takes no branch).
+1. Start the dev server: MCP `start_dev_server`, then `dev_server_status` until it is ready. Its `configPath` is the project **directory** that holds `trigger.config.*` (a file path fails with `spawn ENOTDIR`); omit it at the repo root and pass the directory in a monorepo. In a linked git worktree run `trigger dev --branch <name>` through Bash in the background instead (the MCP tool takes no branch).
 2. `get_current_worker` with `environment: "dev"` must list the new task.
 3. `trigger_task` with `environment: "dev"` and a payload that matches the task, then `wait_for_run_to_complete`.
 4. Show status and output and the dashboard link. A failure: `get_run_details`, then `trigger-ctx docs "<error text>"` for the matching page; do not retry blindly.

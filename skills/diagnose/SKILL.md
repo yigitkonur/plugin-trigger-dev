@@ -20,7 +20,7 @@ Evidence first, then a verdict, then a fix with a doc link. Symptoms arrive in p
 1. Anchor on the project facts in context (or `trigger-ctx detect --brief`): SDK version, Cloud or self-host, Trigger roots (pass `configPath`/`projectRef` to MCP calls in a monorepo).
 2. Find the symptom in `${CLAUDE_SKILL_DIR}/symptoms.md`. It gives ranked causes, the first check, and the doc.
 3. Run the **first check** with an explicit environment: MCP `get_report` (health), `list_runs`, `get_current_worker`, `list_deploys`, `get_run_details`, or `get_query_schema` then `query` (TRQL ideas in `${CLAUDE_SKILL_DIR}/trql.md`). Without MCP: `npx trigger.dev@latest runs get <id> --env <e>`, `report health --env <e>`, or the dashboard.
-4. A run id, or a task with large logs or traces: hand it to the `run-investigator` agent, which returns at most 25 lines (verdict, evidence ids, ranked causes, fix, doc). Do not read huge traces yourself.
+4. A run id, or a task with large logs or traces: hand it to the `run-investigator` agent (start it in the foreground and wait for its result; you need it before the verdict), which returns at most 25 lines (verdict, evidence ids, ranked causes, fix, doc). Do not read huge traces yourself.
 5. Propose the fix with its doc link (the Doc column of `symptoms.md` names the page; `trigger-ctx docs "<error text>"` resolves it). If the fix is a code change, make it only when asked.
 6. After the fix is deployed, offer a replay or bulk replay of the affected runs. Replays are writes: ask.
 
