@@ -27,6 +27,7 @@ export const hookRules = [
   },
   {
     id: "MIG-03", family: "MIG", severity: "warning", tier: "hook", detect: "S", scope: "code", applies_when: "sdk>=4",
+    skip_paths: R`(^|/)(__tests__|tests?)/|\.(test|spec)\.`, // a mock object with an init: key is not a task option (found in the nested-SDK corpus)
     match: { type: "regex", pattern: R`\b(?:handleError|onStart|init|cleanup)\s*:\s*(?:async\s*)?(?:\(|function\b)`, require: R`@trigger\.dev/` },
     message: "a task or config option that SDK 4.7 marks @deprecated (handleError → catchError, onStart → onStartAttempt, init and cleanup → middleware with locals)",
     fix: "catchError for the error decision, onStartAttempt for per-attempt work (it also runs on retries; check ctx.run.attempt.number === 1 for first-only), tasks.middleware plus locals for setup and teardown",

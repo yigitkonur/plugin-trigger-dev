@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.0
+
+A second review of how the plugin steers the agent, not only of what it says (`docs/spikes.md`, item 23). Everything below was found by running sessions and reading traces, and each fix was watched working.
+
+- **Fixed: the project facts in `init`, `new`, `audit`, `ship` and `doctor` were never injected.** Their `!` shell lines called the bare `trigger-ctx`, which is not on the PATH of that shell (`command not found` in the eval harness), so those skills ran without the fingerprint. They now call `node "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs"`.
+- **`trigger-ctx docs` now checks API names, not only topics.** `docs catchError` says whether the installed SDK's types declare the name, quotes any `@deprecated` note and gives the pinned-doc `file:line`; a name it cannot find is reported as unverified. Before, `catchError`, `onStartAttempt` and `schemaTask` returned "no index row" and `idempotencyKeys.create` returned a wrong row.
+- **Deprecated task options are caught while the code is written.** MIG-03 (hook tier) flags `handleError`, `onStart`, `init` and `cleanup`, which the 4.7 types mark `@deprecated`; the tool and stream APIs moved to MIG-12 (audit). The 0.1.0 decision to leave `onStart` out followed the migration guide's example and was wrong. Cards and the traps table teach `catchError`, `onStartAttempt` and middleware with `locals`. `scripts/ci/sdk-surface.mjs` checks `skills/` and `references/` against the SDK's types (weekly against `@latest`).
+- **The tripwire says which hits are new.** After an `Edit` or `MultiEdit` it separates hits in the lines just written from hits already in the file ("not from this change"), so an old `/v3` import is a fact to mention, not a reason to rewrite code nobody asked about.
+- **`build` loads for edit requests and proves its code.** The description now says "before changing any task file or `trigger.config.*`" (a plain "add a task" request loaded the skill 0 of 6 times before and 6 of 6 after). A new step 7 asks for a typecheck, a login check and a dev run, or UNVERIFIED with the reason; `build`, `chat-agent` and `diagnose` pre-approve the read-only helper commands so the check does not stop on a permission prompt.
+- **`ship` is model-invocable** (scoped to Trigger.dev deploys, with a negative case for "deploy the app to Vercel"). A plain "deploy the jobs to staging" used to skip the preflight; now it runs the scan, uses an explicit `--env` and verifies the new version.
+- **`diagnose`** no longer starts with MCP `whoami` (it can hang logged out) and does not stop when the CLI check is unavailable.
+- **Evidence:** seven new steering-hard eval cases (red on 0.1.1: deprecated hook names, per-run setup, verify-after-build, plain deploy request), a hook-rule precision scan of 60 repositories (42 root-level and 18 nested SDK installs: MIG-01 59 hits all true, MIG-02 3 true, MIG-03 3 with one false positive, fixed), a subagent check (plugin hooks run inside subagents and their text reaches them, so no subagent hook was added).
+
 ## 0.1.1
 
 A second, direct read of the shipped content (see `docs/spikes.md`, item 22). Two hook bugs and a set of guidance errors, all found by reading rather than by the eval suite.
