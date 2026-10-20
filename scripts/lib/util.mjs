@@ -96,7 +96,7 @@ export function git(args, cwd) {
   }
 }
 
-/** Marker key: every byte outside [A-Za-z0-9._-] becomes "_" (what `tr -c 'A-Za-z0-9._-' _` does in sh). */
+/** Marker key: every byte outside [A-Za-z0-9._-] becomes "_". hooks/signal.sh builds the same key with `LC_ALL=C tr -c` (byte-wise; in a UTF-8 locale BSD tr would map whole characters). */
 export function markerKey(projectDir) {
   return Buffer.from(String(projectDir), "utf8")
     .toString("latin1")

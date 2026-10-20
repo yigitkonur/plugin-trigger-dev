@@ -6,7 +6,7 @@
 //   scan [path] [--focus <d>] [--json]              relevance per domain + all located hits
 //   docs <topic|path>                               resolve a doc page (local pinned copy -> web .md)
 //   links-check [--anchors]                         status/anchor check of every cited doc URL
-import { envelope, emit, readStdinJson, steering, projectDir } from "./lib/util.mjs";
+import { envelope, emit, readStdinJson, steering, projectDir, hasMarker, writeMarker } from "./lib/util.mjs";
 
 const argv = process.argv.slice(2);
 const cmd = argv[0];
@@ -38,7 +38,14 @@ async function main() {
     case "guard": {
       if (steering() === "off") return;
       const { guard } = await import("./lib/guard.mjs");
-      const out = guard(readStdinJson(), { alias: flag("--alias") });
+      const payload = readStdinJson();
+      if (flag("--alias") && !hasMarker(projectDir(payload))) {
+        // The sh gate arms the marker itself; this is the PowerShell path, which calls the engine directly.
+        const { detect } = await import("./lib/detect.mjs");
+        if (!detect(projectDir(payload)).relevant) return;
+        writeMarker(projectDir(payload));
+      }
+      const out = guard(payload, { alias: flag("--alias") });
       if (out) emit(out);
       return;
     }

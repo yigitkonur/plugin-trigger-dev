@@ -18,6 +18,7 @@ jobs:
           node tests/detect.test.mjs
           node tests/seed.test.mjs
           node tests/replay.test.mjs
+          node tests/marker.test.mjs
       - name: Generated files are up to date
         run: |
           node scripts/build-hooks.mjs --check
