@@ -59,3 +59,20 @@ for (const [name, payload, expect] of cases) {
 }
 console.log(`${fail ? "FAILED" : "ok"}: ${cases.length} guard cases, ${fail} failures`);
 process.exitCode = fail ? 1 : 0;
+
+// Regression: a hook whose stdin writer is slower than the reader (EAGAIN on the pipe) must still get a decision.
+import { spawn } from "node:child_process";
+const engine = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "scripts", "trigger-ctx.mjs");
+const slow = await new Promise((resolve) => {
+  const p = spawn("node", [engine, "guard"], { env: { ...process.env, CLAUDE_PROJECT_DIR: cwd }, stdio: ["pipe", "pipe", "ignore"] });
+  let out = "";
+  p.stdout.on("data", (d) => (out += d));
+  p.on("close", () => resolve(out));
+  setTimeout(() => p.stdin.end(JSON.stringify(bash("npx trigger.dev@latest deploy"))), 400);
+});
+if (!/"permissionDecision":"ask"/.test(slow)) {
+  console.log("FAIL slow stdin writer: no decision");
+  process.exitCode = 1;
+} else {
+  console.log("ok: slow stdin writer still gets a decision");
+}

@@ -17,10 +17,34 @@ export function steering(env = process.env) {
   return v === "quiet" || v === "off" ? v : "full";
 }
 
+/** Reads fd 0 to EOF. A pipe whose writer has not written yet makes readSync throw EAGAIN (readFileSync(0) gives up on it), so retry for up to 3 s. */
+function readAllStdin() {
+  const chunks = [];
+  const buf = Buffer.alloc(65536);
+  const sleep = new Int32Array(new SharedArrayBuffer(4));
+  const deadline = Date.now() + 3000;
+  for (;;) {
+    let n;
+    try {
+      n = fs.readSync(0, buf, 0, buf.length, null);
+    } catch (e) {
+      if (e.code === "EAGAIN" && Date.now() < deadline) {
+        Atomics.wait(sleep, 0, 0, 5);
+        continue;
+      }
+      if (e.code === "EOF") break;
+      throw e;
+    }
+    if (n === 0) break;
+    chunks.push(Buffer.from(buf.subarray(0, n)));
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
 export function readStdinJson() {
   try {
     if (process.stdin.isTTY) return {};
-    const raw = fs.readFileSync(0, "utf8");
+    const raw = readAllStdin();
     return raw.trim() ? JSON.parse(raw) : {};
   } catch {
     return {};
