@@ -5,7 +5,7 @@
 **Decide:**
 - Question (no `execute`) when only the human can supply the value; the answer returns via `addToolOutput`.
 - Approval (`needsApproval: true` plus `execute`) when inputs are known and the action has side effects; denial skips `execute`.
-- Choose-then-act when options come from tool results: a selection question, then an action tool that re-checks the choice. Also the AI SDK 5 route.
+- Choose-then-act when options come from tool results: a selection question, then an action tool that re-checks the choice. It needs question tools only, so it also works on AI SDK 5, where `needsApproval` is unavailable.
 - `onAction` is for state edits (undo, edit, regenerate), never approvals.
 - `idleTimeoutInSeconds` (30 s default) for quick answers; `0` for answers that take minutes, since only the idle window counts toward compute.
 - `turnTimeout` (default `"1h"`) ends a waiting run; a later answer continues from transcript storage.
@@ -15,7 +15,7 @@
 2. Define question tools without `execute`; approval tools with `needsApproval: true` plus `execute`. Verify `needsApproval`.
 3. Declare tools on the agent config; the `streamText` in `run` receives them. Verify `streamText({ tools })` in `ai-chat/tools`.
 4. Owner check in the start-session and token actions. Verify `startSession` and `accessToken` in `ai-chat/quick-start`.
-5. Frontend: render on `input-available`, answer with `addToolOutput`, let `sendAutomaticallyWhen` start the turn, approve or deny with `addToolApprovalResponse`. Verify `lastAssistantMessageIsCompleteWithToolCalls`.
+5. Frontend: render on `input-available`, answer with `addToolOutput` and auto-submit with `lastAssistantMessageIsCompleteWithToolCalls`; for approvals call `addToolApprovalResponse` and auto-submit with `lastAssistantMessageIsCompleteWithApprovalResponses`; an agent with both combines the two helpers in `sendAutomaticallyWhen`. Verify them in `ai-chat/patterns/human-in-the-loop`.
 6. Validate answers server-side; set `idleTimeoutInSeconds` and `turnTimeout`. Verify "Duration and cost while paused".
 7. Prove it (see Verify).
 

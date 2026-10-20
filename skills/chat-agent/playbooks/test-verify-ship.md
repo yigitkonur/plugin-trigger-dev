@@ -37,7 +37,7 @@
 
 **Gates:**
 - `@trigger.dev/sdk` ≥ 4.5.0 for `chat.agent`.
-- `ai` ^5, ^6 or ≥7 canary; `ai@7` also needs `@ai-sdk/otel` (CHT-21).
+- `ai` ^5, ^6 or ≥7 canary; `ai@7` needs `@ai-sdk/otel` only if you want model-call spans (CHT-21).
 - Self-host: `OBJECT_STORE_*` for snapshots; set `TRIGGER_API_URL` to your instance (`manual-setup`).
 
 **Docs:** https://trigger.dev/docs/ai-chat/testing · https://trigger.dev/docs/mcp-tools · https://trigger.dev/docs/ai-chat/mcp · https://trigger.dev/docs/ai-chat/quick-start · https://trigger.dev/docs/ai-chat/transcript-storage · https://trigger.dev/docs/ai-chat/migrating-from-hydrate-messages · https://trigger.dev/docs/ai-chat/patterns/version-upgrades · https://trigger.dev/docs/ai-chat/error-handling · https://trigger.dev/docs/ai-chat/reference · https://trigger.dev/docs/ai-chat/frontend · https://trigger.dev/docs/deployment/atomic-deployment · https://trigger.dev/docs/github-actions · https://trigger.dev/docs/manual-setup

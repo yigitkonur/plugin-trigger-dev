@@ -38,7 +38,7 @@ Inferred without asking: the frontend (the React transport hook is React-only; o
 
 ## Choose the layer, the callers and the persistence
 
-- **Layer:** `chat.agent` (default) · `chat.createSession` (your own per-turn code; no hooks, actions, approvals or Head Start) · `chat.customAgent` with primitives (a custom protocol) · raw `sessions` (not chat-shaped).
+- **Layer:** `chat.agent` (default) · `chat.createSession` (your own per-turn code; no lifecycle hooks, actions or approvals; Head Start works with it since 4.5.0 even though the `ai-chat/backend` capability table still says no) · `chat.customAgent` with primitives (a custom protocol) · raw `sessions` (not chat-shaped).
 - **Callers:** a browser (React transport) · a server, script, Slack bot or another agent (`AgentChat`; deterministic `id` to resume) · a non-React or non-TS client (the client protocol over REST/SSE) · Slack, Linear or channels (**private beta**: check access first; the fallback is `AgentChat` called from your own handler).
 - **Persistence:** snapshot (default) · `storage: TranscriptStorage` (`runTranscriptStorageTests` to verify) · never new `hydrateMessages`.
 

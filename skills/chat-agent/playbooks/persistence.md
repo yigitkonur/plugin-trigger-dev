@@ -5,12 +5,12 @@
 - `storage: TranscriptStorage` when your database is the source of truth; platform snapshot when history only has to survive runs.
 - `loadContext` on the storage only when your database must decide the model's context (branching, rollback).
 - Self-host snapshot only with `OBJECT_STORE_*` set; otherwise bring storage.
-- `onTurnComplete` only for live session state (access token, `lastEventId`) the transcript does not cover.
+- `onTurnComplete` only for live session state (the access token) the transcript does not cover; the resume cursors reach `save` as `changeset.cursors`, so a `lastEventId` write there is redundant with `storage`.
 - `hydrateMessages` never in new code: deprecated; it switches off runtime transcript reads and writes.
 
 **Order of work:**
 1. Map chat tables to `TranscriptStorage` (from `@trigger.dev/sdk/ai`); verify `save`, `load`, `loadContext`.
-2. Implement `save` and `load`; write messages and `chat.session?.lastEventId` in one transaction.
+2. Implement `save` and `load`: `save` writes the changes (or the document), `state` and `changeset.cursors` in one transaction; `load` returns them.
 3. Set `storage` on `chat.agent` and delete `hydrateMessages` in the same change.
 4. Export the read only as `chat.createLoadTranscriptAction(storage, …)` behind your ownership check.
 5. Apply the same owner check to `chat.createStartSessionAction` and its token refresh.
@@ -29,7 +29,7 @@
 - `storage` set together with `hydrateMessages`: startup error (CHT-08).
 - Unwrapped `chat.createLoadTranscriptAction(`: any signed-in user can read any chat (CHT-12).
 - Start or token action without an owner check: exposes other users' session tokens (CHT-05).
-- Message write and `lastEventId` in separate awaits: a refresh between them duplicates the turn (CHT-13).
+- Hook-based persistence (no `storage`): message write and `lastEventId` in separate awaits, so a refresh between them duplicates the turn; with `storage`, cursors written outside `save`'s transaction do the same (CHT-13).
 - Self-host with neither `OBJECT_STORE_*` nor `storage`: continuations boot empty (CHT-20).
 - Rolling back after the new format is saved: earlier history is lost (no CHT rule).
 

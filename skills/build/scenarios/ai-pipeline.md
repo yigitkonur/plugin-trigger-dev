@@ -11,9 +11,9 @@
 - Rejected: prompt string literal — no link from spans to a prompt version.
 - `experimental_telemetry: { isEnabled: true }` on each call — because every generation becomes a run-trace span and `llm_metrics` gives cost.
 
-**Gates:** version: AI SDK 7 needs `@ai-sdk/otel` installed and registered once (AI SDK 6 needs nothing). Beta: none in this card. Cloud-only: none stated; prompt resolve calls the Trigger.dev API (self-host: `TRIGGER_API_URL`).
+**Gates:** version: on AI SDK 7, generation spans need `@ai-sdk/otel` installed and registered once (optional tracing; AI SDK 6 needs nothing). Beta: none in this card. Cloud-only: none stated; prompt resolve calls the Trigger.dev API (self-host: `TRIGGER_API_URL`).
 
-**Ask only if unknown:** Which AI SDK major is installed? (7 adds the `@ai-sdk/otel` step.) Must production output stay pinned to one prompt version? (Yes: `resolve(vars, { version: N })`. No: a dashboard override changes prod with no deploy.)
+**Ask only if unknown:** Which AI SDK major is installed? (7 adds the optional `@ai-sdk/otel` tracing step.) Must production output stay pinned to one prompt version? (Yes: `resolve(vars, { version: N })`. No: a dashboard override changes prod with no deploy.)
 
 **Minimal shape:**
 ```ts

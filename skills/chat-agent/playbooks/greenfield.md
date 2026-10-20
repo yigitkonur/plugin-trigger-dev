@@ -2,7 +2,7 @@
 **Use when:** a new AI chat feature with no existing chat route; replies must survive refreshes, deploys and crashes.  **Not this playbook if:** a `streamText` route exists → `chat-agent/migrate-route-handler`; your DB must own history → `chat-agent/persistence`; Slack, Linear or server callers → `chat-agent/server-and-channel-callers`.
 
 **Decide:** (discovery C1–C8; infer before asking)
-- Layer: `chat.agent` by default · `chat.createSession` only with no hooks, actions, approvals or Head Start · `chat.customAgent` for a custom protocol.
+- Layer: `chat.agent` by default · `chat.createSession` only with no lifecycle hooks, actions or approvals (Head Start does work with it since 4.5.0, despite the `ai-chat/backend` table) · `chat.customAgent` for a custom protocol.
 - C1 new vs migrate: greenfield only when no chat route exists.
 - C2 callers: browser transport for React · `AgentChat` for server, script or agent callers · client protocol for non-React or non-TS · Slack/Linear/channels are Beta: never default, always with a fallback.
 - C3 history: platform snapshot by default · `storage: TranscriptStorage` when your DB must own it; wrap `chat.createLoadTranscriptAction` with the ownership check (CHT-12).
@@ -29,7 +29,7 @@
 **Pitfalls → rules:**
 - Imported `streamText` silently drops compaction, steering and telemetry → CHT-01.
 - Token or start action without an ownership check lets one user reach another user's chat → CHT-05.
-- Old prerelease names `chat.createAccessToken` and `triggerConfig` → CHT-06.
+- Old prerelease names `chat.createAccessToken`, and `triggerConfig` / `triggerOptions` on the transport (trigger config now lives in `chat.createStartSessionAction`) → CHT-06.
 - `chat.local` initialised in `onChatStart` or `onPreload` → CHT-04.
 - `hydrateMessages` as the persistence path; `storage` is the successor → CHT-08.
 - Side-effecting tools without idempotency repeat on OOM retry or regenerate → CHT-18; OOM retries need `oomMachine` → TSK-29.
@@ -42,7 +42,7 @@
 
 **Gates:**
 - `chat.agent` needs `@trigger.dev/sdk` ≥ 4.5.0 (GA July 2026).
-- Approvals need AI SDK ≥ 6; `ai@7` also needs `@ai-sdk/otel` (CHT-21).
+- Approvals need AI SDK ≥ 6; `ai@7` needs `@ai-sdk/otel` only if you want model-call spans (CHT-21).
 - Self-host needs `OBJECT_STORE_*` for snapshots (CHT-20).
 
 **Docs:** https://trigger.dev/docs/ai-chat/overview · https://trigger.dev/docs/ai-chat/quick-start · https://trigger.dev/docs/ai-chat/backend · https://trigger.dev/docs/ai-chat/frontend · https://trigger.dev/docs/ai-chat/lifecycle-hooks · https://trigger.dev/docs/ai-chat/server-chat · https://trigger.dev/docs/ai-chat/client-protocol · https://trigger.dev/docs/ai-chat/transcript-storage · https://trigger.dev/docs/ai-chat/upgrade-guide · https://trigger.dev/docs/ai-chat/testing · https://trigger.dev/docs/ai-chat/mcp · https://trigger.dev/docs/ai-chat/patterns/oom-resilience

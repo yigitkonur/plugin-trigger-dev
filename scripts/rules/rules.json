@@ -649,8 +649,8 @@
    "scope": "code",
    "match": null,
    "judge": "Are the message write and the lastEventId (or session token) write issued as separate awaited statements instead of one transaction (for example, two awaited db calls rather than a single db.$transaction)? Confirm both writes happen in the same turn handler.",
-   "message": "messages and lastEventId are written in separate awaits, so a page load between the two writes can read a conversation and a session that disagree",
-   "fix": "write messages and lastEventId in one transaction",
+   "message": "messages and lastEventId are written in separate awaits, so a page load between the two writes can read a conversation and a session that disagree (with storage the cursors arrive in the save changeset, so a lastEventId write in onTurnComplete is redundant)",
+   "fix": "write messages and lastEventId in one transaction; with storage, write changeset.cursors inside save and delete the onTurnComplete write",
    "fix_mode": "flag-only",
    "doc": "https://trigger.dev/docs/ai-chat/patterns/database-persistence"
   },
