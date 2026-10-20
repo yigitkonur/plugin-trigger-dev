@@ -45,4 +45,4 @@
 - Approvals need AI SDK ≥ 6; `ai@7` also needs `@ai-sdk/otel` (CHT-21).
 - Self-host needs `OBJECT_STORE_*` for snapshots (CHT-20).
 
-**Docs:** `ai-chat/overview` · `ai-chat/quick-start` · `ai-chat/backend` · `ai-chat/frontend` · `ai-chat/lifecycle-hooks` · `ai-chat/server-chat` · `ai-chat/client-protocol` · `ai-chat/transcript-storage` · `ai-chat/upgrade-guide` · `ai-chat/testing` · `ai-chat/mcp` · `ai-chat/patterns/oom-resilience`
+**Docs:** https://trigger.dev/docs/ai-chat/overview · https://trigger.dev/docs/ai-chat/quick-start · https://trigger.dev/docs/ai-chat/backend · https://trigger.dev/docs/ai-chat/frontend · https://trigger.dev/docs/ai-chat/lifecycle-hooks · https://trigger.dev/docs/ai-chat/server-chat · https://trigger.dev/docs/ai-chat/client-protocol · https://trigger.dev/docs/ai-chat/transcript-storage · https://trigger.dev/docs/ai-chat/upgrade-guide · https://trigger.dev/docs/ai-chat/testing · https://trigger.dev/docs/ai-chat/mcp · https://trigger.dev/docs/ai-chat/patterns/oom-resilience

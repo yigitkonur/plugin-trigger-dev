@@ -42,4 +42,4 @@
 - Serverless timeout covers step 1, agent boot and tool calls.
 - Self-host: the route runs on your server; continuations need a configured object store or `storage` (CHT-20).
 
-**Docs:** `ai-chat/fast-starts` · `ai-chat/lifecycle-hooks` · `ai-chat/frontend` · `ai-chat/backend` · `ai-chat/quick-start` · `ai-chat/testing` · `ai-chat/mcp` · `ai-chat/reference`
+**Docs:** https://trigger.dev/docs/ai-chat/fast-starts · https://trigger.dev/docs/ai-chat/lifecycle-hooks · https://trigger.dev/docs/ai-chat/frontend · https://trigger.dev/docs/ai-chat/backend · https://trigger.dev/docs/ai-chat/quick-start · https://trigger.dev/docs/ai-chat/testing · https://trigger.dev/docs/ai-chat/mcp · https://trigger.dev/docs/ai-chat/reference

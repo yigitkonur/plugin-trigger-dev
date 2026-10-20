@@ -39,4 +39,4 @@
 - `@trigger.dev/sdk` ≥ 4.5.0 for `chat.agent`; version-skew protection needs ≥ 4.5.12.
 - Self-host: `OBJECT_STORE_*` or `storage: TranscriptStorage`, else continuations boot empty (CHT-20). Pass `baseURL` (`ai-chat/reference`); never hard-code the cloud URL.
 
-**Docs:** `ai-chat/error-handling` · `ai-chat/patterns/oom-resilience` · `ai-chat/patterns/recovery-boot` · `ai-chat/patterns/version-upgrades` · `ai-chat/lifecycle-hooks` · `ai-chat/quick-start` · `ai-chat/testing` · `ai-chat/mcp` · `ai-chat/reference` · `deployment/atomic-deployment`
+**Docs:** https://trigger.dev/docs/ai-chat/error-handling · https://trigger.dev/docs/ai-chat/patterns/oom-resilience · https://trigger.dev/docs/ai-chat/patterns/recovery-boot · https://trigger.dev/docs/ai-chat/patterns/version-upgrades · https://trigger.dev/docs/ai-chat/lifecycle-hooks · https://trigger.dev/docs/ai-chat/quick-start · https://trigger.dev/docs/ai-chat/testing · https://trigger.dev/docs/ai-chat/mcp · https://trigger.dev/docs/ai-chat/reference · https://trigger.dev/docs/deployment/atomic-deployment

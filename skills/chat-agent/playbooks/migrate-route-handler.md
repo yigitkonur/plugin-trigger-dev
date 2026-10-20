@@ -34,4 +34,4 @@
 
 **Gates:** `@trigger.dev/sdk` ≥ 4.5.0 (`ai-chat/reference`). AI SDK 5, 6 or 7; on 7 add `@ai-sdk/otel` (CHT-21). Self-host: platform snapshots need object-store config (CHT-20), or bring your own `storage`.
 
-**Docs:** `ai-chat/migrating-from-a-route-handler` · `ai-chat/upgrade-guide` · `ai-chat/quick-start` · `ai-chat/frontend` · `ai-chat/lifecycle-hooks` · `ai-chat/testing` · `ai-chat/mcp` · `ai-chat/reference`
+**Docs:** https://trigger.dev/docs/ai-chat/migrating-from-a-route-handler · https://trigger.dev/docs/ai-chat/upgrade-guide · https://trigger.dev/docs/ai-chat/quick-start · https://trigger.dev/docs/ai-chat/frontend · https://trigger.dev/docs/ai-chat/lifecycle-hooks · https://trigger.dev/docs/ai-chat/testing · https://trigger.dev/docs/ai-chat/mcp · https://trigger.dev/docs/ai-chat/reference

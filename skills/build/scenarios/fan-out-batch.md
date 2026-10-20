@@ -41,4 +41,4 @@ export const fanOut = task({
 - `concurrency: { perKey }` without `total` grows unbounded with active keys (QUE-04)
 - `.runs` on a `batchTrigger` result (SDK ≥ 4); use `batch.retrieve(handle.batchId)` (MIG-06)
 
-**Docs:** `triggering` · `concurrency` · `idempotency` · `limits#batch-trigger-rate-limits` · `troubleshooting#parallel-waits-are-not-supported`
+**Docs:** https://trigger.dev/docs/triggering · https://trigger.dev/docs/concurrency · https://trigger.dev/docs/idempotency · https://trigger.dev/docs/limits#batch-trigger-rate-limits · https://trigger.dev/docs/troubleshooting#parallel-waits-are-not-supported

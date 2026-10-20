@@ -45,4 +45,4 @@
 - Self-host: `OBJECT_STORE_*` or your own `storage` for suspended pauses.
 - Slack/channel routing is Beta; never the default here.
 
-**Docs:** `ai-chat/patterns/human-in-the-loop` · `ai-chat/actions` · `ai-chat/tools` · `ai-chat/quick-start` · `ai-chat/testing` · `ai-chat/mcp`
+**Docs:** https://trigger.dev/docs/ai-chat/patterns/human-in-the-loop · https://trigger.dev/docs/ai-chat/actions · https://trigger.dev/docs/ai-chat/tools · https://trigger.dev/docs/ai-chat/quick-start · https://trigger.dev/docs/ai-chat/testing · https://trigger.dev/docs/ai-chat/mcp

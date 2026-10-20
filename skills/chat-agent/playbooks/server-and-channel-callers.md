@@ -44,4 +44,4 @@
 - Private beta: Slack, Linear, channels, hosted webhooks.
 - Self-host: `baseURL`; object store configured (CHT-20).
 
-**Docs:** `ai-chat/server-chat` · `ai-chat/sessions` · `ai-chat/client-protocol` · `ai-chat/testing` · `ai-chat/mcp` · `ai-chat/quick-start` · `idempotency` · `webhooks/slack` (web only) · `webhooks/linear` (web only) · `webhooks/channels` (web only) · `webhooks/session-routing` (web only)
+**Docs:** https://trigger.dev/docs/ai-chat/server-chat · https://trigger.dev/docs/ai-chat/sessions · https://trigger.dev/docs/ai-chat/client-protocol · https://trigger.dev/docs/ai-chat/testing · https://trigger.dev/docs/ai-chat/mcp · https://trigger.dev/docs/ai-chat/quick-start · https://trigger.dev/docs/idempotency · https://trigger.dev/docs/webhooks/slack (web only) · https://trigger.dev/docs/webhooks/linear (web only) · https://trigger.dev/docs/webhooks/channels (web only) · https://trigger.dev/docs/webhooks/session-routing (web only)

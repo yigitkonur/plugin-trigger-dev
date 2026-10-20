@@ -44,4 +44,4 @@
 - Self-host: `OBJECT_STORE_*` for the default snapshot (`OBJECT_STORE_DEFAULT_PROTOCOL` selects the driver).
 - No beta features here (channels, Slack, Linear).
 
-**Docs:** `ai-chat/transcript-storage` · `ai-chat/patterns/database-persistence` · `ai-chat/patterns/persistence-and-replay` · `ai-chat/migrating-from-hydrate-messages` · `ai-chat/lifecycle-hooks` · `ai-chat/sessions` · `ai-chat/testing` · `ai-chat/reference` · `ai-chat/quick-start` · `ai-chat/mcp`
+**Docs:** https://trigger.dev/docs/ai-chat/transcript-storage · https://trigger.dev/docs/ai-chat/patterns/database-persistence · https://trigger.dev/docs/ai-chat/patterns/persistence-and-replay · https://trigger.dev/docs/ai-chat/migrating-from-hydrate-messages · https://trigger.dev/docs/ai-chat/lifecycle-hooks · https://trigger.dev/docs/ai-chat/sessions · https://trigger.dev/docs/ai-chat/testing · https://trigger.dev/docs/ai-chat/reference · https://trigger.dev/docs/ai-chat/quick-start · https://trigger.dev/docs/ai-chat/mcp

@@ -38,4 +38,4 @@ const { run } = useRealtimeRun(runId, { accessToken, skipColumns: ["payload", "o
 - Status UI without `skipColumns: ["payload", "output"]` sends both with every update (RT-06)
 - Metadata over 256 KB: the flush fails and only logs `Failed to flush metadata`; keep state small, bound `append` logs, or move bulk data to streams (TSK-20)
 
-**Docs:** `realtime/overview` · `runs/metadata` · `realtime/auth` · `realtime/react-hooks/subscribe` · `tasks/streams` · `realtime/react-hooks/streams` · `realtime/react-hooks/swr` · `limits#realtime-connections`
+**Docs:** https://trigger.dev/docs/realtime/overview · https://trigger.dev/docs/runs/metadata · https://trigger.dev/docs/realtime/auth · https://trigger.dev/docs/realtime/react-hooks/subscribe · https://trigger.dev/docs/tasks/streams · https://trigger.dev/docs/realtime/react-hooks/streams · https://trigger.dev/docs/realtime/react-hooks/swr · https://trigger.dev/docs/limits#realtime-connections

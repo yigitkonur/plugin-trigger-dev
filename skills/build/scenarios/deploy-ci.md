@@ -42,4 +42,4 @@ jobs:
 - `paths:` filter with a sha-based id: a run pinned to a deployment that never lands expires after 1 h (DEP-05)
 - Stale `TRIGGER_VERSION` in app or hosting env: every trigger fails with a 422 (DEP-06)
 
-**Docs:** `deployment/overview` · `github-actions` · `deploy-environment-variables` · `deployment/atomic-deployment` · `deployment/preview-branches` · `deployment/dev-branches` · `github-integration` · `vercel-integration` · `cli-env-commands`
+**Docs:** https://trigger.dev/docs/deployment/overview · https://trigger.dev/docs/github-actions · https://trigger.dev/docs/deploy-environment-variables · https://trigger.dev/docs/deployment/atomic-deployment · https://trigger.dev/docs/deployment/preview-branches · https://trigger.dev/docs/deployment/dev-branches · https://trigger.dev/docs/github-integration · https://trigger.dev/docs/vercel-integration · https://trigger.dev/docs/cli-env-commands

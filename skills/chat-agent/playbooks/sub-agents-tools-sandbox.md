@@ -42,4 +42,4 @@
 - Self-host: an object store (`OBJECT_STORE_*`) or BYO transcript storage, or continuations boot empty (CHT-20).
 - The sandbox provider is external; its keys and cost are separate.
 
-**Docs:** `ai-chat/patterns/sub-agents` · `ai-chat/patterns/skills` · `ai-chat/patterns/code-sandbox` · `ai-chat/tools` · `ai-chat/side-channels` · `ai-chat/chat-local` · `ai-chat/lifecycle-hooks` · `ai-chat/testing` · `ai-chat/mcp` · `ai-chat/reference` · `concurrency`
+**Docs:** https://trigger.dev/docs/ai-chat/patterns/sub-agents · https://trigger.dev/docs/ai-chat/patterns/skills · https://trigger.dev/docs/ai-chat/patterns/code-sandbox · https://trigger.dev/docs/ai-chat/tools · https://trigger.dev/docs/ai-chat/side-channels · https://trigger.dev/docs/ai-chat/chat-local · https://trigger.dev/docs/ai-chat/lifecycle-hooks · https://trigger.dev/docs/ai-chat/testing · https://trigger.dev/docs/ai-chat/mcp · https://trigger.dev/docs/ai-chat/reference · https://trigger.dev/docs/concurrency

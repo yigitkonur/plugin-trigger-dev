@@ -41,4 +41,4 @@ const result = await batch.retrieve(handle.batchId); // result.runs, not handle.
 - Zod below 3.25.56 is unsupported, and overrides can pin an old copy. `instanceof z.ZodError` stops matching Zod 4 errors; read `.issues`. (MIG-09)
 - Cutover: during the drain, runs can use up to 2× concurrency; static IPs may change, so update allowlists before or right after switching. (no rule)
 
-**Docs:** `migrating-from-v3` · `upgrading-packages` · `troubleshooting-zod`
+**Docs:** https://trigger.dev/docs/migrating-from-v3 · https://trigger.dev/docs/upgrading-packages · https://trigger.dev/docs/troubleshooting-zod

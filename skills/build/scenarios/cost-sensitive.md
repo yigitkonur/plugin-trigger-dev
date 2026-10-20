@@ -44,4 +44,4 @@ await syncDoc.trigger({ docId }, { debounce: { key: docId, delay: "5s", mode: "t
 - Bursty per-key triggers with no `debounce`, or no max-delay cap on it (COST-03, TSK-23)
 - No billing limit or alert set; a human sets it in the dashboard (COST-07)
 
-**Docs:** `how-to-reduce-your-spend` · `machines` · `run-usage` · `observability/query` · `billing-limits`
+**Docs:** https://trigger.dev/docs/how-to-reduce-your-spend · https://trigger.dev/docs/machines · https://trigger.dev/docs/run-usage · https://trigger.dev/docs/observability/query · https://trigger.dev/docs/billing-limits

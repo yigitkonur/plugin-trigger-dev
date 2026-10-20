@@ -40,4 +40,4 @@ def trigger_report(order_id: str, payload: dict) -> dict:
 - Random idempotency key per attempt, or none on retries: each retry starts a second run; use a stable business id (TSK-11)
 - `pythonExtension` scripts not globbed (`scripts: ["./python/**/*.py"]`), or `requirementsFile` expected in dev (CFG-04)
 
-**Docs:** `management/tasks/trigger` (web only) · `management/authentication` (web only) · `apikeys` · `config/extensions/pythonExtension`
+**Docs:** https://trigger.dev/docs/management/tasks/trigger (web only) · https://trigger.dev/docs/management/authentication (web only) · https://trigger.dev/docs/apikeys · `config/extensions/pythonExtension`

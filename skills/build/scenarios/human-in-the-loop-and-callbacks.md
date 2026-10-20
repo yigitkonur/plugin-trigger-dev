@@ -39,4 +39,4 @@ const approval = await wait.forToken<ApprovalToken>(token.id).unwrap(); // throw
 - A retried attempt creates a new webhook waiter with no `idempotencyKey` and misses a delivery that already arrived. (WH-02)
 - An unchecked `forToken` result hides the timeout error; use `.unwrap()` or check `.ok`.
 
-**Docs:** `wait-for-token` · `realtime/react-hooks/use-wait-token` · `tasks/streams` · `apikeys` · `webhooks/waiters` (web only) · `management/waitpoints/complete` (web only)
+**Docs:** https://trigger.dev/docs/wait-for-token · https://trigger.dev/docs/realtime/react-hooks/use-wait-token · https://trigger.dev/docs/tasks/streams · https://trigger.dev/docs/apikeys · https://trigger.dev/docs/webhooks/waiters (web only) · https://trigger.dev/docs/management/waitpoints/complete (web only)

@@ -41,4 +41,4 @@ await schedules.create({
 - `schedules.task` with no `cron` and no `schedules.create` never fires (SCH-07). Dev fires only while `trigger dev` runs; staging and production fire only for the latest deployment.
 - Long runs can overlap the next tick. `ttl` only expires runs still queued, so it does not stop overlap; cap it with `concurrency: { total: 1 }` on the task if overlap is harmful (SCH-05).
 
-**Docs:** `tasks/scheduled` · `limits#schedules` · `runs` · `management/schedules/create` (web only)
+**Docs:** https://trigger.dev/docs/tasks/scheduled · https://trigger.dev/docs/limits#schedules · https://trigger.dev/docs/runs · https://trigger.dev/docs/management/schedules/create (web only)

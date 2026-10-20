@@ -41,4 +41,4 @@ export const render = task({
 - Synchronous CPU loop without `heartbeats.yield()`; the run is marked stalled after 5 minutes. (TSK-13)
 - Memory-heavy task on the default `small-1x` (0.5 GB) with no OOM escalation; ffmpeg children count toward the limit. (TSK-29)
 
-**Docs:** `config/extensions/overview` · `machines` · `runs/heartbeats` · `config/extensions/puppeteer` · `config/extensions/ffmpeg` · `config/extensions/pythonExtension` · `config/extensions/aptGet`
+**Docs:** https://trigger.dev/docs/config/extensions/overview · https://trigger.dev/docs/machines · https://trigger.dev/docs/runs/heartbeats · https://trigger.dev/docs/config/extensions/puppeteer · https://trigger.dev/docs/config/extensions/ffmpeg · `config/extensions/pythonExtension` · `config/extensions/aptGet`

@@ -40,4 +40,4 @@ export const summariseTool = tool({ description: summarise.description ?? "", in
 - A dashboard prompt override changes prod output with no deploy; `resolve(vars, { version: N })` takes priority over it (no rule id).
 - AI SDK 7 without `@ai-sdk/otel` emits no generation spans (CHT-21).
 
-**Docs:** `tasks/schemaTask` · `ai/prompts` · `ai/observability` · `tasks/streams` · `errors-retrying`
+**Docs:** `tasks/schemaTask` · https://trigger.dev/docs/ai/prompts · https://trigger.dev/docs/ai/observability · https://trigger.dev/docs/tasks/streams · https://trigger.dev/docs/errors-retrying

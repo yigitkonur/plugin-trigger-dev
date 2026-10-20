@@ -35,4 +35,4 @@ export const onboardingDrip = task({
 - `wait.*` inside `Promise.all`/`race` (TSK-01)
 - Stream opened before a 1 h or longer wait with no writes (TSK-30)
 
-**Docs:** `wait` · `wait-for` · `wait-until` · `concurrency#short-time-based-waits-keep-their-slot` · `how-it-works`
+**Docs:** https://trigger.dev/docs/wait · https://trigger.dev/docs/wait-for · https://trigger.dev/docs/wait-until · https://trigger.dev/docs/concurrency#short-time-based-waits-keep-their-slot · https://trigger.dev/docs/how-it-works

@@ -32,4 +32,4 @@
 - System-block cache breakpoints need AI SDK v6+; on v5 cache through `prepareMessages` only.
 - Native compaction is provider-specific (Anthropic context editing, OpenAI stored responses).
 - Self-host: `OBJECT_STORE_*` or your own `storage`; otherwise continuations boot empty (CHT-20).
-**Docs:** `ai-chat/compaction` · `ai-chat/prompt-caching` · `ai-chat/patterns/large-payloads` · `ai-chat/patterns/native-compaction` · `ai-chat/pending-messages` · `ai-chat/background-injection` · `ai-chat/testing` · `ai-chat/mcp` · `ai-chat/transcript-storage`
+**Docs:** https://trigger.dev/docs/ai-chat/compaction · https://trigger.dev/docs/ai-chat/prompt-caching · https://trigger.dev/docs/ai-chat/patterns/large-payloads · https://trigger.dev/docs/ai-chat/patterns/native-compaction · https://trigger.dev/docs/ai-chat/pending-messages · https://trigger.dev/docs/ai-chat/background-injection · https://trigger.dev/docs/ai-chat/testing · https://trigger.dev/docs/ai-chat/mcp · https://trigger.dev/docs/ai-chat/transcript-storage

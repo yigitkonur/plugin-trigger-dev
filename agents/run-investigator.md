@@ -15,4 +15,4 @@ Rules:
 - Resolve doc pages with `trigger-ctx docs "<topic>"` (Bash) and cite them; never paste doc prose.
 
 Return at most 25 lines, in this order:
-Verdict (one sentence) · Evidence (run ids, span ids, query results, each with its environment) · Ranked causes · Fix · Doc URL.
+Verdict (one sentence) · Evidence (run ids, span ids, query results, each with its environment) · Ranked causes · Fix · Doc URL (full `https://trigger.dev/docs/<path>`).

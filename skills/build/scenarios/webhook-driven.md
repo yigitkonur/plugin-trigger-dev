@@ -37,4 +37,4 @@ export async function POST(req: Request) {
 - Custom source (`webhooks.custom`) without `idempotencyField` derives its key from body, timestamp and signature, which can change on retry (WH-02)
 - Event types are compile-time only, and filters aren't security: a throwing filter still routes the event, so validate in the handler (WH-04)
 
-**Docs:** `idempotency` · `webhooks/overview` (web only) · `webhooks/sources` (web only) · `webhooks/connect` (web only) · `webhooks/filters` (web only) · `webhooks/deliveries` (web only) · `apikeys`
+**Docs:** https://trigger.dev/docs/idempotency · https://trigger.dev/docs/webhooks/overview (web only) · https://trigger.dev/docs/webhooks/sources (web only) · https://trigger.dev/docs/webhooks/connect (web only) · https://trigger.dev/docs/webhooks/filters (web only) · https://trigger.dev/docs/webhooks/deliveries (web only) · https://trigger.dev/docs/apikeys
