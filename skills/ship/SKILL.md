@@ -3,7 +3,7 @@ name: ship
 description: Deploy Trigger.dev tasks to an environment with a preflight, the right CI or integration pipeline, an explicit --env, and a verification step.
 argument-hint: "[staging|prod|preview]"
 disable-model-invocation: true
-allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(git status *) Bash(git branch *)
+allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(git status *) Bash(git branch --show-current)
 ---
 
 # Ship to $ARGUMENTS

@@ -3,7 +3,7 @@ name: init
 description: Set up Trigger.dev in this repository with a short discovery, an explicit architecture decision, and a first task proven to run.
 argument-hint: "[what you want Trigger.dev to run first]"
 disable-model-invocation: true
-allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(npx trigger.dev@latest *) Bash(pnpm dlx trigger.dev@latest *) Bash(yarn dlx trigger.dev@latest *) Bash(bunx trigger.dev@latest *)
+allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(npx trigger.dev@latest whoami*) Bash(npx trigger.dev@latest login*) Bash(npx trigger.dev@latest projects *) Bash(npx trigger.dev@latest init*) Bash(pnpm dlx trigger.dev@latest whoami*) Bash(pnpm dlx trigger.dev@latest login*) Bash(pnpm dlx trigger.dev@latest projects *) Bash(pnpm dlx trigger.dev@latest init*) Bash(yarn dlx trigger.dev@latest whoami*) Bash(yarn dlx trigger.dev@latest login*) Bash(yarn dlx trigger.dev@latest projects *) Bash(yarn dlx trigger.dev@latest init*) Bash(bunx trigger.dev@latest whoami*) Bash(bunx trigger.dev@latest login*) Bash(bunx trigger.dev@latest projects *) Bash(bunx trigger.dev@latest init*)
 ---
 
 # Set up Trigger.dev here

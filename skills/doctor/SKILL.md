@@ -2,7 +2,7 @@
 name: doctor
 description: Check the Trigger.dev toolchain around this project (Node, CLI login and profile, MCP server, versions, duplicate official skills, self-host target, plugin install scope) and report what to fix.
 disable-model-invocation: true
-allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(node --version) Bash(npx trigger.dev@latest whoami) Bash(claude plugin *) Bash(git rev-parse *)
+allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(node --version) Bash(npx trigger.dev@latest whoami*) Bash(claude plugin list*) Bash(git rev-parse *)
 ---
 
 # Trigger.dev doctor
