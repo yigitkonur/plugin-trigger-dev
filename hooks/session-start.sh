@@ -6,6 +6,7 @@ mode="${CLAUDE_PLUGIN_OPTION_STEERING:-full}"
 root="${CLAUDE_PROJECT_DIR:-$PWD}"
 cd "$root" 2>/dev/null || exit 0
 plugin="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)}"
+[ -r "$plugin/hooks/signal.sh" ] || exit 0 # a failed `.` exits 2 under dash, and 2 blocks the tool call
 . "$plugin/hooks/signal.sh"
 
 signal=$(trigger_signal "$root")

@@ -117,6 +117,21 @@ const trigger = { "package.json": JSON.stringify({ name: "app", private: true, s
   console.log(`info: non-Trigger repo gate min ${min.toFixed(1)} ms, mean ${mean.toFixed(1)} ms over ${times.length} runs`);
 }
 
+
+// 4. A plugin directory without hooks/signal.sh (a partial install, or an update that replaced the directory mid-session) must not
+// fail the hook: dash exits 2 on a failed `.`, and 2 is the blocking exit code.
+{
+  const p = project("no-signal", trigger);
+  const empty = fs.mkdtempSync(path.join(tmp, "plugin-without-signal-"));
+  for (const [script, args, input] of [["marker-gate.sh", ["guard", "--alias"], JSON.stringify(bashPayload(p, "npm run deploy:trigger"))], ["marker-gate.sh", ["lint", "--hook"], JSON.stringify(writePayload(p))], ["session-start.sh", [], "{}"]]) {
+    for (const shell of ["sh", ...(spawnSync("dash", ["-c", "exit 0"]).status === 0 ? ["dash"] : [])]) {
+      const env = { ...process.env, CLAUDE_PROJECT_DIR: p.root, CLAUDE_PLUGIN_ROOT: empty, CLAUDE_PLUGIN_DATA: p.data };
+      const r = spawnSync(shell, [path.join(plugin, "hooks", script), ...args], { cwd: p.root, env, input, encoding: "utf8", timeout: 15000 });
+      check(`missing signal.sh: ${shell} ${script} ${args[0] ?? ""} exits 0 and prints nothing`, r.status === 0 && r.stdout === "", `status=${r.status} out=${(r.stdout || "").slice(0, 80)}`);
+    }
+  }
+}
+
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(`${fail ? "FAILED" : "ok"}: ${n} marker checks, ${fail} failures`);
 process.exitCode = fail ? 1 : 0;
