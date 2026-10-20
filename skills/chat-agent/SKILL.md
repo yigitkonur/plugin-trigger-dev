@@ -21,7 +21,7 @@ A chat agent is a durable multi-turn assistant that survives refreshes, deploys,
 
 ## Anchor and discovery
 
-Use the project facts in context (or `trigger-ctx detect --brief`): SDK version, `ai` major, frontend, Cloud or self-host. Infer first, ask second (at most two questions in one message, defaults for the rest; the repo usually answers):
+Use the project facts in context (or `trigger-ctx detect --brief`): SDK version, `ai` major, frontend, Cloud or self-host. Infer first, ask second (at most two questions in the whole reply, next steps included, defaults for the rest; the repo usually answers):
 
 | # | Ask only if not inferable | Changes | Infer from |
 |---|---|---|---|

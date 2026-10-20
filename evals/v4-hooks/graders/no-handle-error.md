@@ -1,6 +1,6 @@
 ---
 type: regex
-pattern: 'handleError'
+pattern: 'handleError\s*[:(=]'
 match: not_contains
 target: trace
 ---
