@@ -48,6 +48,10 @@ Set the **Steering level** option when you enable the plugin: `full` (default, a
 - **Beta features** (hosted webhooks, Slack/Linear connectors, channels) are never the default recommendation and always come with a non-beta fallback.
 - The full design (overview, official-skills audit, architecture, hooks, flows, MCP vs CLI, doc index, walkthroughs, roadmap) is in [docs/design](docs/design/00-overview.md). Where the build differs from the design, [docs/spikes.md](docs/spikes.md) says so.
 
+## Does it help? Measured, with caveats
+
+A 31-case eval suite (`evals/`, run with `claude plugin eval`) compares three arms on the same prompts: this plugin, no plugin, and the six official `triggerdotdev/skills`. On the 25 positive cases the plugin scored 0.98, no plugin 0.53, the official skills 0.59; on the 6 negative cases (Celery, Sidekiq, BullMQ, plain cron, where it must stay out of the way) all arms score 1.00. Two runs per case, a small-model judge, and graders written by the plugin's author, so read it as a regression suite with a baseline rather than an independent benchmark. Numbers per family, the places it falls short (`tasks-ui-integrations` is only +0.08 over the official skills) and the fixes the evals forced: [docs/spikes.md](docs/spikes.md), items 19 and 20.
+
 ## The engine
 
 `bin/trigger-ctx` (on the Bash tool's PATH) is a zero-dependency Node script: `detect`, `guard`, `lint`, `scan`, `docs`, `links-check`. It always exits 0. The 134-rule catalog is data: [references/rule-catalog.md](references/rule-catalog.md).
