@@ -16,22 +16,28 @@ function hit(r, rel, line, message) {
   return { rule: r.id, severity: r.severity, tier: r.tier, file: rel, line, message: message || r.message, fix: r.fix, fix_mode: r.fix_mode || "flag-only", doc: r.doc, detect: r.detect };
 }
 
-export function duplicateTaskIds(rules, files) {
+// Task ids are unique per Trigger.dev project, so a monorepo with several projects may reuse an id across roots.
+export function duplicateTaskIds(rules, files, roots = [], base = "") {
   const r = rule(rules, "TSK-26");
   if (!r) return [];
   const seen = new Map();
+  const owners = roots.map((r) => ({ dir: path.resolve(base, r.dir), key: r.projectRef || r.dir })).sort((a, b) => b.dir.length - a.dir.length);
+  const ownerOf = (abs) => owners.find((o) => abs.startsWith(`${o.dir}${path.sep}`) || abs === o.dir)?.key || "";
   for (const f of files) {
     if (!/@trigger\.dev\//.test(f.text)) continue;
+    const scope = owners.length > 1 ? ownerOf(f.abs) : "";
     const c = mask(f.text);
     for (const m of c.matchAll(new RegExp(`${DEFINERS}[^]{0,400}?\\bid\\s*:\\s*["'\`]([^"'\`$\\n]+)["'\`]`, "g"))) {
       const id = m[1];
-      const list = seen.get(id) || [];
+      const skey = `${scope}\0${id}`;
+      const list = seen.get(skey) || [];
       list.push({ rel: f.rel, line: lineOf(f.text, m.index) });
-      seen.set(id, list);
+      seen.set(skey, list);
     }
   }
   const out = [];
-  for (const [id, locs] of seen) {
+  for (const [skey, locs] of seen) {
+    const id = skey.slice(skey.indexOf("\0") + 1);
     if (new Set(locs.map((l) => `${l.rel}:${l.line}`)).size < 2) continue;
     for (const l of locs.slice(1)) out.push(hit(r, l.rel, l.line, `task id "${id}" is also declared at ${locs[0].rel}:${locs[0].line}`));
   }
@@ -112,7 +118,7 @@ export function configChecks(rules, files, roots, base) {
 
 export function runBuiltins(rules, files, roots, base) {
   return [
-    ...duplicateTaskIds(rules, files),
+    ...duplicateTaskIds(rules, files, roots, base),
     ...taskDirs(rules, files, roots, base),
     ...undeclaredQueues(rules, files),
     ...configChecks(rules, files, roots, base),

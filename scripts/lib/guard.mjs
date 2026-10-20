@@ -132,7 +132,13 @@ function cliFindings(command) {
   return res;
 }
 
-const PM_FLAG_VALUE = new Set(["--filter", "-F", "-C", "--dir", "--prefix", "-w", "--workspace", "--cwd"]);
+// Flags that consume the next word, per runner (pnpm -w is the boolean --workspace-root; npm -w takes a workspace name).
+const PM_FLAG_VALUE = {
+  npm: new Set(["--prefix", "-w", "--workspace"]),
+  pnpm: new Set(["--filter", "-F", "-C", "--dir"]),
+  yarn: new Set(["--cwd"]),
+  bun: new Set(["--cwd", "--filter", "-F"]),
+};
 const PMS = new Set(["npm", "pnpm", "yarn", "bun"]);
 
 /** `pnpm --filter jobs deploy:trigger -- --x` -> { name: "deploy:trigger", extra: ["--x"] } (script runners only). */
@@ -143,10 +149,10 @@ function parseRunner(words) {
   const pm = w[i];
   if (!PMS.has(pm)) return null;
   i++;
-  while (i < w.length && w[i].startsWith("-")) i += PM_FLAG_VALUE.has(w[i]) ? 2 : 1;
+  while (i < w.length && w[i].startsWith("-")) i += PM_FLAG_VALUE[pm].has(w[i]) ? 2 : 1;
   if (w[i] === "run" || w[i] === "run-script") i++;
   else if (pm === "npm") return null; // `npm test` etc. are lifecycle commands, not named scripts
-  while (i < w.length && w[i].startsWith("-")) i += PM_FLAG_VALUE.has(w[i]) ? 2 : 1;
+  while (i < w.length && w[i].startsWith("-")) i += PM_FLAG_VALUE[pm].has(w[i]) ? 2 : 1;
   const name = w[i];
   if (!name || name.startsWith("-")) return null;
   const extra = w.slice(i + 1);

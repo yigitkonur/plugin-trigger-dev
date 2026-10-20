@@ -397,6 +397,7 @@ const DOMAINS = {
 const FOCUS_FAMILIES = { cost: ["COST", "QUE", "TSK"], chat: ["CHT"], realtime: ["RT"], deploy: ["DEP", "CFG", "MIG"], tasks: ["TSK", "QUE", "SCH", "MIG"], webhooks: ["WH"], config: ["CFG"] };
 
 export function scan(root, { focus, tier, rulesFile } = {}) {
+  root = path.resolve(root);
   const rules = loadRules(rulesFile || DEFAULT_RULES);
   const tiers = tier === "hook" ? ["hook"] : ["hook", "audit"];
   const families = focus && FOCUS_FAMILIES[focus];

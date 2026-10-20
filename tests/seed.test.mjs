@@ -58,3 +58,42 @@ const total = Object.values(where).flat().length;
 console.log(`${fail ? "FAILED" : "ok"}: ${total} seeded bad examples + 5 cross-file cases, ${out.hits.length} hits on ${out.filesScanned} files, ${fail} failures`);
 fs.rmSync(root, { recursive: true, force: true });
 process.exitCode = fail ? 1 : 0;
+
+// Regressions from the Codex review: relative scan roots and per-project task ids.
+{
+  const mk = (p, t) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, t); };
+  const task = (id) => `import { task } from "@trigger.dev/sdk";\nexport const t = task({ id: "${id}", run: async () => 1 });\n`;
+  const cfg = (ref) => `import { defineConfig } from "@trigger.dev/sdk";\nexport default defineConfig({ project: "${ref}", dirs: ["./trigger"] });\n`;
+  const pkg = JSON.stringify({ name: "x", dependencies: { "@trigger.dev/sdk": "4.7.4" } });
+  const dupOf = (dir) => scan(dir, { tier: "all" }).hits.filter((h) => h.rule === "TSK-26").length;
+
+  const two = fs.mkdtempSync(path.join(os.tmpdir(), "tdp-two-"));
+  for (const [app, ref] of [["a", "proj_aaaaaaaaaaaaaaaa"], ["b", "proj_bbbbbbbbbbbbbbbb"]]) {
+    mk(path.join(two, "apps", app, "trigger.config.ts"), cfg(ref));
+    mk(path.join(two, "apps", app, "package.json"), pkg);
+    mk(path.join(two, "apps", app, "trigger", "t.ts"), task("send-email"));
+  }
+  const same = fs.mkdtempSync(path.join(os.tmpdir(), "tdp-same-"));
+  for (const app of ["a", "b"]) {
+    mk(path.join(same, "apps", app, "trigger.config.ts"), cfg("proj_cccccccccccccccc"));
+    mk(path.join(same, "apps", app, "package.json"), pkg);
+    mk(path.join(same, "apps", app, "trigger", "t.ts"), task("send-email"));
+  }
+  const out2 = [["same id in two different projects: no TSK-26", dupOf(two), 0], ["same id twice in one project: TSK-26", dupOf(same), 1]];
+
+  const rel = fs.mkdtempSync(path.join(os.tmpdir(), "tdp-rel-"));
+  mk(path.join(rel, "trigger.config.ts"), cfg("proj_dddddddddddddddd"));
+  mk(path.join(rel, "package.json"), pkg);
+  mk(path.join(rel, "trigger", "ok.ts"), task("ok"));
+  mk(path.join(rel, "elsewhere", "stray.ts"), task("stray"));
+  const cwd0 = process.cwd();
+  process.chdir(rel);
+  const relHits = scan(".", { tier: "all" }).hits.filter((h) => h.rule === "TSK-27").length;
+  process.chdir(cwd0);
+  out2.push(["relative scan root still reports TSK-27", relHits, 1]);
+
+  for (const [name, got, want] of out2) {
+    if (got !== want) { console.log(`FAIL ${name}: got ${got}, want ${want}`); fail++; }
+  }
+  console.log(`${fail ? "FAILED" : "ok"}: codex-review regressions (${out2.length} cases)`);
+}
