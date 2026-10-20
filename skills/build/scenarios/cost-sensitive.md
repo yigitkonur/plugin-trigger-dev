@@ -4,7 +4,7 @@
 
 **Primitives:**
 - Use the default `machine: "small-1x"`; raise it per task or per trigger (`tasks.trigger(…, { machine })`) only with evidence, because cost rises with preset size. Use `retry: { outOfMemory: { machine } }` for rare OOMs, because it upsizes only the retry, not the task.
-- Rejected: `machine: "large-1x"` by default — because every run pays for it.
+- Rejected: `machine: "large-1x"` by default — because every run pays for it. Cost per second vs `small-1x`: micro 0.5x, small-2x 2x, medium-1x 2.5x, medium-2x 5x, large-1x 10x, large-2x 20x (table and date in `references/limits.md`; confirm on the pricing page before quoting dollars).
 - Use `AbortTaskRunError` for known-permanent errors, because a plain throw is retried and burns compute on each attempt.
 - Use `wait.for()`, `wait.until()` or `wait.createToken()` instead of polling, because waits over 5 s are not billed on Cloud (they still hold the concurrency slot until 60 s).
 - Rejected: `setTimeout` or a polling loop in `run()` — because the wait is billed compute.

@@ -20,6 +20,22 @@ Numbers that change a design choice, each with its source. Plan-dependent values
 | Schedules (Cloud Free) | not more often than hourly; new schedules get a 60-minute spreading window | `window: "0m"` for the exact minute | https://trigger.dev/docs/tasks/scheduled |
 | Plan-dependent | environment concurrency, queue sizes, schedule counts, preview branches, realtime connections, log retention, query lookback, API-key presets | ask only when the recommendation depends on it | https://trigger.dev/docs/limits |
 
+## Machine presets: relative cost (Cloud list prices)
+
+Cost per second relative to the default `small-1x`, from https://trigger.dev/pricing as of 2026-10-20 (`machine-prices.json` holds the exact rates; the weekly freshness job compares them with the live page, so confirm on the pricing page before quoting dollars). Hardware per preset: https://trigger.dev/docs/machines. Self-hosted instances have no per-second price.
+
+| Preset | vCPU / GB RAM | Cost vs `small-1x` |
+|---|---|---|
+| micro | 0.25 / 0.25 | 0.5x |
+| small-1x (default) | 0.5 / 0.5 | 1x |
+| small-2x | 1 / 1 | 2x |
+| medium-1x | 1 / 2 | 2.5x |
+| medium-2x | 2 / 4 | 5x |
+| large-1x | 4 / 8 | 10x |
+| large-2x | 8 / 16 | 20x |
+
+So `large-2x` costs about 10x `small-2x`, not 16x. Each run also pays an invocation fee ($0.25 per 10,000 runs), so floods of tiny runs cost more than their compute suggests. Larger machines save money only when they shorten the run enough.
+
 ## Docs that disagree (cite the conservative reading)
 
 | Topic | Reading A | Reading B | Use |

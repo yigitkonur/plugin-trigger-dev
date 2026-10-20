@@ -42,9 +42,9 @@ Inferred without asking: the frontend (the React transport hook is React-only; o
 - **Callers:** a browser (React transport) · a server, script, Slack bot or another agent (`AgentChat`; deterministic `id` to resume) · a non-React or non-TS client (the client protocol over REST/SSE) · Slack, Linear or channels (**private beta**: check access first; the fallback is `AgentChat` called from your own handler).
 - **Persistence:** snapshot (default) · `storage: TranscriptStorage` (`runTranscriptStorageTests` to verify) · never new `hydrateMessages`.
 
-## Playbooks (read one, keyed by situation)
+## Playbooks (read one, at `${CLAUDE_SKILL_DIR}/playbooks/<file>`)
 
-| Situation | File in `playbooks/` |
+| Situation | File |
 |---|---|
 | a new chat agent from scratch | `greenfield.md` |
 | an existing `useChat` + route handler to move | `migrate-route-handler.md` |
@@ -59,4 +59,4 @@ Inferred without asking: the frontend (the React transport hook is React-only; o
 
 ## Verify before you write, answer in the bridge format
 
-Resolve every API name with `trigger-ctx docs <topic>` and read the local pinned page (`node_modules/@trigger.dev/sdk/docs/ai-chat/…`) or the web `.md`; the chat API changes fast (changelog: https://trigger.dev/docs/ai-chat/changelog). Answer as: *You're building X. Y fits because Z (not W, because …). Minimal shape (≤ 15 lines). Watch out for (≤ 3). Docs: local path · URL.* Name the environment when you test (`dev` unless the user says otherwise); a live smoke test is MCP `list_agents` → `start_agent_chat` → `send_agent_message` → `close_agent_chat`, and `start_agent_chat` in prod spends real LLM budget: ask first.
+Resolve every API name with `trigger-ctx docs <topic>` and read the local pinned page (`node_modules/@trigger.dev/sdk/docs/ai-chat/…`) or the web `.md`; the chat API changes fast (changelog: https://trigger.dev/docs/ai-chat/changelog). If no docs tier is reachable, still answer from the playbook and list every API name you could not check as unverified; never refuse for lack of docs. Answer as: *You're building X. Y fits because Z (not W, because …). Minimal shape (≤ 15 lines). Watch out for (≤ 3). Docs: local path · URL.* Name the environment when you test (`dev` unless the user says otherwise); a live smoke test is MCP `list_agents` → `start_agent_chat` → `send_agent_message` → `close_agent_chat`, and `start_agent_chat` in prod spends real LLM budget: ask first.

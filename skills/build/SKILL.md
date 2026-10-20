@@ -1,6 +1,6 @@
 ---
 name: build
-description: Design and write Trigger.dev code (tasks, schedules, batches, waits and approvals, realtime progress UIs, build extensions, deploys and CI). Use when the project uses Trigger.dev (trigger.config.*, @trigger.dev/* packages) or the user names Trigger.dev. Not for Celery, Sidekiq, BullMQ, plain cron or other job systems in projects without Trigger.dev.
+description: Design, write, review and answer questions about Trigger.dev (tasks, schedules, batches, waits and approvals, realtime progress UIs, build extensions, deploys and CI, costs and limits). Use whenever the project uses Trigger.dev (trigger.config.*, @trigger.dev/* packages) or the user mentions Trigger.dev, even for a quick question. Not for Celery, Sidekiq, BullMQ, plain cron or other job systems in projects without Trigger.dev.
 argument-hint: "[what you are building or asking]"
 ---
 
@@ -10,7 +10,7 @@ You are the bridge between this user and Trigger.dev. Work out what they are rea
 
 ## 1. Anchor on the project
 
-Use the "Trigger.dev project facts" block from the session context (roots, SDK version, package manager, frontend, Cloud or self-host, pinned docs path). If it is missing, run `trigger-ctx detect --brief` (or `node "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs" detect --brief`). Nothing detected and the user wants Trigger.dev: suggest `/trigger-dev:init`. v3 SDK: read `scenarios/migrate-v2-v3.md` first.
+Use the "Trigger.dev project facts" block from the session context (roots, SDK version, package manager, frontend, Cloud or self-host, pinned docs path). If it is missing, run `trigger-ctx detect --brief` (or `node "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs" detect --brief`). Nothing detected and the user wants Trigger.dev set up: setup has human gates (CLI login approved in a browser, project choice, the secret key), so follow the stages in `${CLAUDE_PLUGIN_ROOT}/skills/init/SKILL.md` (Read it) or tell the user they can run `/trigger-dev:init`. v3 SDK: read `${CLAUDE_SKILL_DIR}/scenarios/migrate-v2-v3.md` first.
 
 ## 2. Invariants (check every snippet before you show it)
 
@@ -27,10 +27,10 @@ The plugin checks several of these after every edit and says so; treat a tripwir
 
 ## 3. Protocol
 
-1. **Classify**: how-to (API detail) · design ("should I / what fits") · symptom or failing run → hand to `diagnose` · cost → `scenarios/cost-sensitive.md` or `/trigger-dev:audit --focus cost` · deploy or CI → `scenarios/deploy-ci.md` · chat or AI assistant → the `chat-agent` skill.
+1. **Classify**: how-to (API detail) · design ("should I / what fits") · symptom or failing run → hand to `diagnose` · cost → `${CLAUDE_SKILL_DIR}/scenarios/cost-sensitive.md` or `/trigger-dev:audit --focus cost` · deploy or CI → `${CLAUDE_SKILL_DIR}/scenarios/deploy-ci.md` · chat or AI assistant → the `chat-agent` skill.
 2. **Pick one card** from the table below and read only that file.
-3. **Ask or assume.** Ask at most 2 questions, and only when the answer changes the primitive; otherwise state the assumption in one line. The question bank and skip rules are in `discovery.md`. Never ask what the project facts already answer.
-4. **Verify before you write.** Resolve every API name you are about to use: `trigger-ctx docs <topic>`, then read the local pinned page (`node_modules/@trigger.dev/sdk/docs/<path>.mdx`, matches the installed SDK) or the web page (`https://trigger.dev/docs/<path>.md`). MCP `search_docs` finds a path when you don't know it. Local wins for API shape; web wins when the user is upgrading.
+3. **Ask or assume.** Ask at most 2 questions, and only when the answer changes the primitive; otherwise state the assumption in one line. The question bank and skip rules are in `${CLAUDE_SKILL_DIR}/discovery.md`. Never ask what the project facts already answer.
+4. **Verify before you write.** Resolve every API name you are about to use: `trigger-ctx docs <topic>`, then read the local pinned page (`node_modules/@trigger.dev/sdk/docs/<path>.mdx`, matches the installed SDK) or the web page (`https://trigger.dev/docs/<path>.md`). MCP `search_docs` finds a path when you don't know it. Local wins for API shape; web wins when the user is upgrading. If no tier is reachable (no installed SDK, no web, no MCP), still answer from the card, and list every API name you could not check as unverified with the page that confirms it; never refuse for lack of docs.
 5. **Apply the gates** the lookup reports: `since` above the installed SDK (offer `npx trigger.dev@latest update`), `beta` (never the default; give the fallback), cloud-only on a self-hosted target, plan-dependent limits.
 6. **Answer in the bridge format:**
 
@@ -43,7 +43,7 @@ Docs: <local pinned path> · <https://trigger.dev/docs/…>
 
 If the docs disagree with each other, cite the conservative reading and name the conflict (`references/traps.md`, `references/limits.md`).
 
-## 4. Cards (`scenarios/<name>.md`, read one)
+## 4. Cards (read one, at `${CLAUDE_SKILL_DIR}/scenarios/<name>.md`)
 
 | The user is building | Card |
 |---|---|

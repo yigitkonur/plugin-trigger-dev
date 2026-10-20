@@ -1,0 +1,15 @@
+{
+  "asOf": "2026-10-20",
+  "source": "https://trigger.dev/pricing",
+  "unit": "USD per second of compute",
+  "perSecond": {
+    "micro": 0.0000169,
+    "small-1x": 0.0000338,
+    "small-2x": 0.0000675,
+    "medium-1x": 0.0000850,
+    "medium-2x": 0.0001700,
+    "large-1x": 0.0003400,
+    "large-2x": 0.0006800
+  },
+  "perRunInvocationUsd": 0.000025
+}

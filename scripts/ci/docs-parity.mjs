@@ -46,4 +46,17 @@ for (const n of names) {
   const c = text.split(n).length - 1;
   if (c) console.log(`    ${String(c).padStart(3)}  ${n}`);
 }
+// (6) machine prices: references/machine-prices.json vs the live pricing page
+const prices = JSON.parse(fs.readFileSync(path.join(root, "references", "machine-prices.json"), "utf8"));
+const html = await (await fetch("https://trigger.dev/pricing")).text();
+const text = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+const live = {};
+for (const [k, label] of [["micro", "Micro"], ["small-1x", "Small 1x"], ["small-2x", "Small 2x"], ["medium-1x", "Medium 1x"], ["medium-2x", "Medium 2x"], ["large-1x", "Large 1x"], ["large-2x", "Large 2x"]]) {
+  const m = new RegExp(`${label}(?: Default)? [\\d.]+ [\\d.]+ \\$(\\d\\.\\d+)`).exec(text);
+  live[k] = m ? Number(m[1]) : null;
+}
+const drift = Object.entries(prices.perSecond).filter(([k, v]) => live[k] !== v);
+console.log(`(6) machine prices: ${drift.length} of ${Object.keys(prices.perSecond).length} differ from the live pricing page`);
+for (const [k, v] of drift) console.log(`    ${k}: committed ${v}, live ${live[k]}`);
+if (drift.length) failed++;
 process.exit(failed ? 1 : 0);

@@ -40,5 +40,16 @@ check("self-host: from TRIGGER_API_URL", sh.target.kind === "self-host" && sh.ta
 check("self-host: brief names it", /self-hosted https:\/\/jobs\.internal\.example\.com/.test(brief(sh)));
 delete process.env.TRIGGER_API_URL;
 
+// CLI profile with a non-default API URL (the token field is never read)
+import fs from "node:fs";
+import os from "node:os";
+const cfgDir = fs.mkdtempSync(path.join(os.tmpdir(), "tdp-profile-"));
+fs.writeFileSync(path.join(cfgDir, "config.json"), JSON.stringify({ version: 2, currentProfile: "work", profiles: { default: { accessToken: "x", apiUrl: "https://api.trigger.dev" }, work: { accessToken: "y", apiUrl: "https://trigger.corp.example.com" } } }));
+process.env.TRIGGER_CONFIG_DIR = cfgDir;
+const prof = detect(fx("min"));
+check("self-host: from the CLI profile", prof.target.kind === "self-host" && prof.target.url === "https://trigger.corp.example.com", JSON.stringify(prof.target));
+delete process.env.TRIGGER_CONFIG_DIR;
+fs.rmSync(cfgDir, { recursive: true, force: true });
+
 console.log(`${fail ? "FAILED" : "ok"}: detect cases, ${fail} failures`);
 process.exitCode = fail ? 1 : 0;

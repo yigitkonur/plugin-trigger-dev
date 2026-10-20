@@ -280,8 +280,22 @@ function worktreeInfo(base) {
   return { name };
 }
 
-export function profileApiUrl() {
-  return null; // filled in once the CLI profile location is confirmed (spike S3)
+/** The current CLI profile's API URL (spike S3: `config.json` with { currentProfile, profiles: { <name>: { accessToken, apiUrl } } }). Only apiUrl is read; the token never leaves this function. */
+export function profileApiUrl(env = process.env) {
+  const h = home();
+  const candidates = [
+    env.TRIGGER_CONFIG_DIR && path.join(env.TRIGGER_CONFIG_DIR, "config.json"),
+    path.join(h, "Library", "Preferences", "trigger", "config.json"),
+    path.join(env.XDG_CONFIG_HOME || path.join(h, ".config"), "trigger", "config.json"),
+    env.APPDATA && path.join(env.APPDATA, "trigger", "Config", "config.json"),
+  ].filter(Boolean);
+  for (const f of candidates) {
+    const j = readJson(f);
+    if (!j?.profiles) continue;
+    const url = j.profiles[env.TRIGGER_PROFILE || j.currentProfile]?.apiUrl;
+    return typeof url === "string" ? url : null;
+  }
+  return null;
 }
 
 export function detect(projDirIn, env = process.env) {
@@ -337,7 +351,7 @@ export function detect(projDirIn, env = process.env) {
 
   const lang = otherLanguages(base);
   const callerOnly = !roots.length && pkgHit;
-  const apiUrlEnv = env.TRIGGER_API_URL || sig.apiUrl || profileApiUrl();
+  const apiUrlEnv = env.TRIGGER_API_URL || sig.apiUrl || profileApiUrl(env);
   let target = { kind: "cloud" };
   if (apiUrlEnv && !DEFAULT_API.test(apiUrlEnv)) {
     let origin = apiUrlEnv;
