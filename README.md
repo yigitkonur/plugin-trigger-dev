@@ -52,9 +52,9 @@ Set the **Steering level** option when you enable the plugin: `full` (default, a
 
 ## Does it help? Measured, with caveats
 
-A 42-case eval suite (`evals/`, run with `claude plugin eval`, three runs per case) compares three arms on the same prompts: this plugin, no plugin, and the six official `triggerdotdev/skills`. On the 25 original positive cases the plugin scored 0.99, no plugin 0.55 and the official skills 0.62. The six negative cases (Celery, Sidekiq, BullMQ, plain cron, where it must stay out of the way) score 1.00 in every arm.
+A 42-case eval suite (`evals/`, run with `claude plugin eval`, three runs per case) compares three arms on the same prompts: this plugin, no plugin, and the six official `triggerdotdev/skills`. On the 25 original positive cases the plugin scored 0.98, no plugin 0.55 and the official skills 0.62 (plugin arm re-run for 0.1.1 after the content fixes; the other two arms are from the first full run). The six negative cases (Celery, Sidekiq, BullMQ, plain cron, where it must stay out of the way) score 1.00 in every arm.
 
-The gain is not uniform. It is large where the plugin steers (chat agents +0.64 over the official skills, `init` discovery +0.57, cost +0.67, live diagnosis +0.67) and zero where the model already knows the API (realtime, webhooks, migration and REST-caller prompts tie at 1.00 in both arms). Averaged over all 42 cases the plugin is +0.28 over no plugin. The cases and graders were written by the plugin's author and judged by a small model, so read this as a regression suite with baselines, not an independent benchmark. Details, the misses and the fixes the evals forced: [docs/spikes.md](docs/spikes.md), items 19 and 20.
+The gain is not uniform. It is large where the plugin steers (chat agents +0.64 over the official skills, `init` discovery +0.73, cost +0.67, live diagnosis +0.67) and zero where the model already knows the API (realtime, webhooks, migration and REST-caller prompts tie at 1.00 in both arms). Averaged over all 42 cases the plugin is +0.28 over no plugin. The cases and graders were written by the plugin's author and judged by a small model, so read this as a regression suite with baselines, not an independent benchmark. Details, the misses and the fixes the evals forced: [docs/spikes.md](docs/spikes.md), items 19 and 20.
 
 ## The engine
 
