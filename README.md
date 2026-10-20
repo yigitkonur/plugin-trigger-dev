@@ -11,7 +11,7 @@ A Claude Code plugin that makes the agent good at [Trigger.dev](https://trigger.
 
 One step on Claude Code 2.1.275 or later: `/plugin install trigger-dev --marketplace yigitkonur/plugin-trigger-dev`.
 
-**Install at project scope** (`--scope project`) for repos that use Trigger.dev. At user scope the three skill descriptions and the Trigger.dev MCP tool names load in every repository (about 700 tokens); at project scope other repos pay nothing. Requires Claude Code 2.1.295 or later and Node 18 or later (for the edit checks, the prod guard and `audit`; without Node they skip silently).
+**Install at project scope** (`--scope project`) for repos that use Trigger.dev. At user scope the three skill descriptions and the Trigger.dev MCP tool names load in every repository (about 900 tokens per `claude plugin details trigger-dev`); at project scope other repos pay nothing. Requires Claude Code 2.1.295 or later and Node 18 or later (for the edit checks, the prod guard and `audit`; without Node they skip silently).
 
 ## What you get
 
