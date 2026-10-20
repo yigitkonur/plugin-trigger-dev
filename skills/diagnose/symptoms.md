@@ -24,7 +24,7 @@ Always run the first check with an explicit environment. Doc paths are relative 
 | Billing limit reached (Cloud) | spend cap hit | dashboard (a human) | `troubleshooting#runs-queued-because-a-billing-limit-was-reached`, `billing-limits` |
 | Deploy fails with `resource_exhausted` | build infrastructure limits | rerun with `--native-build` | `troubleshooting#resource_exhausted` |
 | `No loader is configured for ".node" files` | a native module not marked external | `trigger.config.ts` `build.external` | `config/config-file#external` |
-| `pnpm dlx trigger.dev … init` stops with `ERR_PNPM_IGNORED_BUILDS` | pnpm 10 blocks dependency build scripts (esbuild, @depot/cli) until approved | rerun with `--allow-build=esbuild --allow-build=@depot/cli`, or use `npx trigger.dev@latest` | `cli-init-commands` |
+| `pnpm dlx trigger.dev … init` stops with `ERR_PNPM_IGNORED_BUILDS` | pnpm 10 blocks dependency build scripts (esbuild, @depot/cli) until approved | rerun with `--allow-build=esbuild --allow-build=@depot/cli`, or use `npx trigger.dev@latest` | `cli-init-commands` (the pnpm message itself is not in the docs; seen live with pnpm 10) |
 | Deploy fails in CI on version mismatch | CLI and `@trigger.dev/*` versions differ | `trigger-ctx scan` (MIG-08); `npx trigger.dev@latest update` | `github-actions`, `upgrading-packages` |
 | 422 after deploy | stale `TRIGGER_VERSION` or external id | the CI env | `deployment/atomic-deployment` |
 | Prisma errors in a deploy | missing extension, missing `mode`, no generate step | `trigger.config.ts` | `config/extensions/prismaExtension` |

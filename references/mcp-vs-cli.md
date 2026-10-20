@@ -15,7 +15,7 @@ The Trigger.dev MCP server (`npx trigger.dev@latest mcp`, shipped by this plugin
 |---|---|---|
 | Look up an API | local pinned `.mdx` → MCP `search_docs` (no login) → web `.md` (`trigger-ctx docs <topic>`) | `https://trigger.dev/docs/llms.txt` |
 | Log in | CLI resumable login: `login --no-browser --no-wait`, the user approves in a browser, then `login --no-browser` | none; a human step |
-| Which account / API URL | MCP `whoami` | CLI `whoami` |
+| Which account / API URL | CLI `whoami` (answers "You must login first" in seconds when logged out) | MCP `whoami` once logged in; it can hang without a login |
 | Create or choose a project | MCP `list_orgs` / `list_projects`; CLI `projects create` | dashboard |
 | Initialise a repo | CLI `init -y --project-ref … --runtime …` from the package directory | MCP `initialize_project`; manual setup (https://trigger.dev/docs/manual-setup) |
 | Start dev | MCP `start_dev_server` (waits up to 30 s) then `dev_server_status` for logs. It takes only `configPath`, which must be the project **directory** holding `trigger.config.*` (a file path fails with `spawn ENOTDIR`): **in a linked git worktree use CLI `dev --branch <name>`** | CLI `dev` in the background |
@@ -24,7 +24,7 @@ The Trigger.dev MCP server (`npx trigger.dev@latest mcp`, shipped by this plugin
 | Inspect a run | MCP `get_run_details` (via `run-investigator`), `get_span_details` for one span | CLI `runs get` (no trace); dashboard |
 | Wait for a run | MCP `wait_for_run_to_complete` | poll `get_run_details` |
 | Health, "is prod OK" | MCP `get_report` with `key: "health"` and an explicit environment | CLI `report health --env prod`; REST `/api/v1/reports/health` |
-| Metrics, cost, memory, 429s | MCP `get_query_schema` then `query` (TRQL) | REST `/api/v1/query` (secret key; PATs are rejected); dashboard Query page |
+| Metrics, cost, memory, 429s | MCP `get_query_schema` then `query` (TRQL) | REST `/api/v1/query` (secret key only; a CLI PAT got `401 Invalid API key`); dashboard Query page |
 | Deploy | **CLI** `deploy --env <e>` (`--external-id`, `--dry-run`, `--native-build`) | MCP `deploy` with explicit `environment` |
 | Roll back | CLI `promote <version> --env <e>` | dashboard |
 | Environment variables | CLI `env list/get/set/pull --env <e>` (no dev target) | dashboard; REST; the `syncEnvVars` extension |
@@ -54,7 +54,7 @@ The plugin's prod guard (hook H3) asks before the implicit-prod CLI calls above 
 
 | Situation | Behaviour |
 |---|---|
-| **Not logged in** | Only `search_docs`, `list_profiles`, `dev_server_status` and `stop_dev_server` work. Offer the resumable login (a human approves in the browser). Never create an account for the user. |
+| **Not logged in** | `search_docs` still answers. In a test with an empty profile directory (CLI 4.7.4) MCP `whoami`, `list_profiles`, `list_orgs`, `dev_server_status` and `stop_dev_server` did not answer within 60 s, so check the login with the CLI `whoami` first. Offer the resumable login (a human approves in the browser). Never create an account for the user. |
 | **No Node / npx** | MCP and CLI are both down. Give static guidance plus the REST API with the secret key. Writing tasks needs Node: say so and point to https://trigger.dev/docs/quick-start. The hooks skip silently. |
 | **MCP server failed to start** | Use the CLI equivalents above; docs from the local pinned `.mdx`, then the web `.md`. |
 | **Offline** | Local pinned docs and the plugin's own decisions only; say the live checks were skipped. |
