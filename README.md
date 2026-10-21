@@ -1,78 +1,120 @@
-# trigger-dev: Trigger.dev for Claude Code
+# trigger-dev: trigger.dev for claude code
 
-A Claude Code plugin that makes the agent good at [Trigger.dev](https://trigger.dev): background jobs, scheduled pipelines, long workflows with waits and approvals, realtime progress UIs, and AI chat agents. It is not the official skills repackaged. It fingerprints your project, classifies what you are building, picks the primitive with a reason, links the doc behind every recommendation, and checks the code mechanically.
+tl;dr: a claude code plugin that makes the agent actually good at [trigger.dev](https://trigger.dev). that means background jobs, cron pipelines, long workflows with waits and approvals, realtime progress uis and ai chat agents. it's not the official skills with a new label. it fingerprints your project, figures out what you're building, picks the right primitive and says why, links the doc behind every call it makes, and checks the code while it's being written.
 
-## Install
+## install
+
+one command, from your terminal, inside the repo that uses trigger.dev:
+
+```sh
+claude plugin install trigger-dev --marketplace yigitkonur/plugin-trigger-dev --scope project --config steering=full
+```
+
+that adds the marketplace (in your user settings), installs the plugin for this project only, and sets the steering level. restart claude code (or start a new session) and you're set. tested on claude code 2.1.304: `Successfully installed plugin: trigger-dev@plugin-trigger-dev (scope: project)`.
+
+prefer two steps, or already inside claude code? same thing:
+
+```sh
+claude plugin marketplace add yigitkonur/plugin-trigger-dev
+claude plugin install trigger-dev@plugin-trigger-dev --scope project
+```
 
 ```
 /plugin marketplace add yigitkonur/plugin-trigger-dev
 /plugin install trigger-dev@plugin-trigger-dev
 ```
 
-One step on Claude Code 2.1.275 or later: `/plugin install trigger-dev --marketplace yigitkonur/plugin-trigger-dev`.
+keep it fresh, or take it out:
 
-**Install at project scope** (`--scope project`) for repos that use Trigger.dev. At user scope the four skill descriptions and the Trigger.dev MCP tool names load in every repository (about 1,000 tokens per `claude plugin details trigger-dev`); at project scope other repos pay nothing. Requires Claude Code 2.1.295 or later and Node 18 or later (for the edit checks, the prod guard and `audit`; without Node they skip silently).
-
-## What you get
-
-| Piece | What it does |
-|---|---|
-| `build` skill | Loads when you edit task code in a Trigger.dev project or name Trigger.dev. Asks at most two questions the repo cannot answer, picks one of 13 scenario cards, checks every API name against the installed SDK's types and the pinned docs (`trigger-ctx docs catchError` says whether it is declared and whether the types mark it `@deprecated`), answers in a fixed shape (what you are building, why this primitive and not that one, a minimal snippet, three pitfalls, doc links), and proves the code: typecheck, login, a dev run, or UNVERIFIED with the reason. |
-| `chat-agent` skill | AI chat agents: eight invariants (including the ownership check the official skill omitted), a discovery tree, and ten playbooks keyed by situation. |
-| `diagnose` skill | Symptom or run id to ranked causes, a first check with an explicit environment, and a short verdict from the read-only `run-investigator` agent. |
-| `/trigger-dev:init` | Discovery, an architecture decision you confirm, setup with the human gates named, and a first run proven in dev. |
-| `/trigger-dev:new` | Add one capability to an existing project and prove it runs. |
-| `/trigger-dev:audit` | A rule catalog (stale APIs, silent-failure patterns, config, deploy, cost) run by a deterministic engine plus `code-auditor` agents; writes `trigger-audit/REPORT.md`; `--fix` applies only safe fixes. |
-| `/trigger-dev:ship` | Preflight, the right CI or integration pipeline, an explicit `--env`, verification, rollback. Also loads when you ask the agent to deploy the tasks (not the app). |
-| `/trigger-dev:doctor` | Checks Node, login, MCP, versions, duplicate official skills, self-host target and install scope. |
-| Trigger.dev MCP server | The official server (`npx trigger.dev@latest mcp`), unchanged. |
-| Hooks | Three, each tied to a failure. See below. |
-
-## Hooks, and what they cost
-
-Every hook is silent in a repository that does not use Trigger.dev. Details and the reasoning for each: [docs/design/05-steering-and-hooks.md](docs/design/05-steering-and-hooks.md).
-
-| Hook | When | What it does | Cost |
-|---|---|---|---|
-| **H1** SessionStart | session start, resume, clear, compact | Injects about 400 characters of project facts: Trigger root and project ref, SDK/CLI versions and whether they match, package manager, frontend, Cloud or self-host, one line on environment defaults (the CLI defaults to prod, MCP project tools to dev), pinned docs path. Marks the project so the other hooks stay cheap elsewhere. In a git worktree it exports `TRIGGER_DEV_BRANCH` so parallel sessions do not split runs. | about 15 ms in other repos; about 75 ms in a Trigger.dev project |
-| **H2** PostToolUse (Edit, Write) | after a file edit in a Trigger.dev project | Runs 15 rules chosen for a low false-positive risk (see "Evidence" below; for example `Promise.all` around waits, `streamText` imported from `ai` inside `chat.agent`, `schedules.create` without a `deduplicationKey`, a secret key in client code, stale v3 imports, task options the 4.7 types mark `@deprecated`) and tells the agent the fact and the fix with the doc link. After an `Edit` it separates hits in the lines just written from hits that were already in the file. Never blocks. | roughly 10 ms in other repos (shell only; it makes one cheap signal check when no marker exists yet); tens of ms in a Trigger.dev project; no output when clean |
-| **H3** PreToolUse | `trigger deploy/promote/env set\|get\|pull/runs cancel\|replay` without `--env`, `npm run deploy:trigger`-style script aliases, MCP writes aimed at prod | Asks first, because the CLI defaults to prod. In `bypassPermissions` or `dontAsk` mode an implicit-prod command is denied with the fix (add `--env`). | a Node start (about 35 ms) only on those commands |
-
-**Evidence for H2.** Every hook rule hits its bad examples and stays silent on its good ones (`tests/rules.test.mjs`, 278 examples). A scan of 60 public repositories (31,032 files: 42 with the SDK in the root `package.json`, 18 with it only in a nested package) exercised three of the 15 rules. MIG-01 had 59 hits, all true (real `@trigger.dev/sdk/v3` imports in SDK 4 projects); MIG-02 had 3, all true; MIG-03 had 3, two true and one false (a test mock with an `init:` key, which is why the rule now skips test files). The other 12 rules had no hits to judge, so their precision on real code is unmeasured. Details: [docs/spikes.md](docs/spikes.md), spike S9 and item 23.
-
-Set the **Steering level** option when you enable the plugin: `full` (default, all hooks), `quiet` (prod guard only), `off`.
-
-## Design notes
-
-- **Link, don't copy.** The plugin holds decisions, pitfalls and checks. API detail comes from the docs at the moment it is needed: the version-pinned copy in `node_modules/@trigger.dev/sdk/docs` first, then MCP `search_docs`, then `https://trigger.dev/docs/<path>.md`. `trigger-ctx docs <topic>` resolves a topic to the page.
-- **Cloud first, self-host safe.** Nothing hard-codes `api.trigger.dev`; cloud-only advice is flagged and dropped on a self-hosted target.
-- **Any stack.** TypeScript project, monorepo, polyglot repo (Python, Go, Ruby calling tasks over REST), or a caller-only app: detected, not assumed.
-- **Beta features** (hosted webhooks, Slack/Linear connectors, channels) are never the default recommendation and always come with a non-beta fallback.
-- The full design (overview, official-skills audit, architecture, hooks, flows, MCP vs CLI, doc index, walkthroughs, roadmap) is in [docs/design](docs/design/00-overview.md). Where the build differs from the design, [docs/spikes.md](docs/spikes.md) says so.
-
-## Does it help? Measured, with caveats
-
-A 49-case eval suite (`evals/`, run with `claude plugin eval`, three runs per case) compares three arms on the same prompts: this plugin, no plugin, and the six official `triggerdotdev/skills`. On the 25 original positive cases the plugin scored 0.98 (0.976), no plugin 0.55 and the official skills 0.62 (plugin arm re-run for 0.2.0; the other two arms are from the first full run, as the plugin's edits do not touch them). The six negative cases (Celery, Sidekiq, BullMQ, plain cron, where it must stay out of the way) score 1.00 in every arm.
-
-The gain is not uniform. It is large where the plugin steers (chat agents +0.64 over the official skills, `init` discovery +0.73, cost +0.67, live diagnosis +0.67) and zero where the model already knows the API (realtime, webhooks, migration and REST-caller prompts tie at 1.00 in both arms). Averaged over the original 42 cases the plugin is about +0.29 over no plugin. Seven "steering-hard" cases added for 0.2.0 test what the first suite could not see (deprecated hook names, a task file with an old import, a deploy request with no mention of the skill, running a check before claiming success): on 0.1.1 they scored 0.33 to 1.00 per case and four were clearly red, on 0.2.0 six of the seven score 1.00 (one is at 0.83). On the original 42 cases the plugin is unchanged within noise (0.986 against 0.990). The cases and graders were written by the plugin's author and judged by a small model, so read this as a regression suite with baselines, not an independent benchmark; single cases swing by one run in three. Details, the misses and the fixes the evals forced: [docs/spikes.md](docs/spikes.md), items 19, 20 and 23.
-
-## The engine
-
-`bin/trigger-ctx` (on the Bash tool's PATH) is a zero-dependency Node script: `detect`, `guard`, `lint`, `scan`, `docs`, `links-check`. It always exits 0. The 135-rule catalog is data: [references/rule-catalog.md](references/rule-catalog.md).
-
-## Windows
-
-The session fingerprint and edit checks are shell-form hooks and need Git Bash (Git for Windows). Without it they fail without blocking anything (`onFailure: continue`), and the prod guard, which runs as plain Node, still works.
-
-## Develop
-
+```sh
+claude plugin update trigger-dev@plugin-trigger-dev --scope project
+claude plugin uninstall trigger-dev@plugin-trigger-dev --scope project
 ```
+
+**heads up on scope.** `--scope project` is the move for repos that use trigger.dev. at user scope the four skill descriptions and the trigger.dev mcp tool names load in every repo you open, about 1,000 tokens per `claude plugin details trigger-dev`. at project scope other repos pay nothing.
+
+**needs:** claude code 2.1.295 or later, and node 18 or later. node runs the edit checks, the prod guard and `audit`; without it they skip quietly.
+
+**steering level** (`--config steering=…`, or `/plugin configure trigger-dev@plugin-trigger-dev`): `full` is the default and runs every hook, `quiet` keeps only the prod guard, `off` turns the hooks off.
+
+## what you get
+
+| piece | what it does |
+|---|---|
+| `build` skill | loads when you edit task code in a trigger.dev project or say "trigger.dev". asks at most two questions the repo can't answer, picks one of 13 scenario cards, and checks api names against the installed sdk's types and the pinned docs (`trigger-ctx docs catchError` tells you if a name exists and if the types mark it `@deprecated`). answers in a fixed shape: what you're building, why this primitive and not that one, a minimal snippet, three pitfalls, doc links. then it tries to prove the code with a dev run (or a typecheck), or says UNVERIFIED and why. |
+| `chat-agent` skill | ai chat agents: eight invariants (including the ownership check the official skill leaves out), a discovery tree, and ten playbooks keyed by situation. |
+| `diagnose` skill | symptom or run id → ranked causes, a first check with an explicit environment, and a short verdict from the read-only `run-investigator` agent. never invents run data. |
+| `ship` skill / `/trigger-dev:ship` | deploys the trigger.dev tasks: preflight, the right ci or integration pipeline, an explicit `--env`, verification, rollback. also loads when you just say "deploy the jobs to staging" (not for deploying the app itself). |
+| `/trigger-dev:init` | discovery, an architecture decision you confirm, setup with the human gates named, and a first run proven in dev. |
+| `/trigger-dev:new` | adds one capability to an existing project and proves it runs. |
+| `/trigger-dev:audit` | a rule catalog (stale apis, silent-failure patterns, config, deploy, cost) run by a deterministic engine plus `code-auditor` agents. writes `trigger-audit/REPORT.md`; `--fix` only applies the safe fixes. |
+| `/trigger-dev:doctor` | checks node, login, mcp, versions, duplicate official skills, self-host target and install scope. |
+| trigger.dev mcp server | the official one (`npx trigger.dev@latest mcp`), untouched. |
+| hooks | three, each tied to a real failure. see below. |
+
+## hooks, and what they cost
+
+every hook stays silent in a repo that doesn't use trigger.dev. the reasoning for each one lives in [docs/design/05-steering-and-hooks.md](docs/design/05-steering-and-hooks.md).
+
+| hook | when | what it does | cost |
+|---|---|---|---|
+| **H1** SessionStart | session start, resume, clear, compact | drops about 400 characters of project facts into context: trigger root and project ref, sdk/cli versions and whether they match, package manager, frontend, cloud or self-host, one line on environment defaults (the cli defaults to prod, mcp project tools to dev), and the pinned docs path. marks the project so the other hooks stay cheap everywhere else. in a git worktree it exports `TRIGGER_DEV_BRANCH` so parallel sessions don't split runs. | about 15 ms in other repos; about 75 ms in a trigger.dev project |
+| **H2** PostToolUse (Edit, Write) | after a file edit in a trigger.dev project | runs 15 rules picked for a low false-positive risk, for example `Promise.all` around waits, `streamText` imported from `ai` inside `chat.agent`, `schedules.create` without a `deduplicationKey`, a secret key in client code, stale v3 imports, and task options the 4.7 types mark `@deprecated` (see "evidence" below). it tells the agent the fact and the fix with the doc link. after an `Edit` it keeps hits in the lines you just wrote apart from hits that were already in the file. never blocks. | roughly 10 ms in other repos (shell only, plus one cheap signal check when no marker exists yet); tens of ms in a trigger.dev project; zero output when clean |
+| **H3** PreToolUse | `trigger deploy/promote/env set\|get\|pull/runs cancel\|replay` without `--env`, `npm run deploy:trigger`-style script aliases, mcp writes aimed at prod | asks first, because the cli defaults to prod. in `bypassPermissions` or `dontAsk` mode an implicit-prod command gets denied with the fix (add `--env`). | one node start (about 35 ms), only on those commands |
+
+**evidence for H2.** every hook rule hits its bad examples and stays silent on its good ones (`tests/rules.test.mjs`, 278 examples). a scan of 60 public repos (31,032 files: 42 with the sdk in the root `package.json`, 18 with it only in a nested package) exercised three of the 15 rules:
+- MIG-01 had 59 hits, all true (real `@trigger.dev/sdk/v3` imports in sdk 4 projects).
+- MIG-02 had 3, all true.
+- MIG-03 had 3: two true, one false (a test mock with an `init:` key), which is why the rule now skips test files.
+
+the other 12 rules had no hits to judge, so their precision on real code is unmeasured. no cap. details: [docs/spikes.md](docs/spikes.md), spike S9 and item 23.
+
+## design notes
+
+- **link, don't copy.** the plugin holds decisions, pitfalls and checks. api detail comes from the docs right when it's needed: the version-pinned copy in `node_modules/@trigger.dev/sdk/docs` first, then mcp `search_docs`, then `https://trigger.dev/docs/<path>.md`. `trigger-ctx docs <topic or name>` points at the page (and, for a name, at the sdk's own types).
+- **cloud first, self-host safe.** nothing hard-codes `api.trigger.dev`; cloud-only advice is flagged and dropped on a self-hosted target.
+- **any stack.** typescript project, monorepo, polyglot repo (python, go, ruby calling tasks over rest), or a caller-only app: detected, not assumed.
+- **beta features** (hosted webhooks, slack/linear connectors, channels) are never the default pick and always come with a non-beta fallback.
+- the full design (overview, official-skills audit, architecture, hooks, flows, mcp vs cli, doc index, walkthroughs, roadmap) is in [docs/design](docs/design/00-overview.md). wherever the build differs from the design, [docs/spikes.md](docs/spikes.md) says so.
+
+## does it actually help? measured, with caveats
+
+a 49-case eval suite (`evals/`, run with `claude plugin eval`, three runs per case) puts three arms on the same prompts: this plugin, no plugin, and the six official `triggerdotdev/skills`.
+- **original positive cases (25):** the plugin scored 0.98 (0.976), no plugin 0.55, the official skills 0.62. the plugin arm was re-run for 0.2.0; the other two arms are from the first full run, since the plugin's edits don't touch them.
+- **negative cases (6)** (celery, sidekiq, bullmq, plain cron, where it has to stay out of the way): 1.00 in every arm.
+
+the gain isn't uniform, and that's the point.
+- **big where the plugin steers:** chat agents +0.64 over the official skills, `init` discovery +0.73, cost +0.67, live diagnosis +0.67.
+- **zero where the model already knows the api:** realtime, webhooks, migration and rest-caller prompts tie at 1.00 in both arms.
+- **overall:** across the original 42 cases the plugin is about +0.29 over no plugin, and unchanged within noise from 0.1.1 (0.986 vs 0.990).
+
+seven "steering-hard" cases came in with 0.2.0 to test what the first suite couldn't see: deprecated hook names, a task file with an old import, a deploy request that never names the skill, and running a check before claiming success. on 0.1.1 they scored 0.33 to 1.00 per case, with four clearly red. on 0.2.0 six of the seven score 1.00, and one sits at 0.83.
+
+ngl, the plugin's author wrote the cases and graders and a small model judges them. treat this as a regression suite with baselines, not an independent benchmark; a single case can swing by one run in three. details, the misses and the fixes the evals forced: [docs/spikes.md](docs/spikes.md), items 19, 20 and 23.
+
+## the engine
+
+`bin/trigger-ctx` (on the bash tool's PATH) is a zero-dependency node script: `detect`, `guard`, `lint`, `scan`, `docs`, `links-check`. it always exits 0. the 135-rule catalog is data: [references/rule-catalog.md](references/rule-catalog.md).
+
+## windows
+
+the session fingerprint and the edit checks are shell-form hooks and need git bash (git for windows). without it they fail without blocking anything (`onFailure: continue`). the prod guard runs as plain node and still works. windows without git bash is untested.
+
+## known limits
+
+- the prod guard sees the cli, `package.json` scripts and mcp, not makefiles or shell scripts.
+- the deploy preflight and the prove-it step are steered, not enforced. in live sessions the agent sometimes skips the `trigger-ctx scan` or the typecheck and goes straight to the deploy or the dev run.
+- `.mcp.json` runs `npx trigger.dev@latest mcp` on purpose (same as trigger.dev's own config); a weekly job diffs its tool list.
+
+## develop
+
+```sh
 node tests/rules.test.mjs        # every rule hits its bad examples and stays silent on its good ones
-node tests/replay.test.mjs       # hook outputs equal what real Claude Code sessions recorded
-node tests/marker.test.mjs       # the tripwire arms in non-ASCII paths and in the session that creates the project
+node tests/replay.test.mjs       # hook outputs equal what real claude code sessions recorded
+node tests/marker.test.mjs       # the tripwire arms in non-ascii paths and in the session that creates the project
 node scripts/rules/build.mjs     # scripts/rules/src/* -> rules.json, then render-catalog.mjs
-node scripts/build-hooks.mjs     # regenerate hooks/hooks.json (CI runs --check)
+node scripts/build-hooks.mjs     # regenerate hooks/hooks.json (ci runs --check)
 claude plugin validate --strict .
 ```
 
-See [AGENTS.md](AGENTS.md) for maintainer rules. MIT licensed.
+maintainer rules live in [AGENTS.md](AGENTS.md). mit licensed.
