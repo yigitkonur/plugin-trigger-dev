@@ -361,7 +361,8 @@ function editedRanges(payload, text) {
     if (typeof piece !== "string" || !piece.length) continue;
     let at = text.indexOf(piece);
     if (at < 0) return null;
-    while (at >= 0) {
+    for (let n = 0; at >= 0; n++) {
+      if (n >= 40) return null; // a tiny new_string that occurs everywhere says nothing about where the edit is
       const start = text.slice(0, at).split("\n").length;
       ranges.push([start, start + piece.split("\n").length - 1]);
       at = text.indexOf(piece, at + 1);

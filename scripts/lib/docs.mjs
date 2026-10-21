@@ -54,9 +54,12 @@ function walk(dir, ext, out = [], depth = 0) {
 
 // Pages of the pinned docs that mention the symbol: headings first, then prose, then code; at most two per page, five in all.
 function docHits(name, docsDir) {
+  const out = [];
   const last = name.split(".").pop();
   const hits = [];
+  let usedLast = false;
   for (const pattern of name === last ? [name] : [name, last]) {
+    usedLast = pattern !== name;
     const re = new RegExp(`(?<![\\w$])${esc(pattern)}(?![\\w$])`);
     for (const file of walk(docsDir, ".mdx")) {
       if (/(^|\/)changelog\.mdx$/.test(file)) continue;
@@ -77,8 +80,8 @@ function docHits(name, docsDir) {
     if (hits.length) break;
   }
   hits.sort((a, b) => a.rank - b.rank || a.depth - b.depth || a.rel.localeCompare(b.rel) || a.line - b.line);
+  out.lastSegmentOnly = usedLast && hits.length > 0;
   const perPage = {};
-  const out = [];
   for (const h of hits) {
     perPage[h.rel] = (perPage[h.rel] || 0) + 1;
     if (perPage[h.rel] > 2) continue;
@@ -135,6 +138,7 @@ function symbolFacts(name, fp, docsDir) {
   const pages = docsDir ? docHits(name, docsDir) : [];
   const deprecated = types.filter((t) => t.deprecated).map((t) => `${t.decl.replace(/[;,]$/, "")} (${t.file}:${t.line}): ${t.deprecated}`);
   const out = { name, declared: types.length > 0, deprecated, types, docs: pages };
+  if (pages.lastSegmentOnly) out.note = `no pinned page mentions "${name}" as a whole; the docs hits are for "${name.split(".").pop()}" alone`;
   if (!types.length && !pages.length) out.note = "not declared in the installed @trigger.dev types and not in the pinned docs (your own code is not searched): check the spelling, or resolve it with MCP search_docs before using it";
   return out;
 }
@@ -172,7 +176,7 @@ export function docs(topic, projDir, { indexFile } = {}) {
   const rows = parseIndex(readText(indexFile || path.join(ROOT, "references", "link-index.md"), 600_000));
   const whole = q.toLowerCase();
   const words = whole.split(/[^a-z0-9]+/).filter((w) => w.length > 1 && !STOP.has(w));
-  const symbol = IDENT.test(q) && !/^[a-z]+$/.test(q) ? symbolFacts(q, fp, docsDir) : null; // plain lower-case words are topics ("webhooks"), not symbols
+  const symbol = q.length <= 120 && IDENT.test(q) && !/^[a-z]+$/.test(q) ? symbolFacts(q, fp, docsDir) : null; // plain lower-case words are topics ("webhooks"), not symbols
   const ranked = rows.map((r) => [score(r, words, whole, !!symbol), r]).filter(([s]) => s > 0).sort((a, b) => b[0] - a[0]).slice(0, 3);
   const matches = ranked.map(([, r]) => {
     let gate = null;

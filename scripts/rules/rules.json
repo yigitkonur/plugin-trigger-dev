@@ -1489,7 +1489,7 @@
    "detect": "S",
    "scope": "code",
    "applies_when": "sdk>=4",
-   "skip_paths": "(^|/)(__tests__|tests?)/|\\.(test|spec)\\.",
+   "skip_paths": "(^|/)(__tests__|tests?)/|\\.(test|spec)\\.|\\.[jt]sx$",
    "match": {
     "type": "regex",
     "pattern": "\\b(?:handleError|onStart|init|cleanup)\\s*:\\s*(?:async\\s*)?(?:\\(|function\\b)",
