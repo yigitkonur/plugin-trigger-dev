@@ -1,16 +1,15 @@
 ---
 name: ship
-description: Deploy Trigger.dev tasks to an environment with a preflight, the right CI or integration pipeline, an explicit --env, and a verification step.
+description: Deploy Trigger.dev tasks (trigger deploy) to staging, prod or a preview branch with a preflight, the right CI or integration pipeline, an explicit --env, and a verification step. Use when asked to deploy, ship or release the Trigger.dev tasks or jobs. Not for deploying the app itself to Vercel, Fly or another host.
 argument-hint: "[staging|prod|preview]"
-disable-model-invocation: true
 allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(git status *) Bash(git branch --show-current)
 ---
 
-# Ship to $ARGUMENTS
+# Ship Trigger.dev tasks ($ARGUMENTS)
 
 ## Project facts
 
-!`trigger-ctx detect --brief || true`
+!`node "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs" detect --brief || true`
 
 Read `${CLAUDE_PLUGIN_ROOT}/skills/build/scenarios/deploy-ci.md` first. Deploys touch production: the target environment is always explicit (`--env`), and a production deploy needs the user's yes in this conversation. If no environment was given, ask: staging, prod or preview.
 

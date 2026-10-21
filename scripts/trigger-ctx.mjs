@@ -4,7 +4,7 @@
 //   guard [--alias]                                 PreToolUse prod guard (hook stdin -> decision JSON or nothing)
 //   lint --hook | lint <files...> [--all]           tripwire rules (hook tier by default, --all adds audit tier)
 //   scan [path] [--focus <d>] [--json]              relevance per domain + all located hits
-//   docs <topic|path>                               resolve a doc page (local pinned copy -> web .md)
+//   docs <topic|path|name>                          resolve a doc page (local pinned copy -> web .md); a name (catchError) also reports the installed SDK types and @deprecated notes
 //   links-check [--anchors]                         status/anchor check of every cited doc URL
 import { envelope, emit, readStdinJson, steering, projectDir, hasMarker, writeMarker } from "./lib/util.mjs";
 

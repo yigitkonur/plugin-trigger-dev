@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const plugin = path.join(here, "..");
 const rec = JSON.parse(fs.readFileSync(path.join(here, "recordings", "live-2026-10-20.json"), "utf8"));
+const rec2 = JSON.parse(fs.readFileSync(path.join(here, "recordings", "live-2026-10-21.json"), "utf8")); // round 2: deprecated options (a Write), a hit next to an edit (an Edit)
 
 // A project shaped like the sandbox one the sessions ran in.
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "tdp-replay-"));
@@ -57,6 +58,16 @@ put(rec.tripwire.file, rec.tripwire.content);
 const tw = await run("sh", [path.join(plugin, "hooks", "marker-gate.sh"), "lint", "--hook"], hookInput("PostToolUse", { tool_name: "Write", tool_input: { file_path: path.join(root, rec.tripwire.file), content: rec.tripwire.content }, tool_response: { type: "create", filePath: path.join(root, rec.tripwire.file) } }));
 check("tripwire output equals the recording", tw.out.trim() && same(tw.out, rec.tripwire.output), `got: ${tw.out.slice(0, 300)} ${tw.err.slice(0, 200)}`);
 
+// Round 2: a Write with deprecated task options, then an Edit beside an import that was already in the file.
+const hookWrite = (rel, content, sid) => hookInput("PostToolUse", { session_id: sid, tool_name: "Write", tool_input: { file_path: path.join(root, rel), content }, tool_response: { type: "create", filePath: path.join(root, rel) } });
+put(rec2.deprecatedHooks.file, rec2.deprecatedHooks.content);
+const dep = await run("sh", [path.join(plugin, "hooks", "marker-gate.sh"), "lint", "--hook"], hookWrite(rec2.deprecatedHooks.file, rec2.deprecatedHooks.content, "replay-dep"));
+check("deprecated task options: tripwire equals the recording", dep.out.trim() && same(dep.out, rec2.deprecatedHooks.output), `got: ${dep.out.slice(0, 300)} ${dep.err.slice(0, 200)}`);
+const ed = rec2.editNextToOldHit;
+put(ed.file, ed.original.replace(ed.old_string, ed.new_string));
+const edr = await run("sh", [path.join(plugin, "hooks", "marker-gate.sh"), "lint", "--hook"], hookInput("PostToolUse", { session_id: "replay-edit", tool_name: "Edit", tool_input: { file_path: path.join(root, ed.file), old_string: ed.old_string, new_string: ed.new_string }, tool_response: { filePath: path.join(root, ed.file) } }));
+check("edit beside an old hit: tripwire labels it as already in the file", edr.out.trim() && same(edr.out, ed.output), `got: ${edr.out.slice(0, 300)} ${edr.err.slice(0, 200)}`);
+
 // Outside a Trigger.dev project the same hooks stay silent.
 const elsewhere = fs.mkdtempSync(path.join(os.tmpdir(), "tdp-replay-none-"));
 fs.writeFileSync(path.join(elsewhere, "main.go"), "package main\n");
@@ -69,5 +80,5 @@ const quiet = await new Promise((resolve) => {
 });
 check("silent outside a Trigger.dev project", quiet === "", `got: ${quiet.slice(0, 200)}`);
 
-console.log(`${fail ? "FAILED" : "ok"}: replay of ${1 + rec.guard.length + 1 + 1} recorded hook calls, ${fail} failures`);
+console.log(`${fail ? "FAILED" : "ok"}: replay of ${1 + rec.guard.length + 1 + 2 + 1} recorded hook calls, ${fail} failures`);
 process.exitCode = fail ? 1 : 0;

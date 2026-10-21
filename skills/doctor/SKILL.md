@@ -9,7 +9,7 @@ allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(node --ver
 
 ## Project facts
 
-!`trigger-ctx detect --json || true`
+!`node "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs" detect --json || true`
 
 Report a table of checks, each OK, WARN or FAIL with the evidence and the fix. Never delete or edit anything yourself; recommend, and let the user act.
 

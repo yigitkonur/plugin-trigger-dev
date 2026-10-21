@@ -2,6 +2,7 @@
 name: chat-agent
 description: Build, migrate or debug AI chat agents on Trigger.dev (chat.agent, the chat transport, sessions, transcript storage, tool approvals, server, Slack and Linear callers). Use when a Trigger.dev project needs a chat assistant or agent, or code imports @trigger.dev/sdk/ai or @trigger.dev/sdk/chat.
 argument-hint: "[what the agent should do, or what is broken]"
+allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(npx trigger.dev@latest whoami*) Bash(npx tsc --noEmit*) Bash(pnpm exec tsc --noEmit*) Bash(yarn tsc --noEmit*) Bash(bunx tsc --noEmit*)
 ---
 
 # Trigger.dev: chat agents
@@ -59,4 +60,4 @@ Inferred without asking: the frontend (the React transport hook is React-only; o
 
 ## Verify before you write, answer in the bridge format
 
-Resolve every API name with `trigger-ctx docs <topic>` and read the local pinned page (`node_modules/@trigger.dev/sdk/docs/ai-chat/…`) or the web `.md`; the chat API changes fast (changelog: https://trigger.dev/docs/ai-chat/changelog). If no docs tier is reachable, still answer from the playbook and list every API name you could not check as unverified; never refuse for lack of docs. Answer as: *You're building X. Y fits because Z (not W, because …). Minimal shape (≤ 15 lines). Watch out for (≤ 3). Docs: local path · URL.* Name the environment when you test (`dev` unless the user says otherwise); a live smoke test is MCP `list_agents` → `start_agent_chat` → `send_agent_message` → `close_agent_chat`, and `start_agent_chat` in prod spends real LLM budget: ask first.
+Resolve every API name with `trigger-ctx docs <topic or name>` (a name returns whether the installed types declare it, any `@deprecated` note, and the pinned-doc `file:line`) and read the local pinned page (`node_modules/@trigger.dev/sdk/docs/ai-chat/…`) or the web `.md`; the chat API changes fast (changelog: https://trigger.dev/docs/ai-chat/changelog). If no docs tier is reachable, still answer from the playbook and list every API name you could not check as unverified; never refuse for lack of docs. Answer as: *You're building X. Y fits because Z (not W, because …). Minimal shape (≤ 15 lines). Watch out for (≤ 3). Docs: local path · URL.* Name the environment when you test (`dev` unless the user says otherwise); a live smoke test is MCP `list_agents` → `start_agent_chat` → `send_agent_message` → `close_agent_chat`, and `start_agent_chat` in prod spends real LLM budget: ask first.
