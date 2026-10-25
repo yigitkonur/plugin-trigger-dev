@@ -26,7 +26,7 @@ Evidence first, then a verdict, then a fix with a doc link. Symptoms arrive in p
 5. Propose the fix with its doc link as a full URL (`https://trigger.dev/docs/<path>`, taking the path from the Doc column of `symptoms.md`; `trigger-ctx docs "<error text>"` resolves other topics). Never say you could not resolve a link: the Doc column is enough. If the fix is a code change, make it only when asked.
 6. After the fix is deployed, offer a replay or bulk replay of the affected runs. Replays are writes: ask.
 
-Plan-dependent facts (log retention, query lookback, concurrency, billing limits) differ by plan and by host. Billing limits and API-key presets are dashboard steps; alerts can be listed or created through the MCP alert tools (`list_alert_capabilities` first) for a human: say where to click.
+Plan-dependent facts (log retention, query lookback, concurrency, billing limits) differ by plan and by host. Billing limits and API-key presets are dashboard steps; alerts can be listed or created through the MCP alert tools (`list_alert_capabilities` first) for a human: say where to click. An alert on a query result (4.8.1+) is made from the Query page, the Dashboard Agent or the API; the MCP `create_alert` has no query field.
 
 ## Related
 
