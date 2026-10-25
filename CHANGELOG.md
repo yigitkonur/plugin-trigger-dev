@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2
+
+_2026-10-25, automatic release from the commits since v0.2.1._
+
+- fix(skills): project-facts injection drops '|| true' so it fits the allowed-tools pattern
+
 ## 0.2.1
 
 _2026-10-25, automatic release from the commits since v0.2.0._
