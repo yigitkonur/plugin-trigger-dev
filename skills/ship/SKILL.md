@@ -2,7 +2,7 @@
 name: ship
 description: Deploy Trigger.dev tasks (trigger deploy) to staging, prod or a preview branch with a preflight, the right CI or integration pipeline, an explicit --env, and a verification step. Use when asked to deploy, ship or release the Trigger.dev tasks or jobs. Not for deploying the app itself to Vercel, Fly or another host.
 argument-hint: "[staging|prod|preview]"
-allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(git status *) Bash(git branch --show-current)
+allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(node *trigger-ctx.mjs" *) Bash(git status *) Bash(git branch --show-current)
 ---
 
 # Ship Trigger.dev tasks ($ARGUMENTS)

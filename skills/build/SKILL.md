@@ -2,7 +2,7 @@
 name: build
 description: Design, write, edit, review and answer questions about Trigger.dev (tasks, schedules, batches, waits and approvals, realtime progress UIs, build extensions, deploys and CI, costs and limits). Use before changing any task file or trigger.config.* in a project that uses Trigger.dev (@trigger.dev/* packages), and whenever the user mentions Trigger.dev, even for a quick question. Not for Celery, Sidekiq, BullMQ, plain cron or other job systems in projects without Trigger.dev.
 argument-hint: "[what you are building or asking]"
-allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(npx trigger.dev@latest whoami*) Bash(npx tsc --noEmit*) Bash(pnpm exec tsc --noEmit*) Bash(yarn tsc --noEmit*) Bash(bunx tsc --noEmit*)
+allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(node *trigger-ctx.mjs" *) Bash(npx trigger.dev@latest whoami*) Bash(npx tsc --noEmit*) Bash(pnpm exec tsc --noEmit*) Bash(yarn tsc --noEmit*) Bash(bunx tsc --noEmit*)
 ---
 
 # Trigger.dev: build

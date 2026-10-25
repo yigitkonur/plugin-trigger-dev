@@ -3,7 +3,7 @@ name: audit
 description: Review a Trigger.dev codebase against the plugin's rule catalog (stale APIs, silent-failure patterns, config, deploy, cost) and write a findings report; optionally apply safe fixes.
 argument-hint: "[path] [--focus cost|chat|realtime|deploy] [--live] [--fix]"
 disable-model-invocation: true
-allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(git status *) Bash(git diff *)
+allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(node *trigger-ctx.mjs" *) Bash(git status *) Bash(git diff *)
 ---
 
 # Audit this Trigger.dev codebase

@@ -2,7 +2,7 @@
 name: diagnose
 description: Find out why Trigger.dev runs or deploys misbehave (stuck QUEUED or PENDING_VERSION, failed, timed out, crashed or OOM, schedules not firing, 429s, CI deploy failures, chat history lost). Use when a Trigger.dev project shows an error, a run id such as run_abc123, or the user says a task did not run.
 argument-hint: "[run id, task, or symptom]"
-allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(npx trigger.dev@latest whoami*) Bash(npx trigger.dev@latest runs get *) Bash(npx trigger.dev@latest runs list *) Bash(npx trigger.dev@latest report *)
+allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(node *trigger-ctx.mjs" *) Bash(npx trigger.dev@latest whoami*) Bash(npx trigger.dev@latest runs get *) Bash(npx trigger.dev@latest runs list *) Bash(npx trigger.dev@latest report *)
 ---
 
 # Trigger.dev: diagnose

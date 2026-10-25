@@ -3,7 +3,7 @@ name: new
 description: Add one capability to an existing Trigger.dev project (a task, a schedule, a progress UI, an approval step, a webhook handler) and prove it runs.
 argument-hint: "<capability, e.g. progress bar for the import task>"
 disable-model-invocation: true
-allowed-tools: Bash(npx tsc --noEmit*) Bash(pnpm exec tsc --noEmit*) Bash(yarn tsc --noEmit*) Bash(bunx tsc --noEmit*) Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *)
+allowed-tools: Bash(npx tsc --noEmit*) Bash(pnpm exec tsc --noEmit*) Bash(yarn tsc --noEmit*) Bash(bunx tsc --noEmit*) Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(node *trigger-ctx.mjs" *)
 ---
 
 # Add a capability

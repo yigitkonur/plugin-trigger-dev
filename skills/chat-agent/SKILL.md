@@ -2,7 +2,7 @@
 name: chat-agent
 description: Build, migrate or debug AI chat agents on Trigger.dev (chat.agent, the chat transport, sessions, transcript storage, tool approvals, server, Slack and Linear callers). Use when a Trigger.dev project needs a chat assistant or agent, or code imports @trigger.dev/sdk/ai or @trigger.dev/sdk/chat.
 argument-hint: "[what the agent should do, or what is broken]"
-allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(npx trigger.dev@latest whoami*) Bash(npx tsc --noEmit*) Bash(pnpm exec tsc --noEmit*) Bash(yarn tsc --noEmit*) Bash(bunx tsc --noEmit*)
+allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(node *trigger-ctx.mjs" *) Bash(npx trigger.dev@latest whoami*) Bash(npx tsc --noEmit*) Bash(pnpm exec tsc --noEmit*) Bash(yarn tsc --noEmit*) Bash(bunx tsc --noEmit*)
 ---
 
 # Trigger.dev: chat agents
