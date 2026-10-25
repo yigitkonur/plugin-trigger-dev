@@ -12,7 +12,7 @@ Goal from the user: $ARGUMENTS
 
 ## Project facts
 
-!`node "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs" detect --brief || true`
+!`node "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs" detect --brief`
 
 (If the line above is empty or shows a command error, run `node "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs" detect --brief` yourself.)
 

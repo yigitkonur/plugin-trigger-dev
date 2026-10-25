@@ -9,7 +9,7 @@ allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(git status
 
 ## Project facts
 
-!`node "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs" detect --brief || true`
+!`node "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs" detect --brief`
 
 Read `${CLAUDE_PLUGIN_ROOT}/skills/build/scenarios/deploy-ci.md` first. Deploys touch production: the target environment is always explicit (`--env`), and a production deploy needs the user's yes in this conversation. If no environment was given, ask: staging, prod or preview.
 

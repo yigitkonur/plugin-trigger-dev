@@ -12,7 +12,7 @@ Capability requested: $ARGUMENTS
 
 ## Project facts
 
-!`node "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs" detect --brief || true`
+!`node "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs" detect --brief`
 
 (If the block is empty, run `node "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs" detect --brief` yourself.)
 
