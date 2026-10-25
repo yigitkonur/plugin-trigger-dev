@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Decide the next version of a Claude Code plugin repo from its commits, and write it everywhere it lives.
 
-Usage: release.py [--root DIR] [--level auto|patch|minor|major] [--apply] [--notes-out FILE] [--github-output]
+Usage: release.py [--root DIR] [--plugin NAME] [--level auto|patch|minor|major] [--apply] [--notes-out FILE] [--github-output]
 Dry run unless --apply. Python 3.9+, stdlib only; works on any plugin repo, so each repo vendors this one file
 (scripts/release.py). The canonical copy is yigitkonur/plugin-agentic-maker/scripts/release.py.
 
@@ -19,6 +19,10 @@ Writes, wherever the old version string is the value of a "version" key: .claude
 .claude-plugin/marketplace.json, every nested <dir>/.claude-plugin/plugin.json and <dir>/.codex-plugin/plugin.json,
 `__version__ = "old"` in lib/*/__init__.py, and CHANGELOG.md (an "## Unreleased" section is renamed; otherwise one is
 generated from the commit subjects).
+--plugin NAME (marketplaces that carry several plugins with their own versions, e.g. ./plugins/a and ./plugins/b): release only that
+plugin. Its version is the one in <source>/.claude-plugin/plugin.json (else its marketplace entry); only commits that touch its folder
+count; the last release is the newest <NAME>--v<x.y.z> tag; the bump rewrites its plugin.json files and its own marketplace entry (not
+the catalog's metadata.version or the other plugins); the CHANGELOG gets "## NAME x.y.z - date"; the only tag is NAME--v<x.y.z>.
 Prints JSON. With --github-output also writes released, version, tag, cli_tag, name to $GITHUB_OUTPUT.
 Exit 0 on a clean decision (release or none); non-zero on a repo it cannot read.
 """
@@ -96,10 +100,58 @@ def current(root):
     raise SystemExit("release.py: no version found in any plugin.json or marketplace.json")
 
 
-def last_release_tag(root):
+def plugin_entry(root, name):
+    """(marketplace file, source folder 'plugins/x/') for the named plugin."""
+    for rel in manifests(root):
+        if rel.endswith("marketplace.json"):
+            for pl in read_json(root, rel).get("plugins", []):
+                if pl.get("name") == name and isinstance(pl.get("source"), str):
+                    return rel, os.path.normpath(pl["source"]).replace(os.sep, "/") + "/"
+    raise SystemExit("release.py: plugin %r not found in any marketplace.json" % name)
+
+
+def plugin_files(root, folder):
+    return [rel for rel in manifests(root) if rel.startswith(folder) and rel.endswith("plugin.json")]
+
+
+def plugin_current(root, name):
+    market, folder = plugin_entry(root, name)
+    for rel in plugin_files(root, folder):
+        v = read_json(root, rel).get("version")
+        if v:
+            return v
+    for pl in read_json(root, market).get("plugins", []):
+        if pl.get("name") == name and pl.get("version"):
+            return pl["version"]
+    raise SystemExit("release.py: no version for plugin %r" % name)
+
+
+def write_plugin_versions(root, name, old, new):
+    market, folder = plugin_entry(root, name)
+    done = []
+    for rel in plugin_files(root, folder):
+        n = replace_in(os.path.join(root, rel), old, new, r'"version"\s*:\s*"%s"')
+        if n:
+            done.append("%s (%d)" % (rel, n))
+    path = os.path.join(root, market)
+    text = open(path, encoding="utf-8").read()
+    at = text.find('"name": "%s"' % name)
+    if at < 0:
+        at = re.search(r'"name"\s*:\s*"%s"' % re.escape(name), text).start()
+    end = text.find('"source"', at)
+    seg, n = re.subn(r'("version"\s*:\s*")%s(")' % re.escape(old), lambda m: m.group(1) + new + m.group(2), text[at:end])
+    if n:
+        open(path, "w", encoding="utf-8").write(text[:at] + seg + text[end:])
+        done.append("%s (%d)" % (market, n))
+    return done
+
+
+def last_release_tag(root, name=None):
     best, best_key = None, None
     for t in git(root, "tag", "--list").split():
         m = RELTAG.match(t)
+        if m and name and not t.startswith(name + "--v"):
+            continue
         if m:
             key = tuple(int(x) for x in m.groups())
             if best_key is None or key > best_key:
@@ -127,9 +179,9 @@ def shipped(path, dirs=None):
     return not (path.startswith(IGNORED_DIRS) or IGNORED_ROOT.match(path))
 
 
-def commits_since(root):
-    base = last_release_tag(root)
-    dirs = plugin_dirs(root)
+def commits_since(root, name=None):
+    base = last_release_tag(root, name)
+    dirs = (plugin_entry(root, name)[1],) if name else plugin_dirs(root)
     rng = "%s..HEAD" % base if base else "HEAD"
     raw = git(root, "log", "--no-merges", "--name-only", "--format=%x1e%H%x1f%s%x1f%b%x1f", rng)
     out = []
@@ -200,19 +252,19 @@ def write_versions(root, old, new):
     return done
 
 
-def changelog(root, new, commits):
+def changelog(root, new, commits, name=None):
     p = os.path.join(root, "CHANGELOG.md")
     today = datetime.date.today().isoformat()
-    head = "## %s - %s" % (new, today)
+    head = "## %s%s - %s" % (name + " " if name else "", new, today)
     if not os.path.isfile(p):
         text = "# Changelog\n\n"
     else:
         text = open(p, encoding="utf-8").read()
-    have = re.search(r"^## v?%s\b.*$" % re.escape(new), text, re.M)
+    have = re.search(r"^## .*%s\b.*$" % re.escape((name + " " if name else "v?") + new), text, re.M) if name else re.search(r"^## v?%s\b.*$" % re.escape(new), text, re.M)
     if have:                                     # a human already wrote this version's section: keep it, publish it
         b = text.find("\n## ", have.end())
         return p, text[have.end():b if b > 0 else len(text)].strip() + "\n"
-    m = re.search(r"^## Unreleased[ \t]*$", text, re.M)
+    m = re.search(r"^## Unreleased[ \t]*$", text, re.M) if not name else None
     renamed = False
     if m:
         end = text.find("\n## ", m.end())
@@ -235,16 +287,20 @@ def changelog(root, new, commits):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--root", default=".")
+    ap.add_argument("--plugin", help="release only this plugin of a multi-plugin marketplace")
     ap.add_argument("--level", default="auto", choices=["auto", "patch", "minor", "major"])
     ap.add_argument("--apply", action="store_true", help="write the files (default: only say what would happen)")
     ap.add_argument("--notes-out", help="write the release notes (the changelog section) here")
     ap.add_argument("--github-output", action="store_true", help="append released/version/tag/cli_tag/name to $GITHUB_OUTPUT")
     a = ap.parse_args()
     root = os.path.abspath(a.root)
-    old, name = current(root)
+    if a.plugin:
+        old, name = plugin_current(root, a.plugin), a.plugin
+    else:
+        old, name = current(root)
     if not SEMVER.match(old):
         raise SystemExit("release.py: version %r is not x.y.z" % old)
-    base, commits = commits_since(root)
+    base, commits = commits_since(root, a.plugin)
     level, why = decide(commits, int(old.split(".")[0]))
     # a human already moved the manifest above the last release: release exactly that
     base_ver = RELTAG.match(base).groups() if base else None
@@ -260,12 +316,12 @@ def main():
     else:
         new = None
     if new:
-        if git(root, "tag", "--list", "v" + new).strip() or (name and git(root, "tag", "--list", "%s--v%s" % (name, new)).strip()):
+        if (not a.plugin and git(root, "tag", "--list", "v" + new).strip()) or (name and git(root, "tag", "--list", "%s--v%s" % (name, new)).strip()):
             raise SystemExit("release.py: tag for %s already exists but the files say %s; check out the newest main" % (new, old))
-        result.update(version=new, tag="v" + new, cli_tag="%s--v%s" % (name, new) if name else "")
+        result.update(version=new, tag="%s--v%s" % (name, new) if a.plugin else "v" + new, cli_tag="" if a.plugin else ("%s--v%s" % (name, new) if name else ""))
         if a.apply:
-            result["written"] = write_versions(root, old, new) if new != old else []
-            cl, notes = changelog(root, new, commits)
+            result["written"] = ((write_plugin_versions(root, a.plugin, old, new) if a.plugin else write_versions(root, old, new)) if new != old else [])
+            cl, notes = changelog(root, new, commits, a.plugin)
             result["written"].append("CHANGELOG.md")
             if a.notes_out:
                 open(a.notes_out, "w", encoding="utf-8").write(notes or "\n".join("- " + c["subject"] for c in commits) + "\n")
