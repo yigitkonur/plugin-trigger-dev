@@ -39,6 +39,21 @@ claude plugin update trigger-dev@plugin-trigger-dev --scope project
 claude plugin uninstall trigger-dev@plugin-trigger-dev --scope project
 ```
 
+**auto-update.** claude code only auto-updates marketplaces it ships with; a third-party one like this is off by default. every merge to `main` that changes what the plugin ships gets a new version (a ci job bumps it, tags it and publishes the release), so switching auto-update on means installed copies pick up releases on their own, and `/reload-plugins` applies them in the running session. switch it on with `/plugin` → marketplaces → plugin-trigger-dev → enable auto-update, or in `~/.claude/settings.json`:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "plugin-trigger-dev": {
+      "source": { "source": "github", "repo": "yigitkonur/plugin-trigger-dev" },
+      "autoUpdate": true
+    }
+  }
+}
+```
+
+or update by hand any time with `claude plugin update trigger-dev@plugin-trigger-dev --scope project`.
+
 **heads up on scope.** `--scope project` is the move for repos that use trigger.dev. at user scope the four skill descriptions and the trigger.dev mcp tool names load in every repo you open, about 1,000 tokens per `claude plugin details trigger-dev`. at project scope other repos pay nothing.
 
 **needs:** claude code 2.1.295 or later, and node 18 or later. node runs the edit checks, the prod guard and `audit`; without it they skip quietly.
