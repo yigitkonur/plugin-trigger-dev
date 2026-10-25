@@ -1,5 +1,7 @@
 # 00 — Overview: a native Claude Code plugin for Trigger.dev
 
+> **Superseded on install scope.** These design notes (and `docs/spikes.md`) recommend a project-scope install to avoid the standing context cost. The policy now is: installed globally and off, switched on per project (`plugin on trigger-dev`), which has the same zero standing cost everywhere it is off. See `AGENTS.md`. The notes below are kept as the record of why.
+
 **Status:** design plan only. Nothing here is scaffolded.
 **Plugin name:** `trigger-dev`. Commands appear as `/trigger-dev:<name>`.
 **Targets:** Claude Code ≥ 2.1.295 (needed for `onFailure` on hooks), Trigger.dev SDK v4 (v3 detected and migrated), Trigger.dev Cloud first, self-host safe.
