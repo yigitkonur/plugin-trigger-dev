@@ -4,27 +4,35 @@ tl;dr: a claude code plugin that makes the agent actually good at [trigger.dev](
 
 ## install
 
-one command, from your terminal, inside the repo that uses trigger.dev:
+the one-liner (it's the `--marketplace` flag from `claude plugin install --help`: it adds this repo as a marketplace and installs in one go):
 
 ```sh
-claude plugin install trigger-dev --marketplace yigitkonur/plugin-trigger-dev --scope project --config steering=full
+claude plugin install trigger-dev --marketplace yigitkonur/plugin-trigger-dev
 ```
 
-that adds the marketplace (in your user settings), installs the plugin for this project only, and sets the steering level. restart claude code (or start a new session) and you're set. tested on claude code 2.1.304: `Successfully installed plugin: trigger-dev@plugin-trigger-dev (scope: project)`.
-
-prefer two steps, or already inside claude code? same thing:
+want it only for one repo? run it from that repo with project scope:
 
 ```sh
-claude plugin marketplace add yigitkonur/plugin-trigger-dev
-claude plugin install trigger-dev@plugin-trigger-dev --scope project
+claude plugin install trigger-dev --marketplace yigitkonur/plugin-trigger-dev --scope project
 ```
+
+restart claude code (or open a new session) and you're set. tested on claude code 2.1.307: `Successfully installed plugin: trigger-dev@plugin-trigger-dev`.
+
+want it installed but switched off until you need it? install at project scope, then disable it there. flip it on whenever you want:
+
+```sh
+claude plugin disable trigger-dev@plugin-trigger-dev --scope project
+claude plugin enable  trigger-dev@plugin-trigger-dev --scope project
+```
+
+already inside claude code? same thing, two steps:
 
 ```
 /plugin marketplace add yigitkonur/plugin-trigger-dev
 /plugin install trigger-dev@plugin-trigger-dev
 ```
 
-keep it fresh, or take it out:
+update or remove:
 
 ```sh
 claude plugin update trigger-dev@plugin-trigger-dev --scope project
@@ -35,7 +43,7 @@ claude plugin uninstall trigger-dev@plugin-trigger-dev --scope project
 
 **needs:** claude code 2.1.295 or later, and node 18 or later. node runs the edit checks, the prod guard and `audit`; without it they skip quietly.
 
-**steering level** (`--config steering=…`, or `/plugin configure trigger-dev@plugin-trigger-dev`): `full` is the default and runs every hook, `quiet` keeps only the prod guard, `off` turns the hooks off.
+**steering level** (add `--config steering=quiet` to the install, or run `/plugin configure trigger-dev@plugin-trigger-dev`): `full` is the default and runs every hook, `quiet` keeps only the prod guard, `off` turns the hooks off.
 
 ## what you get
 
