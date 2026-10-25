@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3
+
+_2026-10-25, automatic release from the commits since v0.2.2._
+
+- fix(skills): allowed-tools also matches the quoted engine path
+
 ## 0.2.2
 
 _2026-10-25, automatic release from the commits since v0.2.1._
