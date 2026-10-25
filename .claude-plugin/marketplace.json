@@ -3,13 +3,13 @@
   "owner": { "name": "yigitkonur", "url": "https://github.com/yigitkonur" },
   "metadata": {
     "description": "Trigger.dev for Claude Code: scenario-first guidance, prod guard, edit tripwires, audits and the official MCP server.",
-    "version": "0.3.0"
+    "version": "0.3.1"
   },
   "plugins": [
     {
       "name": "trigger-dev",
       "description": "Scenario-first Trigger.dev guidance for Claude Code: project fingerprint, discovery, doc-linked answers, edit tripwires, prod guard, audits and the official MCP server.",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "author": { "name": "yigitkonur", "url": "https://github.com/yigitkonur" },
       "source": "."
     }

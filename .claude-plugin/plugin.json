@@ -1,7 +1,7 @@
 {
   "name": "trigger-dev",
   "displayName": "Trigger.dev",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Scenario-first Trigger.dev guidance for Claude Code: project fingerprint, discovery, doc-linked answers, edit tripwires, prod guard, audits and the official MCP server.",
   "author": { "name": "yigitkonur", "url": "https://github.com/yigitkonur" },
   "homepage": "https://github.com/yigitkonur/plugin-trigger-dev",

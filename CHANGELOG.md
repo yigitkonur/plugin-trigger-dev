@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1 - 2026-10-25
+
+- chore: reconcile baseline with Trigger.dev 4.8.1 (#2) (35e9c57)
+
 ## 0.3.0 - 2026-10-25
 
 - feat: reconcile with Trigger.dev 4.8.1, always-latest rule, upstream tracking (4844d0b)
