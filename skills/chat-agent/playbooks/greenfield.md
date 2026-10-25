@@ -4,7 +4,7 @@
 **Decide:** (discovery C1–C8; infer before asking)
 - Layer: `chat.agent` by default · `chat.createSession` only with no lifecycle hooks, actions or approvals (Head Start does work with it since 4.5.0, despite the `ai-chat/backend` table) · `chat.customAgent` for a custom protocol.
 - C1 new vs migrate: greenfield only when no chat route exists.
-- C2 callers: browser transport for React · `AgentChat` for server, script or agent callers · client protocol for non-React or non-TS · Slack/Linear/channels are Beta: never default, always with a fallback.
+- C2 callers: browser transport for React · `AgentChat` for server, script or agent callers · client protocol for non-React or non-TS · Slack/Linear/channels (`slack()`/`linear()`, SDK ≥ 4.8.0) when the user names that surface; otherwise not offered.
 - C3 history: platform snapshot by default · `storage: TranscriptStorage` when your DB must own it; wrap `chat.createLoadTranscriptAction` with the ownership check (CHT-12).
 - C4 side effects: `needsApproval` + `execute` for approvals (AI SDK ≥ 6) · no `execute` for questions · idempotent tools always.
 - C5 auth: your session check; ownership checks are mandatory in both token actions.

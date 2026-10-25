@@ -8,7 +8,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const rules = JSON.parse(fs.readFileSync(path.join(here, "rules.json"), "utf8")).rules;
 const FAMILY = {
   MIG: "stale APIs and migration", TSK: "task authoring and reliability", QUE: "queues and concurrency", SCH: "schedules",
-  RT: "realtime, frontend, auth", CHT: "chat agents", WH: "webhooks (beta-gated except WH-06)", CFG: "config and build",
+  RT: "realtime, frontend, auth", CHT: "chat agents", WH: "webhooks (hosted endpoints need SDK 4.8.0, except WH-06)", CFG: "config and build",
   DEP: "deploy, CI, environments", COST: "cost (evidence-driven)", OPS: "live operations (--live)",
 };
 const SEV = { error: "E", warning: "W", info: "I" };

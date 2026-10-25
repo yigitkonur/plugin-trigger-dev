@@ -9,8 +9,9 @@
 - Rejected: `triggerAndWait` in the app — because it is an error outside task code (TSK-04); for a result, subscribe via `runs.subscribeToRun` or Realtime.
 - Hooks: `catchError` to decide a retry or report, `onStartAttempt` for per-attempt work, `onSuccess`/`onFailure`, and `tasks.middleware` with `locals` for setup and teardown — because the 4.7 types deprecate `handleError`, `onStart`, `init` and `cleanup`.
 - Rejected: value import of task modules — because it bundles task code into the app (RT-12).
+- A task that links to its own run (a Slack message, an email) builds the URL from `${process.env.TRIGGER_DASHBOARD_URL}/runs/${ctx.run.id}` (SDK ≥ 4.8.0; works on any instance, never hard-code the dashboard host).
 
-**Gates:** none beta, version-gated or cloud-only. Self-host: set `TRIGGER_API_URL`. The caller authenticates with `TRIGGER_SECRET_KEY` for the target environment. Payload: stay under 3 MB (the docs disagree on larger values; see `references/limits.md`).
+**Gates:** none beta or cloud-only; `TRIGGER_DASHBOARD_URL` needs SDK ≥ 4.8.0. Self-host: set `TRIGGER_API_URL`. The caller authenticates with `TRIGGER_SECRET_KEY` for the target environment. Payload: stay under 3 MB (the docs disagree on larger values; see `references/limits.md`).
 
 **Ask only if unknown:**
 - Is the triggering backend TypeScript? If not, switch to `polyglot-caller`; the caller code changes entirely.

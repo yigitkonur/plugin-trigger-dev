@@ -46,6 +46,13 @@ const cases = [
   ["MCP submit_feedback in bypass: no opinion", mcp("submit_feedback", { message: "x" }, "bypassPermissions"), null],
   ["plugin-prefixed MCP prod cancel asks", { tool_name: "mcp__plugin_trigger-dev_trigger__cancel_run", permission_mode: "default", tool_input: { environment: "prod" } }, "ask"],
   ["MCP read tool passes", mcp("get_run_details", { environment: "prod" }), null],
+  ["deploy --prod passes (explicit shorthand, CLI 4.7.5+)", bash("npx trigger.dev@latest deploy --prod"), null],
+  ["tasks trigger --env prod asks", bash("npx trigger.dev tasks trigger my-task --env prod"), "ask"],
+  ["tasks trigger --prod asks", bash("npx trigger.dev tasks trigger my-task --prod"), "ask"],
+  ["tasks trigger in dev passes", bash("npx trigger.dev tasks trigger my-task --wait"), null],
+  ["MCP create_alert in prod asks", mcp("create_alert", { environment: "prod" }), "ask"],
+  ["MCP create_alert with no environment passes (default dev)", mcp("create_alert", {}), null],
+  ["MCP list_alerts passes", mcp("list_alerts", { environment: "prod" }), null],
 ];
 
 let fail = 0;

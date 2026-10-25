@@ -20,19 +20,21 @@ The Trigger.dev MCP server (`npx trigger.dev@latest mcp`, shipped by this plugin
 | Initialise a repo | CLI `init -y --project-ref … --runtime …` from the package directory | MCP `initialize_project`; manual setup (https://trigger.dev/docs/manual-setup) |
 | Start dev | MCP `start_dev_server` (waits up to 30 s) then `dev_server_status` for logs. It takes only `configPath`, which must be the project **directory** holding `trigger.config.*` (a file path fails with `spawn ENOTDIR`): **in a linked git worktree use CLI `dev --branch <name>`** | CLI `dev` in the background |
 | List registered tasks and payload schemas | MCP `get_current_worker` (explicit environment) | dev server output; dashboard. There is no `get_tasks` tool |
-| Trigger a test run | MCP `trigger_task` (`environment: "dev"`) | SDK script; REST trigger; dashboard Test |
+| Trigger a test run | MCP `trigger_task` (`environment: "dev"`); or CLI `tasks trigger <id> --payload '{…}' --wait` (dev unless `--env`; prints the output, exit 1 on failure) | SDK script; REST trigger; dashboard Test |
 | Inspect a run | MCP `get_run_details` (via `run-investigator`), `get_span_details` for one span | CLI `runs get` (no trace); dashboard |
 | Wait for a run | MCP `wait_for_run_to_complete` | poll `get_run_details` |
 | Health, "is prod OK" | MCP `get_report` with `key: "health"` and an explicit environment | CLI `report health --env prod`; REST `/api/v1/reports/health` |
 | Metrics, cost, memory, 429s | MCP `get_query_schema` then `query` (TRQL) | REST `/api/v1/query` (secret key only; a CLI PAT got `401 Invalid API key`); dashboard Query page |
-| Deploy | **CLI** `deploy --env <e>` (`--external-id`, `--dry-run`, `--native-build`) | MCP `deploy` with explicit `environment` |
+| Deploy | **CLI** `deploy --env <e>` (or `--prod`; `--external-id`, `--dry-run`, `--native-build`). With a `TRIGGER_ACCESS_TOKEN` that is an environment key, an omitted `--env` targets that key's environment | MCP `deploy` with explicit `environment` |
 | Roll back | CLI `promote <version> --env <e>` | dashboard |
 | Environment variables | CLI `env list/get/set/pull --env <e>` (no dev target) | dashboard; REST; the `syncEnvVars` extension |
 | Preview branches | CLI `deploy --env preview`, `preview archive`; MCP `list_preview_branches` | dashboard |
 | Replay or cancel runs | MCP `replay_run` / `cancel_run`; bulk: dashboard | CLI `runs replay/cancel --env <e>` (`-y` in CI) |
 | Chat-agent smoke test | MCP `list_agents` → `start_agent_chat` → `send_agent_message` → `close_agent_chat` (never prod without asking) | `mockChatAgent` (https://trigger.dev/docs/ai-chat/testing) |
-| Webhooks (beta) | MCP webhook tools (list/get endpoints and deliveries) | REST webhooks API; dashboard |
-| Alerts, billing limits, API-key presets, buying concurrency | **dashboard (a human)** | none |
+| Webhooks (SDK ≥ 4.8.0) | MCP `list_webhook_endpoints`, `get_webhook_endpoint_details`, `list_webhook_deliveries`, `get_webhook_delivery`, `generate_webhook_secret`, `set_webhook_secret` | REST webhooks API; dashboard |
+| Alerts: what can be watched, list, create, resolve | MCP `list_alert_capabilities` first, then `list_alerts`, `create_alert`, `resolve_alert` (explicit `environment`; prod asks) | dashboard Alerts |
+| Custom dashboards | MCP `create_dashboard`, `set_dashboard_widgets`; or `query.dashboards` in a script (SDK ≥ 4.7.5) | dashboard |
+| Billing limits, API-key presets and rotation, buying concurrency | **dashboard (a human)** | none |
 
 ## Environment-default traps
 
@@ -61,7 +63,7 @@ The plugin's prod guard (hook H3) asks before the implicit-prod CLI calls above 
 | **Self-host** (`TRIGGER_API_URL` or a non-default profile URL) | CLI and MCP work through the profile. The REST base comes from `TRIGGER_API_URL`. Drop or flag cloud-only advice: API-key presets, plan limits, GitHub/Vercel integrations, private networking, billing limits. Chat agents need `OBJECT_STORE_*` for snapshots. |
 | **User runs the server with `--readonly`** | Write tools are absent: use the CLI for writes (still guarded). |
 | **User runs the server with `--dev-only`** | `deploy` and `list_preview_branches` are absent: use the CLI for staging and prod. |
-| **No webhooks beta access** | Own route plus `tasks.trigger` with the provider event id as `idempotencyKey`. |
+| **SDK older than 4.8.0 (no hosted webhooks)** | Offer `npx trigger.dev@latest update`; otherwise an own route plus `tasks.trigger` with the provider event id as `idempotencyKey`. |
 | **Project's CLI older than `@latest`** | Lifecycle commands go through the project's own CLI. |
 
 ## REST (callers with no Node, and polyglot backends)

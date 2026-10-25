@@ -1,5 +1,5 @@
 {
- "count": 49,
+ "count": 55,
  "tools": [
   {
    "name": "cancel_run",
@@ -43,6 +43,102 @@
     "chatId": {
      "type": "string",
      "required": true
+    }
+   }
+  },
+  {
+   "name": "create_alert",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "capabilityKey": {
+     "type": "string",
+     "required": true
+    },
+    "params": {
+     "type": "object",
+     "required": true
+    },
+    "condition": {
+     "type": null,
+     "required": true
+    },
+    "behavior": {
+     "type": "object",
+     "required": true
+    },
+    "notifiers": {
+     "type": "array",
+     "required": true
+    },
+    "name": {
+     "type": "string",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "create_dashboard",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "title": {
+     "type": "string",
+     "required": true
+    },
+    "description": {
+     "type": "string",
+     "required": false
+    },
+    "widgets": {
+     "type": "array",
+     "required": false
     }
    }
   },
@@ -131,8 +227,7 @@
       "prod",
       "preview"
      ],
-     "default": "prod",
-     "required": false
+     "required": true
     },
     "skipPromotion": {
      "type": "boolean",
@@ -191,6 +286,10 @@
     "endpointId": {
      "type": "string",
      "required": true
+    },
+    "previousSecretTtlSeconds": {
+     "type": "integer",
+     "required": false
     }
    }
   },
@@ -569,6 +668,73 @@
     },
     "branch": {
      "type": "string",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "list_alert_capabilities",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "area": {
+     "type": "string",
+     "required": false
+    }
+   }
+  },
+  {
+   "name": "list_alerts",
+   "readOnly": true,
+   "destructive": false,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "lifecycle": {
+     "type": "string",
+     "enum": [
+      "active",
+      "completed",
+      "expired",
+      "stopped"
+     ],
+     "required": false
+    },
+    "attention": {
+     "type": "string",
+     "enum": [
+      "clear",
+      "needs_attention"
+     ],
      "required": false
     }
    }
@@ -1270,6 +1436,40 @@
    }
   },
   {
+   "name": "resolve_alert",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "alertId": {
+     "type": "string",
+     "required": true
+    }
+   }
+  },
+  {
    "name": "run_dashboard_query",
    "readOnly": true,
    "destructive": false,
@@ -1356,6 +1556,48 @@
    }
   },
   {
+   "name": "set_dashboard_widgets",
+   "readOnly": false,
+   "destructive": true,
+   "params": {
+    "projectRef": {
+     "type": "string",
+     "required": false
+    },
+    "configPath": {
+     "type": "string",
+     "required": false
+    },
+    "environment": {
+     "type": "string",
+     "enum": [
+      "dev",
+      "staging",
+      "prod",
+      "preview"
+     ],
+     "default": "dev",
+     "required": false
+    },
+    "branch": {
+     "type": "string",
+     "required": false
+    },
+    "dashboardId": {
+     "type": "string",
+     "required": true
+    },
+    "title": {
+     "type": "string",
+     "required": false
+    },
+    "widgets": {
+     "type": "array",
+     "required": true
+    }
+   }
+  },
+  {
    "name": "set_webhook_secret",
    "readOnly": false,
    "destructive": true,
@@ -1390,6 +1632,10 @@
     "secret": {
      "type": "string",
      "required": true
+    },
+    "previousSecretTtlSeconds": {
+     "type": "integer",
+     "required": false
     }
    }
   },

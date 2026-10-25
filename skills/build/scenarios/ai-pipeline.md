@@ -9,7 +9,8 @@
 - Rejected: `streams.pipe("id", …)` — the docs strongly recommend `define` over direct methods.
 - `prompts.define({ … })` — because versions are created on deploy and dashboard overrides need no redeploy.
 - Rejected: prompt string literal — no link from spans to a prompt version.
-- `experimental_telemetry: { isEnabled: true }` on each call — because every generation becomes a run-trace span and `llm_metrics` gives cost.
+- `experimental_telemetry: { isEnabled: true }` on each call — because every generation becomes a run-trace span and `llm_metrics` gives cost. (A `chat.agent`'s `streamText` has it on by default since 4.8.0.)
+- `telemetry: { spanProcessors: [...] }` in `trigger.config.ts` (SDK ≥ 4.7.5) — when prompts or outputs hold personal data, because your processors redact or drop span content before it leaves the worker, for Trigger.dev and for your own exporters (`ai-chat/patterns/redacting-telemetry`).
 
 **Gates:** version: on AI SDK 7, generation spans need `@ai-sdk/otel` installed and registered once (optional tracing; AI SDK 6 needs nothing). Beta: none in this card. Cloud-only: none stated; prompt resolve calls the Trigger.dev API (self-host: `TRIGGER_API_URL`).
 

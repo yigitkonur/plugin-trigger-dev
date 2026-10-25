@@ -30,7 +30,8 @@ export function parseIndex(text) {
 }
 
 const STOP = new Set(["sdk", "trigger", "dev", "triggerdev", "task", "tasks", "how", "to", "the", "a", "in", "with", "use", "using", "for", "and", "of", "do", "i", "my"]);
-const BETA_PAGE = /^webhooks\//;
+// No docs page is beta as of SDK 4.8.0 (webhooks went generally available). A future beta page goes in this pattern.
+const BETA_PAGE = /^$^/;
 
 const IDENT = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/;
 const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -183,7 +184,7 @@ export function docs(topic, projDir, { indexFile } = {}) {
     if (r.since && sdk && cmpVersion(sdk, r.since) === -1) gate = `needs SDK >= ${r.since} (installed ${sdk}); update with: npx trigger.dev@latest update`;
     else if (r.since && !sdk) gate = `needs SDK >= ${r.since}`;
     const betaPages = r.pages.filter((p) => BETA_PAGE.test(p));
-    if (betaPages.length) gate = `${gate ? `${gate}; ` : ""}${betaPages.join(", ")} ${betaPages.length > 1 ? "are" : "is"} private beta (request access: https://trigger.dev/webhooks-beta); keep a non-beta fallback`;
+    if (betaPages.length) gate = `${gate ? `${gate}; ` : ""}${betaPages.join(", ")} ${betaPages.length > 1 ? "are" : "is"} in beta; keep a stable fallback`;
     if (r.flags.includes("cloud") && fp.target?.kind === "self-host") gate = `${gate ? `${gate}; ` : ""}cloud-only; does not apply to a self-hosted instance`;
     return { key: r.keys[0], pages: r.pages.slice(0, 4).map(page), morePages: Math.max(0, r.pages.length - 4), since: r.since, flags: r.flags, gate, note: r.note };
   });

@@ -5,13 +5,14 @@
 - `npx trigger.dev@latest deploy --external-id <sha>` — because the id is opaque to Trigger.dev, so a re-run of the same commit reuses its build and runs pin to that deployment.
 - `TRIGGER_EXTERNAL_DEPLOYMENT_ID` in the app — because pinning needs the app to send the same id with every trigger.
 - `TRIGGER_ACCESS_TOKEN` per environment — because the key must belong to the environment the deploy targets.
+- Always write `--env <name>` (or `--prod`) on `deploy` and `promote`, because the CLI (≥ 4.7.5) names the target and, when `TRIGGER_ACCESS_TOKEN` is an environment API key, uses that key's environment for an omitted `--env`; older CLIs assume prod.
 - `deploy --env preview` — because each PR gets a preview branch that archives when the PR closes.
 - `dev --branch <name>` / `TRIGGER_DEV_BRANCH` — because each branch is its own dev session, for parallel worktrees and agents.
 - `syncEnvVars` build extension — because it syncs variables during `deploy`, before the build starts, and `trigger dev` does not run it; set other values with `env set --env <env>` (defaults to prod).
 - Rejected: `${{ github.sha }}` on PR workflows — because on `pull_request` it is the merge commit; use `github.event.pull_request.head.sha`.
 - Rejected: `syncVercelEnvVars` — because the pinned Vercel page marks it deprecated; remove it.
 
-**Gates:** Version skew protection (external deployment ids) needs SDK and CLI ≥ 4.5.12 on both sides. Preview branches are Cloud-only and plan-limited (Free 0 active, Hobby 5, Pro 20). GitHub and Vercel integrations are Cloud-only. Self-host CI deploys must set `TRIGGER_API_URL`. No beta features here.
+**Gates:** Version skew protection (external deployment ids) needs SDK and CLI ≥ 4.5.12 on both sides. Preview branches are Cloud-only and plan-limited (Free 0 active, Hobby 5, Pro 20). GitHub and Vercel integrations are Cloud-only. Self-host CI deploys must set `TRIGGER_API_URL`. No beta features here. A leaked key is regenerated in the dashboard (API keys), where the previous key can be revoked at once instead of living 24 more hours; a deployed task keeps the runtime it was built with, so security releases need a redeploy.
 
 **Ask only if unknown:**
 - Cloud or self-host? — self-host needs `TRIGGER_API_URL` in CI, and the integrations are unavailable.

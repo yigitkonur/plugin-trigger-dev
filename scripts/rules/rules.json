@@ -3225,7 +3225,7 @@
    "match": null,
    "judge": "Does a webhooks.waiter.create(...) call in this file run after the provider call that makes the provider send the webhook (for example the API request that starts a payment or a build)? Report only when the provider call comes first in the same flow. Silent when the waiter is created first, or when the file creates no waiter.",
    "message": "webhooks.waiter.create() is called after the provider call that makes the provider send the webhook; a waiter only matches deliveries that arrive after it was created.",
-   "fix": "Create the waiter before the provider call, then wait on it after. Without the beta waiter: create a waitpoint token before the call and complete it from your webhook route.",
+   "fix": "Create the waiter before the provider call, then wait on it after. Below SDK 4.8.0 (no waiter): create a waitpoint token before the call and complete it from your webhook route.",
    "fix_mode": "flag-only",
    "doc": "https://trigger.dev/docs/webhooks/waiters"
   },
@@ -3252,7 +3252,7 @@
     ]
    },
    "message": "webhooks.waiter.create() has no idempotencyKey (a retried attempt creates a new waiter that can miss an event already delivered), or webhooks.custom() has no idempotencyField (deduplication falls back to a key derived from the raw body, timestamp and signature).",
-   "fix": "Pass idempotencyKey to webhooks.waiter.create() and idempotencyField (for example { from: \"body\", name: \"id\" }) to webhooks.custom(). Without the beta: dedupe the route's tasks.trigger() on the provider event id (WH-06).",
+   "fix": "Pass idempotencyKey to webhooks.waiter.create() and idempotencyField (for example { from: \"body\", name: \"id\" }) to webhooks.custom(). Below SDK 4.8.0: dedupe the route's tasks.trigger() on the provider event id (WH-06).",
    "fix_mode": "flag-only",
    "doc": "https://trigger.dev/docs/webhooks/deliveries#deduplication",
    "examples": {
@@ -3290,7 +3290,7 @@
    "match": null,
    "judge": "Does a webhook() subscriber in this file read fields of the incoming event (for example event.data.x, or a body or form field) without checking them at runtime (schema parse, type guard, explicit field check)? The type parameter of webhooks.custom<T>() and of provider sources is compile-time only. Silent when every field read is checked first, or when the handler reads no event fields.",
    "message": "The handler reads event fields that are typed only at compile time; the request body is not checked against that type at runtime.",
-   "fix": "Validate the event at runtime (schema parse or type guard) before reading its fields. Without the beta: validate the request body in your own route before tasks.trigger().",
+   "fix": "Validate the event at runtime (schema parse or type guard) before reading its fields. Below SDK 4.8.0: validate the request body in your own route before tasks.trigger().",
    "fix_mode": "flag-only",
    "doc": "https://trigger.dev/docs/webhooks/filters"
   },
@@ -3303,7 +3303,7 @@
    "scope": "code",
    "match": null,
    "message": "An exported chat.event() is not in any chat.agent events list, or two agents compute the same session key.",
-   "fix": "List each chat.event() in the events array of the agent that should receive it, and give each agent its own key with a constant prefix (for example \"billing-{event.data.object.customer}\"). Without the beta: keep one agent per endpoint.",
+   "fix": "List each chat.event() in the events array of the agent that should receive it, and give each agent its own key with a constant prefix (for example \"billing-{event.data.object.customer}\"). Below SDK 4.8.0: keep one agent per endpoint.",
    "fix_mode": "flag-only",
    "doc": "https://trigger.dev/docs/webhooks/session-routing",
    "judge": "Check that each exported chat.event() appears in some chat.agent events list, and that no two agents compute the same session key."

@@ -23,12 +23,12 @@ Not asked at setup (they belong to `ship`): CI system, preview branches, Vercel 
 | progress | `metadata` + `useRealtimeRun` + a read-token route (`progress-ui`) | `runs/metadata`, `realtime/auth`, `realtime/react-hooks/subscribe` |
 | streamed text | `streams.define` + `useRealtimeStream` (`progress-ui`) | `tasks/streams`, `realtime/react-hooks/streams` |
 | the browser starts the work | trigger token + `useTaskTrigger` (`progress-ui`) | `realtime/auth` |
-| an external webhook | own route + `idempotencyKey` from the provider event id; hosted webhooks only if access is confirmed (`webhook-driven`) | `idempotency`, `webhooks/overview` (beta) |
+| an external webhook | hosted endpoint: `webhooks.endpoint.define` + `webhook()` (SDK ≥ 4.8.0); below that, own route + `idempotencyKey` from the provider event id (`webhook-driven`) | `webhooks/overview`, `idempotency` |
 | browser, media, Python | extension(s) + machine preset; most extensions only affect deployed builds (`heavy-compute`) | per-extension page, `machines` |
 | bursts from many users | `concurrency: { total, perKey }` + `concurrencyKey` (`fan-out-batch`) | `concurrency` |
 | large batches | `batchTrigger(AndWait)` in chunks of at most 1,000 (`fan-out-batch`) | `triggering`, `limits` |
 | a rate-limited API | a named `concurrencyLimit` + `retry.fetch` with a 429 strategy + debounce (`fan-out-batch`) | `concurrency`, `errors-retrying` |
-| approval or callback | waitpoint token (+ `useWaitToken`), or a webhook waiter if beta access exists (`human-in-the-loop-and-callbacks`) | `wait-for-token`, `webhooks/waiters` |
+| approval or callback | waitpoint token (+ `useWaitToken`), or a webhook waiter when a provider event is the answer, SDK ≥ 4.8.0 (`human-in-the-loop-and-callbacks`) | `wait-for-token`, `webhooks/waiters` |
 | AI chat agent | the `chat-agent` skill | `ai-chat/quick-start` |
 
 Record the decision in at most 15 lines: primitives, one line of why each, the doc link for each, and the files you will create. The user confirms before you write.

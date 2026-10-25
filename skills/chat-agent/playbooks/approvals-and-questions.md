@@ -43,6 +43,6 @@
 - `@trigger.dev/sdk` >= 4.5.0 for `chat.agent`.
 - AI SDK 6 or newer for `needsApproval`.
 - Self-host: `OBJECT_STORE_*` or your own `storage` for suspended pauses.
-- Slack/channel routing is Beta; never the default here.
+- Approvals asked inside Slack or Linear (SDK ≥ 4.8.0) are handled by the channel connector; see `webhooks/human-in-the-loop`.
 
 **Docs:** https://trigger.dev/docs/ai-chat/patterns/human-in-the-loop · https://trigger.dev/docs/ai-chat/actions · https://trigger.dev/docs/ai-chat/tools · https://trigger.dev/docs/ai-chat/quick-start · https://trigger.dev/docs/ai-chat/testing · https://trigger.dev/docs/ai-chat/mcp

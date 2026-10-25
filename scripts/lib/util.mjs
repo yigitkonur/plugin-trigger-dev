@@ -177,6 +177,21 @@ export function cmpVersion(a, b) {
   return 0;
 }
 
+/** The newest published @trigger.dev/sdk and how far `installed` is behind it (null on any network problem; never throws). */
+export async function latestSdk(installed, timeoutMs = 4000) {
+  try {
+    const r = await fetch("https://registry.npmjs.org/@trigger.dev/sdk/latest", { signal: AbortSignal.timeout(timeoutMs) });
+    const latest = (await r.json()).version;
+    if (!latest) return null;
+    const c = cmpVersion(installed, latest);
+    let behind = null;
+    if (c === -1) behind = installed.split(".")[0] !== latest.split(".")[0] ? "major" : installed.split(".")[1] !== latest.split(".")[1] ? "minor" : "patch";
+    return { latest, behind };
+  } catch {
+    return null;
+  }
+}
+
 export function home() {
   return os.homedir();
 }

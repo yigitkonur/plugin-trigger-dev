@@ -30,7 +30,7 @@ Always run the first check with an explicit environment. Doc paths are relative 
 | Prisma errors in a deploy | missing extension, missing `mode`, no generate step | `trigger.config.ts` | `config/extensions/prismaExtension` |
 | Realtime hook returns nothing or 401 | token has no scopes, wrong run id, expired token | the token route | `realtime/auth` |
 | No alert despite failures | only an error-group alert, and the group is Unresolved | dashboard Alerts (a human) | `troubleshooting-alerts#why-it-goes-quiet` |
-| Webhook didn't trigger (beta) | filtered; secret not set; 429; provider not registered | MCP `list_webhook_deliveries` then `get_webhook_delivery` | `webhooks/deliveries` |
+| Webhook didn't trigger | filtered; secret not set; 429; provider not registered | MCP `list_webhook_deliveries` then `get_webhook_delivery` | `webhooks/deliveries` |
 | Chat: history gone after a deploy or crash | no object store on a self-host and no `storage` | config and env | `ai-chat/patterns/persistence-and-replay` |
 | Chat: first reply is slow | cold boot | Preload or Head Start | `ai-chat/fast-starts` |
 | Chat: `ChatChunkTooLargeError` | a tool output of about 1 MiB or more | log output sizes | `ai-chat/patterns/large-payloads` |

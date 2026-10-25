@@ -109,7 +109,7 @@ the other 12 rules had no hits to judge, so their precision on real code is unme
 - **link, don't copy.** the plugin holds decisions, pitfalls and checks. api detail comes from the docs right when it's needed: the version-pinned copy in `node_modules/@trigger.dev/sdk/docs` first, then mcp `search_docs`, then `https://trigger.dev/docs/<path>.md`. `trigger-ctx docs <topic or name>` points at the page (and, for a name, at the sdk's own types).
 - **cloud first, self-host safe.** nothing hard-codes `api.trigger.dev`; cloud-only advice is flagged and dropped on a self-hosted target.
 - **any stack.** typescript project, monorepo, polyglot repo (python, go, ruby calling tasks over rest), or a caller-only app: detected, not assumed.
-- **beta features** (hosted webhooks, slack/linear connectors, channels) are never the default pick and always come with a non-beta fallback.
+- **always the latest.** the plugin tracks the newest trigger.dev release and never pins a version in what it installs or recommends; a beta feature (none right now, hosted webhooks and the slack/linear connectors went ga in 4.8.0) is never the default and always comes with a stable fallback. see [AGENTS.md](AGENTS.md#keeping-up-with-upstream) for how upstream changes are found and applied.
 - the full design (overview, official-skills audit, architecture, hooks, flows, mcp vs cli, doc index, walkthroughs, roadmap) is in [docs/design](docs/design/00-overview.md). wherever the build differs from the design, [docs/spikes.md](docs/spikes.md) says so.
 
 ## does it actually help? measured, with caveats

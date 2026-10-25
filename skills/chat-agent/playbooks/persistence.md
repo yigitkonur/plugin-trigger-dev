@@ -42,6 +42,6 @@
 **Gates:**
 - `@trigger.dev/sdk` ≥ 4.5.0 (`chat.agent`).
 - Self-host: `OBJECT_STORE_*` for the default snapshot (`OBJECT_STORE_DEFAULT_PROTOCOL` selects the driver).
-- No beta features here (channels, Slack, Linear).
+- Channels (Slack, Linear) keep history in the same session store; nothing extra to configure here.
 
 **Docs:** https://trigger.dev/docs/ai-chat/transcript-storage · https://trigger.dev/docs/ai-chat/patterns/database-persistence · https://trigger.dev/docs/ai-chat/patterns/persistence-and-replay · https://trigger.dev/docs/ai-chat/migrating-from-hydrate-messages · https://trigger.dev/docs/ai-chat/lifecycle-hooks · https://trigger.dev/docs/ai-chat/sessions · https://trigger.dev/docs/ai-chat/testing · https://trigger.dev/docs/ai-chat/reference · https://trigger.dev/docs/ai-chat/quick-start · https://trigger.dev/docs/ai-chat/mcp

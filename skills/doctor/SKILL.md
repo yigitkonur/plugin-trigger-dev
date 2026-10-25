@@ -17,6 +17,7 @@ Report a table of checks, each OK, WARN or FAIL with the evidence and the fix. N
 |---|---|---|
 | Node ≥ 18 on PATH | `node --version` | The plugin's edit checks and prod guard need Node and skip silently without it. Tasks need Node too (https://trigger.dev/docs/quick-start). |
 | Trigger root and config | the facts above: `roots`, `config` | No root: `/trigger-dev:init`. A config that imports `defineConfig` from a path other than `@trigger.dev/sdk`: rule MIG-07. |
+| SDK is the latest | `trigger-ctx detect --brief --latest` adds "SDK is current" or "N behind latest X" (needs network; skip it offline and say so) | Behind: WARN, and offer `npx trigger.dev@latest update`. A deliberate pin (the user says so, or a deploy needs it) stays; note it once. |
 | Versions aligned | `versions.aligned`, `versions.major` | Mismatch: `npx trigger.dev@latest update` (CI fails on a mismatch). 3.x or 2.x: `scenarios/migrate-v2-v3.md`. |
 | Logged in, which profile and API URL | `npx trigger.dev@latest whoami` (fails fast with "You must login first"); MCP `whoami` only after that, since it can hang without a login | Resumable login: `login --no-browser --no-wait`, the user approves, then `login --no-browser`. |
 | Cloud or self-host | `target.kind`, `target.url` | Self-host: cloud-only advice is dropped; chat agents need `OBJECT_STORE_*` or your own `storage`. |

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // trigger-ctx: deterministic engine for the trigger-dev plugin. Zero dependencies, Node >= 18. Always exits 0.
-//   detect [--brief|--json|--hook] [--dir <path>]   project fingerprint (--hook: SessionStart output + marker)
+//   detect [--brief|--json|--hook] [--latest] [--dir <path>]   project fingerprint (--hook: SessionStart output + marker; --latest: also ask npm how far behind the SDK is)
 //   guard [--alias]                                 PreToolUse prod guard (hook stdin -> decision JSON or nothing)
 //   lint --hook | lint <files...> [--all]           tripwire rules (hook tier by default, --all adds audit tier)
 //   scan [path] [--focus <d>] [--json]              relevance per domain + all located hits
@@ -27,9 +27,17 @@ async function main() {
         return;
       }
       const fp = detect(opt("--dir") || projectDir());
+      // --latest asks npm what is newest (network, 4 s cap). The session-start hook never does; doctor and build do.
+      let fresh = null;
+      if (flag("--latest") && fp.versions?.sdk) {
+        const { latestSdk } = await import("./lib/util.mjs");
+        fresh = await latestSdk(fp.versions.sdk);
+        if (fresh) Object.assign(fp.versions, { latest: fresh.latest, behind: fresh.behind });
+      }
       if (flag("--brief")) {
         const b = brief(fp);
-        process.stdout.write(b ? `${b}\n` : "No Trigger.dev signals found in this project.\n");
+        const note = fresh ? (fresh.behind ? `\n- SDK is ${fresh.behind} behind latest ${fresh.latest}: offer \`npx trigger.dev@latest update\` (the user may keep a pin)` : `\n- SDK is current (latest ${fresh.latest})`) : "";
+        process.stdout.write(b ? `${b}${note}\n` : "No Trigger.dev signals found in this project.\n");
         return;
       }
       emit(envelope(fp, { next_actions: fp.relevant ? [] : [{ cmd: "/trigger-dev:init", why: "no Trigger.dev setup detected" }] }));

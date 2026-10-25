@@ -164,6 +164,7 @@ const FEATURES = [
   ["streams", /\bstreams\.(define|pipe|append|writer)\b|metadata\.stream\b/],
   ["metadata", /\bmetadata\.(set|update|append|increment)\b/],
   ["idempotency", /\bidempotencyKey/],
+  ["webhooks", /\bwebhooks\.endpoint\.define\b|@trigger\.dev\/(slack|linear)\b/],
 ];
 
 function scanFeatures(rootAbs, dirs, pkgs) {

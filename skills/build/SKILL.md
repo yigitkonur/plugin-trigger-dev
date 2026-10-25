@@ -13,6 +13,8 @@ You are the bridge between this user and Trigger.dev. Work out what they are rea
 
 Use the "Trigger.dev project facts" block from the session context (roots, SDK version, package manager, frontend, Cloud or self-host, pinned docs path). If it is missing, run `trigger-ctx detect --brief` (or `node "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs" detect --brief`). Nothing detected and the user wants Trigger.dev set up: setup has human gates (CLI login approved in a browser, project choice, the secret key), so follow the stages in `${CLAUDE_PLUGIN_ROOT}/skills/init/SKILL.md` (Read it) or tell the user they can run `/trigger-dev:init`. v3 SDK: read `${CLAUDE_SKILL_DIR}/scenarios/migrate-v2-v3.md` first.
 
+**Stay on the latest.** This plugin tracks the newest Trigger.dev release, so new work targets the newest SDK and CLI. When the facts show an older SDK, run `trigger-ctx detect --brief --latest` once (needs network), say how far behind it is and offer `npx trigger.dev@latest update`; do not run it unasked and do not nag if the user keeps a pin. New projects and new packages are installed at `@latest`, never at a version copied from memory or from this plugin's text.
+
 ## 2. Invariants (check every snippet before you show it)
 
 1. Import from `@trigger.dev/sdk` (plus `/ai`, `/chat`, `/chat/react`, `/chat-server`). `defineConfig` comes from `@trigger.dev/sdk` too. Never `@trigger.dev/sdk/v3` in a v4 project. Each build extension has its own import path. Hook names: `catchError`, `onStartAttempt`, middleware with `locals`; the 4.7 types deprecate `handleError`, `onStart`, `init` and `cleanup`.
@@ -32,7 +34,7 @@ The plugin checks several of these after every edit and says so; treat a tripwir
 2. **Pick one card** from the table below and read only that file.
 3. **Ask or assume.** Ask at most 2 questions in the whole reply, counting every sentence that ends in a question mark, including one in "next steps" (merge related ones; never a list of three), and only when the answer changes the primitive. Give a default for every other open point ("timezone: UTC unless you say otherwise") and carry on; the user corrects you. The question bank and skip rules are in `${CLAUDE_SKILL_DIR}/discovery.md`. Never ask what the project facts already answer.
 4. **Verify before you write.** `trigger-ctx docs <topic or name>` resolves every API name you are about to use: for a name it reports whether the installed types declare it, any `@deprecated` note (`handleError`: use `catchError`) and the pinned-doc `file:line`; a name it cannot find is unverified until MCP `search_docs` confirms it. Read that page (`node_modules/@trigger.dev/sdk/docs/<path>.mdx`, which matches the installed SDK) or `https://trigger.dev/docs/<path>.md` (wins when the user is upgrading). No tier reachable: answer from the card and list every API name you could not check as unverified; never refuse for lack of docs.
-5. **Apply the gates** the lookup reports: `since` above the installed SDK (offer `npx trigger.dev@latest update`), `beta` (never the default; give the fallback), cloud-only on a self-hosted target, plan-dependent limits.
+5. **Apply the gates** the lookup reports: `since` above the installed SDK (offer `npx trigger.dev@latest update`), `beta` (never the default; give the fallback; no page is beta as of SDK 4.8.1), cloud-only on a self-hosted target, plan-dependent limits.
 6. **Answer in the bridge format:**
 
 ```

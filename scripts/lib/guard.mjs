@@ -9,11 +9,12 @@ const DOC = {
   promote: "https://trigger.dev/docs/cli-promote-commands",
   env: "https://trigger.dev/docs/cli-env-commands",
   runs: "https://trigger.dev/docs/cli-runs-commands",
+  tasks: "https://trigger.dev/docs/cli-tasks-commands",
   mcp: "https://trigger.dev/docs/mcp-tools",
   keys: "https://trigger.dev/docs/apikeys",
 };
 
-const SUBCOMMANDS = new Set(["deploy", "promote", "env", "runs", "dev", "init", "login", "logout", "whoami", "update", "preview", "report", "projects", "list-profiles", "switch", "mcp", "install-mcp", "workers", "analyze", "typecheck"]);
+const SUBCOMMANDS = new Set(["deploy", "promote", "env", "runs", "dev", "init", "login", "logout", "whoami", "update", "preview", "report", "projects", "list-profiles", "switch", "mcp", "install-mcp", "workers", "analyze", "typecheck", "tasks"]);
 const GLOBAL_VALUE_FLAGS = new Set(["--profile", "--api-url", "-a", "--log-level", "-l"]);
 const ENV_ASSIGN = /^[A-Za-z_][A-Za-z0-9_]*=/;
 const RUNNER_FIRST = /^(npx|pnpx|pnpm|yarn|bun|bunx|npm|node|env|sudo|time|command|nohup|exec|corepack|volta|dotenv|dotenvx|doppler|infisical|op|cross-env)$/;
@@ -94,16 +95,32 @@ function invocations(words) {
   return out;
 }
 
+// `--prod` is the 4.7.5+ shorthand for `--env prod` on deploy and promote.
 export function hasExplicitEnv(args) {
-  return args.some((a, i) => a === "--env" || a === "-e" || /^--env=./.test(a) || /^-e=./.test(a) || (/^-e[A-Za-z]/.test(a) && !a.startsWith("-env")) || (a === "-e" && args[i + 1] != null));
+  return args.some((a, i) => a === "--prod" || a === "--env" || a === "-e" || /^--env=./.test(a) || /^-e=./.test(a) || (/^-e[A-Za-z]/.test(a) && !a.startsWith("-env")) || (a === "-e" && args[i + 1] != null));
+}
+
+/** The environment a command names explicitly ("prod" for --prod), or null. */
+export function explicitEnvValue(args) {
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (a === "--prod") return "prod";
+    if (a === "--env" || a === "-e") return args[i + 1] ?? null;
+    const m = /^(?:--env|-e)=(.+)$/.exec(a);
+    if (m) return m[1];
+  }
+  return null;
 }
 
 const hasHelp = (args) => args.includes("--help") || args.includes("-h");
 
 /** Decide for one trigger CLI invocation: returns {reason} when it needs an explicit environment, else null. */
 export function cliFinding({ sub, args }) {
-  if (hasHelp(args) || hasExplicitEnv(args)) return null;
   const first = args.find((a) => !a.startsWith("-"));
+  if (sub === "tasks" && first === "trigger" && !hasHelp(args) && explicitEnvValue(args) === "prod") {
+    return { what: "trigger tasks trigger --env prod", doc: DOC.tasks, envs: "", why: "runs your production task with real side effects", ask: true };
+  }
+  if (hasHelp(args) || hasExplicitEnv(args)) return null;
   if (sub === "deploy") {
     if (args.includes("--dry-run")) return null;
     return { what: "trigger deploy", doc: DOC.deploy, envs: "staging|preview|prod", why: "deploys to prod when --env is omitted" };
@@ -206,7 +223,8 @@ function aliasFindings(command, dirs) {
 }
 
 const MCP_PREFIX = /^mcp__(?:plugin_trigger-dev_)?trigger__/;
-// env-aware writes: [tool, default environment]
+// env-aware writes: [tool, default environment]. `deploy` has had a required environment since 4.7.5; the "prod" default only matters for older servers.
+// Not guarded on purpose: create_dashboard and set_dashboard_widgets (custom dashboards, no run or production effect).
 const MCP_ENV_WRITES = {
   deploy: "prod",
   trigger_task: "dev",
@@ -220,6 +238,8 @@ const MCP_ENV_WRITES = {
   start_agent_chat: "dev",
   write_session_channel: "dev",
   replay_webhook_delivery: "dev",
+  create_alert: "dev",
+  resolve_alert: "dev",
 };
 const MCP_ALWAYS_ASK = {
   initialize_project: "creates a cloud project and writes Trigger.dev files into this directory",
@@ -240,6 +260,8 @@ const MCP_PROD_REASON = {
   start_agent_chat: "starts a production chat, which spends real LLM budget",
   write_session_channel: "writes into a live production session",
   replay_webhook_delivery: "re-delivers a production webhook event",
+  create_alert: "creates a live production alert that notifies your channels",
+  resolve_alert: "closes a live production alert",
   deploy: "deploys to production",
 };
 
@@ -279,6 +301,7 @@ export function guard(payload, { alias = false } = {}) {
   if (!findings.length) return null;
   const f = findings[0];
   const via = f.viaScript ? " (inside a package.json script)" : "";
+  if (f.ask) return decision(mode, "ask", `${f.what}${via} ${f.why} (${f.doc}).`);
   return decision(
     mode,
     "implicit",

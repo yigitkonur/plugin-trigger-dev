@@ -174,7 +174,7 @@
         ]
       },
       {
-        "matcher": "^mcp__(plugin_trigger-dev_)?trigger__(deploy|trigger_task|cancel_run|replay_run|promote_prompt_version|create_prompt_override|update_prompt_override|remove_prompt_override|reactivate_prompt_override|start_agent_chat|write_session_channel|replay_webhook_delivery|initialize_project|create_project_in_org|submit_feedback|generate_webhook_secret|set_webhook_secret)$",
+        "matcher": "^mcp__(plugin_trigger-dev_)?trigger__(deploy|trigger_task|cancel_run|replay_run|promote_prompt_version|create_prompt_override|update_prompt_override|remove_prompt_override|reactivate_prompt_override|start_agent_chat|write_session_channel|replay_webhook_delivery|create_alert|resolve_alert|initialize_project|create_project_in_org|submit_feedback|generate_webhook_secret|set_webhook_secret)$",
         "hooks": [
           {
             "type": "command",

@@ -1,6 +1,6 @@
 # Doc link index
 
-Read with Grep for one key; never load whole. Paths are relative to `https://trigger.dev/docs/` (`webhooks/*` pages are private beta and never the default; page URL = base + path, raw markdown = + `.md`). `L` = the first page is bundled in the SDK as `node_modules/@trigger.dev/sdk/docs/<path>.mdx` (version-pinned; wins for API shape). `since` = minimum `@trigger.dev/sdk`. Flags: `cloud` (does not apply to self-hosted), `plan` (plan-gated). Resolve with `trigger-ctx docs <topic>`.
+Read with Grep for one key; never load whole. Paths are relative to `https://trigger.dev/docs/` (page URL = base + path, raw markdown = + `.md`). `L` = the first page is bundled in the SDK as `node_modules/@trigger.dev/sdk/docs/<path>.mdx` (version-pinned; wins for API shape). `since` = minimum `@trigger.dev/sdk`. Flags: `cloud` (does not apply to self-hosted), `plan` (plan-gated). Resolve with `trigger-ctx docs <topic>`.
 
 | key | pages | L | since | flags | note |
 |---|---|---|---|---|---|
@@ -8,10 +8,10 @@ Read with Grep for one key; never load whole. Paths are relative to `https://tri
 | scheduled-pipeline; scheduled; cron; schedule; recurring job; nightly; hourly; schedules.task | tasks/scheduled, limits#schedules, runs#time-to-live-ttl | L |  | plan | Free plan: no more often than hourly (`plan`) |
 | fan-out-batch; fan-out; batch; batch trigger; bulk; many items; per-tenant; concurrency key | triggering, limits#batch-trigger-rate-limits, concurrency#concurrency-keys-and-per-tenant-limits, idempotency | L |  |  | batch 1,000 since 4.3.1 |
 | long-workflow-waits; wait; long workflow; sleep; delay; wait.for; wait.until; durable workflow | wait, wait-for, wait-until, concurrency#short-time-based-waits-keep-their-slot, how-it-works | L |  |  | < 60 s keeps the slot; ≤ 5 s billed |
-| human-in-the-loop-and-callbacks; human in the loop; approval; callback; wait token; waitpoint; external event | wait-for-token, realtime/react-hooks/use-wait-token, webhooks/waiters | L |  |  | waiters: `beta` |
+| human-in-the-loop-and-callbacks; human in the loop; approval; callback; wait token; waitpoint; external event | wait-for-token, realtime/react-hooks/use-wait-token, webhooks/waiters, webhooks/human-in-the-loop | L |  |  | webhook waiters need SDK 4.8.0 |
 | progress-ui; progress; progress bar; realtime; useRealtimeRun; metadata; live updates; react hooks; streams ui | realtime/overview, runs/metadata, realtime/auth, realtime/react-hooks/subscribe, tasks/streams, realtime/react-hooks/streams, limits#realtime-connections | L |  |  | metadata 256 KB |
 | heavy-compute; heavy compute; build extension; extensions; puppeteer; playwright; ffmpeg; python; native; machine; browser; media | config/extensions/overview, machines, runs/heartbeats, config/extensions/playwright, config/extensions/lightpanda, config/extensions/additionalPackages, config/extensions/audioWaveform | L |  |  | most extensions affect deployed builds only; `pythonExtension` also moves scripts in dev |
-| webhook-driven; webhook; webhooks; incoming webhook; stripe webhook; github webhook | idempotency, webhooks/overview, webhooks/sources, webhooks/connect, webhooks/filters, webhooks/deliveries | L |  |  | hosted webhooks: `beta`, web-only |
+| webhook-driven; webhook; webhooks; incoming webhook; stripe webhook; github webhook | webhooks/overview, webhooks/sources, webhooks/connect, webhooks/filters, webhooks/deliveries, idempotency | L | 4.8.0 |  | hosted endpoints; below 4.8.0 use your own route + `idempotency` |
 | polyglot-caller; polyglot; python; go; ruby; php; rest api; management api; non-typescript; other language; trigger from python | management/tasks/trigger, management/runs/retrieve, management/authentication, apikeys, config/extensions/pythonExtension |  |  |  | management pages are web-only |
 | ai-pipeline; ai pipeline; llm; prompts; ai sdk; structured output; ai task | tasks/schemaTask, ai/prompts, ai/observability, tasks/streams, errors-retrying | L |  |  | — |
 | cost-sensitive; cost; spend; pricing; reduce cost; billing; machine size | how-to-reduce-your-spend, machines, run-usage, billing-limits, observability/query | L |  | cloud | pricing ratios on [pricing](https://trigger.dev/pricing) (`cloud`) |
@@ -21,7 +21,8 @@ Read with Grep for one key; never load whole. Paths are relative to `https://tri
 | chat: migrate route; chat migrate route; useChat route; route handler; resumable-stream | ai-chat/migrating-from-a-route-handler, ai-chat/upgrade-guide | L |  |  | — |
 | chat: persistence; chat persistence; transcript storage; chat history; hydrateMessages; database persistence | ai-chat/transcript-storage, ai-chat/patterns/database-persistence, ai-chat/patterns/persistence-and-replay, ai-chat/migrating-from-hydrate-messages | L | 4.5.0 |  | self-host needs `OBJECT_STORE_*` |
 | chat: approvals; chat approvals; human in the loop chat; needsApproval; chat questions; actions | ai-chat/patterns/human-in-the-loop, ai-chat/actions, ai-chat/tools | L | 4.5.0 |  | `needsApproval` needs AI SDK ≥ 6 |
-| chat: server/Slack/Linear callers | ai-chat/server-chat, webhooks/session-routing, webhooks/slack, webhooks/linear, webhooks/channels | L | 4.5.0 |  | channels/Slack/Linear `beta` |
+| chat: server callers; AgentChat | ai-chat/server-chat, ai-chat/sessions, ai-chat/client-protocol | L | 4.5.0 |  |  |
+| chat: Slack; Linear; channels; session routing; chat.event | webhooks/slack, webhooks/linear, webhooks/channels, webhooks/session-routing | L | 4.8.0 |  | connector packages `@trigger.dev/slack`, `@trigger.dev/linear` |
 | chat: fast first reply; fast first reply; head start; preload; slow first reply; fast starts | ai-chat/fast-starts | L | 4.5.0 |  | Head Start runs step 1 only |
 | chat: long conversations; compaction; long conversations; prompt caching; large payloads; context window | ai-chat/compaction, ai-chat/prompt-caching, ai-chat/patterns/large-payloads, ai-chat/patterns/native-compaction | L | 4.5.0 |  | — |
 | chat: resilience; chat resilience; oom; recovery boot; version upgrades; chat error handling | ai-chat/error-handling, ai-chat/patterns/oom-resilience, ai-chat/patterns/recovery-boot, ai-chat/patterns/version-upgrades | L | 4.5.0 |  | — |
@@ -52,7 +53,7 @@ Read with Grep for one key; never load whole. Paths are relative to `https://tri
 | 422 after deploy (stale version) | deployment/atomic-deployment | L |  |  | DEP-06 |
 | No alert received | troubleshooting-alerts#why-it-goes-quiet | L |  |  | — |
 | Swallowed errors / NestJS | troubleshooting, errors-retrying | L |  |  | TSK-08, TSK-25 |
-| Webhook didn't trigger | webhooks/deliveries |  |  |  | `beta` |
+| Webhook didn't trigger | webhooks/deliveries | L | 4.8.0 |  |  |
 | ChatChunkTooLargeError | ai-chat/patterns/large-payloads | L |  |  | CHT-17 |
 | Chat history gone after deploy | ai-chat/patterns/persistence-and-replay | L |  |  | CHT-20 |
 | Chat first reply slow | ai-chat/fast-starts | L |  |  | — |
@@ -73,4 +74,8 @@ Read with Grep for one key; never load whole. Paths are relative to `https://tri
 | init; trigger.dev init; setup | quick-start, manual-setup, cli-init-commands | L |  |  |  |
 | private networking | private-networking/overview, private-networking/aws-console-setup, private-networking/troubleshooting | L |  | cloud plan |  |
 | run tests; test a task; dashboard test | run-tests | L |  |  |  |
+| tasks trigger; trigger from terminal; cli trigger; smoke test a task | cli-tasks-commands | L | 4.7.5 |  | `--wait` prints output, exit 1 on failure |
+| dashboards as code; query.dashboards; custom dashboard; widgets | observability/dashboards, observability/query | L | 4.7.5 |  | MCP `create_dashboard`, `set_dashboard_widgets` |
+| alerts mcp; create_alert; resolve_alert; list_alerts; alert capabilities | troubleshooting-alerts, mcp-tools | L |  |  | MCP `list_alert_capabilities` first |
+| telemetry; spanProcessors; redact telemetry; otel | ai-chat/patterns/redacting-telemetry, ai/observability, config/config-file | L | 4.7.5 |  | `telemetry.spanProcessors`; chat `telemetry` option |
 | replay; bulk actions | replaying, bulk-actions, runs/bulk-actions | L |  |  |  |
