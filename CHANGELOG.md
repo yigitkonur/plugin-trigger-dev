@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.1
+
+_2026-10-25, automatic release from the commits since v0.2.0._
+
+- fix(ci): release job sets the committer identity for the annotated tags too
+- ci: automatic release job (bump both manifests, changelog, tags, GitHub release) so installed copies auto-update
+- docs: README leads with the one-line install from claude plugin install --help, adds install-but-disabled recipe
+- docs: spikes item 23 records the wrap-up typecheck check
+- docs: README rewrite (lowercase, tested one-command install, known limits)
+- docs: always-on token cost is about 1,000 with the ship description
+
 ## 0.2.0
 
 A second review of how the plugin steers the agent, not only of what it says (`docs/spikes.md`, item 23). Everything below was found by running sessions and reading traces, and each fix was watched working.
