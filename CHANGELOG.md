@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1 - 2026-10-25
+
+- fix: doctor says installed globally and off, switched on per project (fcb71d8)
+- ci: adopt the plugin-kit standard (a779ad6)
+
 ## 0.4.0 - 2026-10-25
 
 - feat: run in Codex too, off by default on both hosts (#3) (e685b78)
