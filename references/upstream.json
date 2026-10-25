@@ -6,6 +6,13 @@
     "mcpToolCount": 55,
     "note": "Everything in skills/, agents/, references/ and the guard was checked against these. scripts/ci/upstream-check.mjs compares this file with npm and GitHub releases; after you reconcile, run it with --write."
   },
-  "packages": ["@trigger.dev/sdk", "trigger.dev", "@trigger.dev/build", "@trigger.dev/react-hooks", "@trigger.dev/slack", "@trigger.dev/linear"],
+  "packages": [
+    "@trigger.dev/sdk",
+    "trigger.dev",
+    "@trigger.dev/build",
+    "@trigger.dev/react-hooks",
+    "@trigger.dev/slack",
+    "@trigger.dev/linear"
+  ],
   "releases": "triggerdotdev/trigger.dev"
 }

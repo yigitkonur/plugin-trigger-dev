@@ -32,7 +32,7 @@ The Trigger.dev MCP server (`npx trigger.dev@latest mcp`, shipped by this plugin
 | Replay or cancel runs | MCP `replay_run` / `cancel_run`; bulk: dashboard | CLI `runs replay/cancel --env <e>` (`-y` in CI) |
 | Chat-agent smoke test | MCP `list_agents` → `start_agent_chat` → `send_agent_message` → `close_agent_chat` (never prod without asking) | `mockChatAgent` (https://trigger.dev/docs/ai-chat/testing) |
 | Webhooks (SDK ≥ 4.8.0) | MCP `list_webhook_endpoints`, `get_webhook_endpoint_details`, `list_webhook_deliveries`, `get_webhook_delivery`, `generate_webhook_secret`, `set_webhook_secret` | REST webhooks API; dashboard |
-| Alerts: what can be watched, list, create, resolve | MCP `list_alert_capabilities` first, then `list_alerts`, `create_alert`, `resolve_alert` (explicit `environment`; prod asks) | dashboard Alerts |
+| Alerts: what can be watched, list, create, resolve | MCP `list_alert_capabilities` first, then `list_alerts`, `create_alert`, `resolve_alert` (explicit `environment`; prod asks). Alerts on a query result (threshold, absence, match; 4.8.1+, no docs page yet) are not creatable through MCP: Query page, Dashboard Agent or the API | dashboard Alerts |
 | Custom dashboards | MCP `create_dashboard`, `set_dashboard_widgets`; or `query.dashboards` in a script (SDK ≥ 4.7.5) | dashboard |
 | Billing limits, API-key presets and rotation, buying concurrency | **dashboard (a human)** | none |
 

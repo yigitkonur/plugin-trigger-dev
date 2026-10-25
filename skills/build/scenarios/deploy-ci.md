@@ -12,7 +12,7 @@
 - Rejected: `${{ github.sha }}` on PR workflows — because on `pull_request` it is the merge commit; use `github.event.pull_request.head.sha`.
 - Rejected: `syncVercelEnvVars` — because the pinned Vercel page marks it deprecated; remove it.
 
-**Gates:** Version skew protection (external deployment ids) needs SDK and CLI ≥ 4.5.12 on both sides. Preview branches are Cloud-only and plan-limited (Free 0 active, Hobby 5, Pro 20). GitHub and Vercel integrations are Cloud-only. Self-host CI deploys must set `TRIGGER_API_URL`. No beta features here. A leaked key is regenerated in the dashboard (API keys), where the previous key can be revoked at once instead of living 24 more hours; a deployed task keeps the runtime it was built with, so security releases need a redeploy.
+**Gates:** Version skew protection (external deployment ids) needs SDK and CLI ≥ 4.5.12 on both sides. Preview branches are Cloud-only and plan-limited (Free 0 active, Hobby 5, Pro 20). GitHub and Vercel integrations are Cloud-only. Self-host CI deploys must set `TRIGGER_API_URL`. No beta features here. A leaked key is regenerated in the dashboard (API keys), where the previous key can be revoked at once instead of living 24 more hours; a deployed task keeps the runtime it was built with, so security releases need a redeploy (a custom base image keeps its own trust store from 4.8.1, `self-hosting/overview`).
 
 **Ask only if unknown:**
 - Cloud or self-host? — self-host needs `TRIGGER_API_URL` in CI, and the integrations are unavailable.
