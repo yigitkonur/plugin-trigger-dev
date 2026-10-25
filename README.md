@@ -66,6 +66,8 @@ claude plugin update trigger-dev@plugin-trigger-dev --scope project   # run from
 
 want it hands-off? run those two commands from a launchd/cron job every few hours, once per project.
 
+**staying in sync with trigger.dev itself.** trigger.dev ships every few days, so a weekly job (github actions plus an optional local launchd job, `scripts/maintenance/install-weekly.sh`) compares the newest sdk, cli, mcp tools and release notes with what the plugin was last checked against (`references/upstream.json`) and says what changed and which files it touches. how that loop works is in [AGENTS.md](AGENTS.md#keeping-up-with-upstream). the plugin itself always installs and recommends the latest version, never a pin.
+
 **heads up on scope.** `--scope project` is the move for repos that use trigger.dev. at user scope the four skill descriptions and the trigger.dev mcp tool names load in every repo you open, about 1,000 tokens per `claude plugin details trigger-dev`. at project scope other repos pay nothing.
 
 **needs:** claude code 2.1.295 or later, and node 18 or later. node runs the edit checks, the prod guard and `audit`; without it they skip quietly.
