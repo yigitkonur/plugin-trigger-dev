@@ -2,6 +2,7 @@
 # H1 (SessionStart): Trigger.dev project fingerprint. Silent (no output, exit 0) outside Trigger.dev projects.
 # Cheapest checks first; Node only runs when a signal exists.
 mode="${CLAUDE_PLUGIN_OPTION_STEERING:-full}"
+[ "$1" = codex ] && export TRIGGER_DEV_HOST=codex # Codex passes the host as an argument (see scripts/build-hooks.mjs)
 [ "$mode" = off ] && exit 0
 root="${CLAUDE_PROJECT_DIR:-$PWD}"
 cd "$root" 2>/dev/null || exit 0

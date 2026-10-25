@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "trigger": {
+      "command": "npx",
+      "args": ["-y", "trigger.dev@latest", "mcp"],
+      "cwd": ".",
+      "env_vars": ["TRIGGER_ACCESS_TOKEN", "TRIGGER_API_URL", "TRIGGER_PROJECT_REF"],
+      "startup_timeout_sec": 60
+    }
+  }
+}

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Generates hooks/hooks.json from pattern lists so the handlers cannot drift from the guard's tool tables.
-// usage: node scripts/build-hooks.mjs [--check]   (--check exits 1 when hooks.json is out of date)
+// Generates hooks/hooks.json (Claude Code) and hooks/codex-hooks.json (Codex) from pattern lists so the handlers cannot drift from the guard's tool tables.
+// usage: node scripts/build-hooks.mjs [--check]   (--check exits 1 when either file is out of date)
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -35,16 +35,32 @@ const hooks = {
   },
 };
 
-const out = `${JSON.stringify(hooks, null, 2)}\n`;
-const file = path.join(root, "hooks", "hooks.json");
+// Codex: no `if` filters (hooks/codex-guard.sh prefilters in sh), file writes arrive as apply_patch, the path variable is PLUGIN_ROOT.
+const CX = 'sh "${PLUGIN_ROOT}/hooks/';
+const cx = { timeout: 10 };
+const codex = {
+  hooks: {
+    SessionStart: [{ hooks: [{ type: "command", command: `${CX}session-start.sh" codex`, ...cx }] }],
+    PostToolUse: [{ matcher: "^(apply_patch|Edit|Write)$", hooks: [{ type: "command", command: `${CX}marker-gate.sh" lint --hook`, ...cx }] }],
+    PreToolUse: [
+      { matcher: "^Bash$", hooks: [{ type: "command", command: `${CX}codex-guard.sh"`, ...cx }] },
+      { matcher: `^mcp__trigger__(${MCP_GUARDED.join("|")})$`, hooks: [{ type: "command", command: 'node "${PLUGIN_ROOT}/scripts/trigger-ctx.mjs" guard', ...cx }] },
+    ],
+  },
+};
+
+const targets = [
+  [path.join(root, "hooks", "hooks.json"), `${JSON.stringify(hooks, null, 2)}\n`],
+  [path.join(root, "hooks", "codex-hooks.json"), `${JSON.stringify(codex, null, 2)}\n`],
+];
 if (process.argv.includes("--check")) {
-  const cur = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
-  if (cur !== out) {
-    console.error("hooks/hooks.json is out of date; run: node scripts/build-hooks.mjs");
+  const stale = targets.filter(([f, out]) => (fs.existsSync(f) ? fs.readFileSync(f, "utf8") : "") !== out);
+  if (stale.length) {
+    console.error(`${stale.map(([f]) => path.relative(root, f)).join(", ")} out of date; run: node scripts/build-hooks.mjs`);
     process.exit(1);
   }
-  console.log("hooks.json up to date");
+  console.log("hooks.json and codex-hooks.json up to date");
 } else {
-  fs.writeFileSync(file, out);
-  console.log(`hooks.json written (${hooks.hooks.PreToolUse[0].hooks.length} Bash/PowerShell handlers, ${MCP_GUARDED.length} MCP tools)`);
+  for (const [f, out] of targets) fs.writeFileSync(f, out);
+  console.log(`hooks.json written (${hooks.hooks.PreToolUse[0].hooks.length} Bash/PowerShell handlers, ${MCP_GUARDED.length} MCP tools); codex-hooks.json written`);
 }

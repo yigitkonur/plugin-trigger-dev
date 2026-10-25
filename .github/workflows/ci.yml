@@ -19,6 +19,10 @@ jobs:
           node tests/seed.test.mjs
           node tests/replay.test.mjs
           node tests/marker.test.mjs
+          node tests/codex.test.mjs
+      - name: Claude, Codex and marketplace versions are equal
+        run: |
+          node -e 'const r=f=>JSON.parse(require("fs").readFileSync(f,"utf8"));const v=[r(".claude-plugin/plugin.json").version,r(".codex-plugin/plugin.json").version,...r(".claude-plugin/marketplace.json").plugins.map(p=>p.version)];console.log(v.join(" "));process.exit(new Set(v).size===1?0:1)'
       - name: Generated files are up to date
         run: |
           node scripts/build-hooks.mjs --check

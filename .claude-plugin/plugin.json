@@ -7,6 +7,7 @@
   "homepage": "https://github.com/yigitkonur/plugin-trigger-dev",
   "repository": "https://github.com/yigitkonur/plugin-trigger-dev",
   "license": "MIT",
+  "defaultEnabled": false,
   "keywords": ["trigger.dev", "background-jobs", "ai-agents", "mcp"],
   "userConfig": {
     "steering": {
