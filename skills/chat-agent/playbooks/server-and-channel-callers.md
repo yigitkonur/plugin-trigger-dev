@@ -43,6 +43,6 @@
 - `@trigger.dev/sdk` ≥ 4.5.0 for `chat.agent`.
 - AI SDK 5, 6 or 7; approvals need 6+.
 - `@trigger.dev/sdk` ≥ 4.8.0 for hosted webhooks, channels, `chat.event`; the connector packages (`@trigger.dev/slack`, `@trigger.dev/linear`) at the same version as the SDK.
-- Self-host: `baseURL`; object store configured (CHT-20).
+- Self-host: `baseURL`; object store configured (CHT-20); channels ride hosted webhooks, which a self-hosted instance runs only after the operator enables them (`self-hosting/env/webapp#webhooks`).
 
 **Docs:** https://trigger.dev/docs/ai-chat/server-chat · https://trigger.dev/docs/ai-chat/sessions · https://trigger.dev/docs/ai-chat/client-protocol · https://trigger.dev/docs/ai-chat/testing · https://trigger.dev/docs/ai-chat/mcp · https://trigger.dev/docs/ai-chat/quick-start · https://trigger.dev/docs/idempotency · https://trigger.dev/docs/webhooks/slack · https://trigger.dev/docs/webhooks/linear · https://trigger.dev/docs/webhooks/channels · https://trigger.dev/docs/webhooks/session-routing
