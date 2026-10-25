@@ -127,7 +127,8 @@ if (fs.existsSync(CL)) {
 }
 
 git("add", PLUGIN, ...(market ? [MARKET] : []), ...(fs.existsSync(CL) ? [CL] : []));
-git("-c", "user.name=github-actions[bot]", "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com", "commit", "-q", "-m", `chore(release): ${tag} [skip ci]`);
-git("tag", "-a", tag, "-m", `${plugin.name} ${next}`);
-git("tag", "-a", cliTag, "-m", `${plugin.name} ${next}`);
+const who = ["-c", "user.name=github-actions[bot]", "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com"];
+git(...who, "commit", "-q", "-m", `chore(release): ${tag} [skip ci]`);
+git(...who, "tag", "-a", tag, "-m", `${plugin.name} ${next}`);
+git(...who, "tag", "-a", cliTag, "-m", `${plugin.name} ${next}`);
 console.log(`committed and tagged ${tag}`);
