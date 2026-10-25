@@ -3,7 +3,7 @@
 # Fresh clone -> drift checks -> only if something drifted: headless Claude Code session with the AGENTS.md loop
 # -> tests -> PR -> merge on green CI. The release workflow then publishes by itself.
 # Stop it: touch ~/.claude/trigger-dev-weekly.off      Force a run now: FORCE=1 ~/.claude/bin/trigger-dev-weekly
-# Dry run (checks only, no Claude, no PR): DRY=1
+# Dry run (checks only, no Claude, no PR): DRY=1      Rehearse drift: SIMULATE_SDK=4.8.0 (pretends the plugin was reconciled with that release)
 set -u
 export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.claude/local:/usr/bin:/bin:/usr/sbin:/sbin"
 REPO="${REPO:-yigitkonur/plugin-trigger-dev}"
@@ -30,6 +30,9 @@ command -v gh >/dev/null && command -v node >/dev/null && command -v git >/dev/n
 gh repo clone "$REPO" "$W/repo" -- --quiet >>"$LOG" 2>&1 || fail "clone $REPO"
 cd "$W/repo" || fail "cd"
 log "start: $(git rev-parse --short HEAD) of $REPO"
+if [ -n "${SIMULATE_SDK:-}" ]; then
+  node -e 'const f="references/upstream.json",j=JSON.parse(require("fs").readFileSync(f));j.reconciledWith.sdk=j.reconciledWith.cli=process.argv[1];require("fs").writeFileSync(f,JSON.stringify(j,null,2)+"\n")' "$SIMULATE_SDK" && git commit -qam "test: simulated drift (local only)" && log "simulating a plugin reconciled with $SIMULATE_SDK"
+fi
 
 drift=0
 {
@@ -56,7 +59,7 @@ timeout_run 5400 claude -p "$PROMPT" --permission-mode bypassPermissions --model
 log "claude exit $? ; $(tail -c 300 "$W/claude.out" | tr '\n' ' ')"
 
 [ -n "$(git status --porcelain)" ] && { git add -A && git commit -q -m "chore: reconcile with upstream (uncommitted leftovers from the weekly session)"; }
-[ "$(git rev-list --count origin/HEAD..HEAD 2>/dev/null || git rev-list --count HEAD ^origin/main)" -gt 0 ] || fail "Claude made no commit"
+[ "$(git rev-list --count HEAD ^origin/main)" -gt "$([ -n "${SIMULATE_SDK:-}" ] && echo 1 || echo 0)" ] || fail "Claude made no commit"
 
 ( node tests/rules.test.mjs && node tests/guard.test.mjs && node tests/detect.test.mjs && node tests/seed.test.mjs && node tests/replay.test.mjs && node tests/marker.test.mjs && node scripts/build-hooks.mjs --check ) >"$W/tests.out" 2>&1 || { tail -15 "$W/tests.out" >> "$LOG"; fail "tests failed after the session"; }
 node scripts/ci/upstream-check.mjs >/dev/null 2>&1 && log "upstream-check: current" || log "upstream-check still reports drift (see PR)"
