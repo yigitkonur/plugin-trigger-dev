@@ -3,13 +3,6 @@ on:
   push:
     branches: [main]
   pull_request:
-  workflow_dispatch:
-    inputs:
-      bump:
-        description: "Release now: auto (from commits), patch, minor or major"
-        default: auto
-        type: choice
-        options: [auto, patch, minor, major]
 jobs:
   checks:
     runs-on: ubuntu-latest
@@ -47,41 +40,3 @@ jobs:
         run: |
           npm i -g @anthropic-ai/claude-code
           claude plugin validate --strict .
-  # Installed copies update when the version string changes, so every merge that changes what the plugin ships cuts a release:
-  # bump both manifests, add a CHANGELOG section, tag v<version> and <name>--v<version>, publish a GitHub release.
-  release:
-    needs: checks
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'chore(release)')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    concurrency:
-      group: release
-      cancel-in-progress: false
-    env:
-      GH_TOKEN: ${{ github.token }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Bump, commit and tag (skipped when nothing shipped changed)
-        id: rel
-        run: |
-          bump="${{ github.event.inputs.bump }}"
-          if [ -n "$bump" ] && [ "$bump" != "auto" ]; then node scripts/ci/release.mjs --execute --bump "$bump"; else node scripts/ci/release.mjs --execute; fi
-      - name: Push the release commit and tags
-        if: steps.rel.outputs.release == 'true'
-        run: |
-          git push origin HEAD:main --follow-tags || { git pull --rebase origin main && git push origin HEAD:main --follow-tags; }
-          git push origin "${{ steps.rel.outputs.name }}--${{ steps.rel.outputs.tag }}"
-      - name: GitHub release
-        if: steps.rel.outputs.release == 'true'
-        run: |
-          v="${{ steps.rel.outputs.version }}"
-          awk -v v="$v" '$0 ~ "^## "v"( |$)" {f=1; next} /^## / {f=0} f' CHANGELOG.md > /tmp/notes.md
-          { printf '**install** (from your terminal): `claude plugin install %s --marketplace %s`\n\n' "${{ steps.rel.outputs.name }}" "${{ github.repository }}"; cat /tmp/notes.md; } > /tmp/release.md
-          gh release create "${{ steps.rel.outputs.tag }}" --title "${{ steps.rel.outputs.name }} $v" --notes-file /tmp/release.md --verify-tag
