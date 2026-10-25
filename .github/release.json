@@ -1,1 +1,1 @@
-{ "shipped": ["skills/", "agents/", "hooks/", "bin/", "references/", ".mcp.json", "scripts/trigger-ctx.mjs", "scripts/lib/", "scripts/rules/"] }
+{ "shipped": ["skills/", "agents/", "hooks/", "bin/", "references/", ".mcp.json", "scripts/trigger-ctx.mjs", "scripts/lib/", "scripts/rules/", ".codex-plugin/", ".codex-mcp.json", ".agents/"] }

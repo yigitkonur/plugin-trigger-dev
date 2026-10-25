@@ -351,11 +351,8 @@ export function formatHits(own, { older = [], max = 5, cap = 1500 } = {}) {
   return out;
 }
 
-// Line ranges (1-based, inclusive) that the edit wrote: where each new_string sits in the file after the edit. null = cannot tell, treat everything as new.
-function editedRanges(payload, text) {
-  const tool = payload?.tool_name;
-  if (tool === "Write") return null;
-  const pieces = tool === "MultiEdit" ? (payload?.tool_input?.edits || []).map((e) => e?.new_string) : [payload?.tool_input?.new_string];
+// Where each piece of new text sits in the file after the edit, as 1-based inclusive line ranges. null = cannot tell, treat everything as new.
+function rangesOf(pieces, text) {
   const ranges = [];
   for (const piece of pieces) {
     if (typeof piece !== "string" || !piece.length) continue;
@@ -371,6 +368,44 @@ function editedRanges(payload, text) {
   return ranges.length ? ranges : null;
 }
 
+function editedRanges(payload, text) {
+  const tool = payload?.tool_name;
+  if (tool === "Write") return null;
+  const pieces = tool === "MultiEdit" ? (payload?.tool_input?.edits || []).map((e) => e?.new_string) : [payload?.tool_input?.new_string];
+  return rangesOf(pieces, text);
+}
+
+// Codex writes files with apply_patch; the patch text arrives in tool_input.command. Returns [{ file, added: string[] | null }]
+// (added = the "+" blocks of an Update; null for an Add, where every line is new). Relative paths are relative to the session's cwd.
+export function parsePatch(patch, cwd) {
+  const out = [];
+  let cur = null;
+  let block = null;
+  const flush = () => {
+    if (block && cur?.added) cur.added.push(block.join("\n"));
+    block = null;
+  };
+  for (const line of String(patch).split("\n")) {
+    const m = /^\*\*\* (Add|Update) File: (.+)$/.exec(line) || /^\*\*\* Move to: (.+)$/.exec(line);
+    if (m) {
+      flush();
+      const isMove = m.length === 2;
+      const file = (isMove ? m[1] : m[2]).trim();
+      if (isMove && cur) cur.file = path.resolve(cwd || process.cwd(), file);
+      else out.push((cur = { file: path.resolve(cwd || process.cwd(), file), added: m[1] === "Add" ? null : [] }));
+    } else if (/^\*\*\* /.test(line)) {
+      flush();
+      cur = null;
+    } else if (cur?.added && line.startsWith("+")) {
+      (block ||= []).push(line.slice(1));
+    } else {
+      flush();
+    }
+  }
+  flush();
+  return out;
+}
+
 function realOr(p) {
   try {
     return fs.realpathSync(p);
@@ -381,23 +416,34 @@ function realOr(p) {
 
 export function lintHook(payload, env = process.env) {
   const tool = payload?.tool_name;
-  if (!["Edit", "Write", "MultiEdit"].includes(tool)) return null;
-  const file = payload?.tool_input?.file_path || payload?.tool_response?.filePath;
-  if (!file) return null;
-  const text = readText(file, MAX_FILE);
-  if (text == null) return null;
+  let targets;
+  if (tool === "apply_patch") {
+    const patch = payload?.tool_input?.command;
+    if (typeof patch !== "string") return null;
+    targets = parsePatch(patch, payload.cwd).map((t) => ({ file: t.file, pieces: t.added }));
+  } else if (["Edit", "Write", "MultiEdit"].includes(tool)) {
+    const file = payload?.tool_input?.file_path || payload?.tool_response?.filePath;
+    if (!file) return null;
+    targets = [{ file, pieces: undefined }];
+  } else return null;
   const proj = env.CLAUDE_PROJECT_DIR || payload.cwd || process.cwd();
-  let rel = path.relative(proj, file);
-  if (rel.startsWith("..")) {
-    const viaReal = path.relative(realOr(proj), realOr(file)); // /tmp vs /private/tmp on macOS
-    rel = viaReal.startsWith("..") ? file : viaReal;
-  }
-  const found = evalFile(file, text, loadRules(), { rel, projectStop: proj, tiers: ["hook"] });
-  const ranges = editedRanges(payload, text);
-  const inEdit = (h) => !ranges || ranges.some(([a, b]) => h.line >= a - 1 && h.line <= b);
   const sid = payload.session_id || "s";
-  const own = found.filter((h) => inEdit(h) && dedupeFirst(sid, file, h.rule, env));
-  const older = found.filter((h) => !inEdit(h) && dedupeFirst(sid, file, `${h.rule}:older`, env));
+  const own = [];
+  const older = [];
+  for (const { file, pieces } of targets) {
+    const text = readText(file, MAX_FILE);
+    if (text == null) continue;
+    let rel = path.relative(proj, file);
+    if (rel.startsWith("..")) {
+      const viaReal = path.relative(realOr(proj), realOr(file)); // /tmp vs /private/tmp on macOS
+      rel = viaReal.startsWith("..") ? file : viaReal;
+    }
+    const found = evalFile(file, text, loadRules(), { rel, projectStop: proj, tiers: ["hook"] });
+    const ranges = pieces === undefined ? editedRanges(payload, text) : pieces && rangesOf(pieces, text);
+    const inEdit = (h) => !ranges || ranges.some(([a, b]) => h.line >= a - 1 && h.line <= b);
+    own.push(...found.filter((h) => inEdit(h) && dedupeFirst(sid, file, h.rule, env)));
+    older.push(...found.filter((h) => !inEdit(h) && dedupeFirst(sid, file, `${h.rule}:older`, env)));
+  }
   if (!own.length && !older.length) return null;
   return { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: formatHits(own, { older }) } };
 }

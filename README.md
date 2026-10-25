@@ -1,6 +1,6 @@
-# trigger-dev: trigger.dev for claude code
+# trigger-dev: trigger.dev for claude code and codex
 
-tl;dr: a claude code plugin that makes the agent actually good at [trigger.dev](https://trigger.dev). that means background jobs, cron pipelines, long workflows with waits and approvals, realtime progress uis and ai chat agents. it's not the official skills with a new label. it fingerprints your project, figures out what you're building, picks the right primitive and says why, links the doc behind every call it makes, and checks the code while it's being written.
+tl;dr: a claude code (and codex) plugin that makes the agent actually good at [trigger.dev](https://trigger.dev). that means background jobs, cron pipelines, long workflows with waits and approvals, realtime progress uis and ai chat agents. it's not the official skills with a new label. it fingerprints your project, figures out what you're building, picks the right primitive and says why, links the doc behind every call it makes, and checks the code while it's being written.
 
 ## install
 
@@ -73,6 +73,25 @@ want it hands-off? run those two commands from a launchd/cron job every few hour
 **needs:** claude code 2.1.295 or later, and node 18 or later. node runs the edit checks, the prod guard and `audit`; without it they skip quietly.
 
 **steering level** (add `--config steering=quiet` to the install, or run `/plugin configure trigger-dev@plugin-trigger-dev`): `full` is the default and runs every hook, `quiet` keeps only the prod guard, `off` turns the hooks off.
+
+## codex
+
+same repo, same skills, same version. the codex copy has the skills, the official mcp server (`trigger.<tool>`), the session facts, the edit tripwire (it reads `apply_patch`) and the prod guard. it has no plugin agents (codex has none), so the audit and diagnose steps that use them run inline. checked live on codex-cli 0.163.0: the guard blocked `npx trigger.dev@latest deploy` with no `--env`, the tripwire named `handleError` in an `apply_patch`, and `trigger.search_docs` returned docs.
+
+```sh
+# install once, off everywhere (this is how we run it; codex has no enable/disable command, the helper edits the config files)
+codex plugin marketplace add yigitkonur/plugin-trigger-dev
+codex plugin add trigger-dev@plugin-trigger-dev
+curl -fsSL https://raw.githubusercontent.com/yigitkonur/plugin-trigger-dev/main/scripts/codex-plugin-project.sh -o ~/.local/bin/codex-plugin-project.sh && chmod +x ~/.local/bin/codex-plugin-project.sh
+codex-plugin-project.sh global-off trigger-dev@plugin-trigger-dev
+# on for one project (--trust marks the folder trusted, which codex needs before it reads the project's .codex/config.toml, and which also enables that project's hooks, so only for your own projects)
+codex-plugin-project.sh on  trigger-dev@plugin-trigger-dev . --trust
+codex-plugin-project.sh off trigger-dev@plugin-trigger-dev
+# update
+codex plugin marketplace upgrade plugin-trigger-dev
+```
+
+the first time codex loads the plugin's hooks it asks you to review them (tui: "hooks need review", trust all). `codex plugin list` says `installed, enabled` in the project and `installed, disabled` elsewhere.
 
 ## what you get
 

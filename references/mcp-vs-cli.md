@@ -7,7 +7,8 @@ The Trigger.dev MCP server (`npx trigger.dev@latest mcp`, shipped by this plugin
 1. **Always pass the environment.** MCP project tools default to `dev`; CLI `deploy`, `promote`, `env *`, `runs *` and `report` default to `prod`; MCP `deploy` and `list_deploys` default to `prod`. "Is prod healthy?" answered from dev data is the classic mistake.
 2. **Monorepos:** pass `configPath` (and `projectRef`) to every MCP project tool, from the session fingerprint. Run CLI commands from the directory holding `trigger.config.*`, or pass `--config`.
 3. **Which CLI:** version-sensitive commands (`dev`, `deploy`, `update`) use the project's own devDependency (`pnpm exec trigger …`, `npx trigger …`, or the package.json script). `npx trigger.dev@latest` is for commands that don't build code (login, whoami, env, runs, projects) or repos without a devDependency. CI fails when the CLI and `@trigger.dev/*` versions differ (https://trigger.dev/docs/github-actions).
-4. **Never trust tool annotations for safety.** `start_dev_server`, `stop_dev_server` and `switch_profile` are annotated read-only but start a process or change state.
+4. **Codex:** the tools are named `trigger.<tool>` (Claude Code: `mcp__plugin_trigger-dev_trigger__<tool>`). Codex starts the MCP server in the plugin folder, not the project, so pass `configPath` (absolute) and `projectRef` on every project call, not only in monorepos; the session facts print both.
+5. **Never trust tool annotations for safety.** `start_dev_server`, `stop_dev_server` and `switch_profile` are annotated read-only but start a process or change state.
 
 ## Decision matrix
 

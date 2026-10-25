@@ -2,7 +2,7 @@
 name: doctor
 description: Check the Trigger.dev toolchain around this project (Node, CLI login and profile, MCP server, versions, duplicate official skills, self-host target, plugin install scope) and report what to fix.
 disable-model-invocation: true
-allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(node *trigger-ctx.mjs" *) Bash(node --version) Bash(npx trigger.dev@latest whoami*) Bash(claude plugin list*) Bash(git rev-parse *)
+allowed-tools: Bash(trigger-ctx *) Bash(node *trigger-ctx.mjs *) Bash(node *trigger-ctx.mjs" *) Bash(node --version) Bash(npx trigger.dev@latest whoami*) Bash(claude plugin list*) Bash(codex plugin list*) Bash(git rev-parse *)
 ---
 
 # Trigger.dev doctor
@@ -23,7 +23,7 @@ Report a table of checks, each OK, WARN or FAIL with the evidence and the fix. N
 | Cloud or self-host | `target.kind`, `target.url` | Self-host: cloud-only advice is dropped; chat agents need `OBJECT_STORE_*` or your own `storage`. |
 | MCP server connected | `/mcp` lists `trigger` (as `plugin:trigger-dev:trigger`, or the user's own `trigger` server when it is configured too: the plugin de-duplicates by command) | Two different Trigger.dev servers configured: keep one. `npx` offline: the CLI equivalents in `references/mcp-vs-cli.md`. |
 | Duplicate guidance | `overlaps.officialSkills`, `overlaps.claudeMdPointer` | The official `trigger-*` skills (or the CLI's CLAUDE.md pointer) overlap this plugin. Recommend removing `.claude/skills/trigger-*` and the pointer line so one source of guidance remains; do not delete them for the user. |
-| Install scope | `claude plugin list` shows where `trigger-dev` is enabled | User scope adds the skill listing and MCP tool names to every repo. Recommend project scope: `claude plugin install trigger-dev@plugin-trigger-dev --scope project`. |
+| Install scope | `claude plugin list` (Claude Code) or `codex plugin list` (Codex) shows where `trigger-dev` is enabled | User scope adds the skill listing and MCP tool names to every repo. Recommend project scope: `claude plugin install trigger-dev@plugin-trigger-dev --scope project`. |
 | Hooks working | `trigger-ctx guard` is silent for a harmless command; Git Bash present on Windows | Windows without Git Bash: the session fingerprint and edit checks cannot run (the prod guard still can). Install Git for Windows. |
 | Git worktree | `worktree` in the facts | Parallel `trigger dev` sessions need `--branch <name>` each (`TRIGGER_DEV_BRANCH` is exported for this session). |
 | Steering level | `CLAUDE_PLUGIN_OPTION_STEERING` (`full`, `quiet`, `off`) | `quiet` keeps only the prod guard; `off` disables hooks. |

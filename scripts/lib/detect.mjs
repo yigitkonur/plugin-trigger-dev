@@ -455,5 +455,15 @@ export function sessionStart(payload, env = process.env) {
       fs.appendFileSync(env.CLAUDE_ENV_FILE, `export TRIGGER_DEV_BRANCH=${JSON.stringify(fp.worktree.name)}\n`);
     } catch {}
   }
-  return { hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: brief(fp) } };
+  return { hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: brief(fp) + (env.TRIGGER_DEV_HOST === "codex" ? codexNote(fp, base, env) : "") } };
+}
+
+/** Codex differences the skills cannot know: no `trigger-ctx` on PATH, no ${CLAUDE_PLUGIN_ROOT} in the shell, and an MCP server that starts in the plugin folder. */
+function codexNote(fp, base, env) {
+  const root = env.PLUGIN_ROOT || env.CLAUDE_PLUGIN_ROOT;
+  const cfg = fp.roots[0]?.config;
+  return [
+    root ? `\n- Codex: read \`\${CLAUDE_PLUGIN_ROOT}\` in a skill as ${root}, and run \`trigger-ctx\` as \`node ${root}/scripts/trigger-ctx.mjs\`; plugin agents do not exist here, do those steps inline` : "",
+    `\n- Codex MCP tools are \`trigger.<tool>\` and start in the plugin folder, so pass ${cfg ? `configPath=${path.resolve(base, cfg)}` : "configPath"}${fp.roots[0]?.projectRef ? ` projectRef=${fp.roots[0].projectRef}` : ""} on every project call`,
+  ].join("");
 }

@@ -1,0 +1,23 @@
+{
+  "name": "trigger-dev",
+  "version": "0.3.1",
+  "description": "Scenario-first Trigger.dev guidance for Codex: project fingerprint, discovery, doc-linked answers, edit tripwires, prod guard, audits and the official MCP server.",
+  "author": { "name": "yigitkonur", "url": "https://github.com/yigitkonur" },
+  "homepage": "https://github.com/yigitkonur/plugin-trigger-dev",
+  "repository": "https://github.com/yigitkonur/plugin-trigger-dev",
+  "license": "MIT",
+  "keywords": ["trigger.dev", "background-jobs", "ai-agents", "mcp"],
+  "skills": "./skills/",
+  "mcpServers": "./.codex-mcp.json",
+  "hooks": "./hooks/codex-hooks.json",
+  "interface": {
+    "displayName": "Trigger.dev",
+    "shortDescription": "Build, ship and debug Trigger.dev tasks and chat agents",
+    "longDescription": "Scenario-first Trigger.dev guidance: a project fingerprint at session start, doc-linked answers, edit tripwires for wrong SDK names, a guard before production deploys and writes, audits, and the official Trigger.dev MCP server.",
+    "developerName": "yigitkonur",
+    "category": "Developer Tools",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://github.com/yigitkonur/plugin-trigger-dev",
+    "defaultPrompt": ["Run the trigger-dev doctor skill", "Add a Trigger.dev task to this project"]
+  }
+}
