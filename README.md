@@ -18,12 +18,17 @@ claude plugin install trigger-dev --marketplace yigitkonur/plugin-trigger-dev --
 
 restart claude code (or open a new session) and you're set. tested on claude code 2.1.307: `Successfully installed plugin: trigger-dev@plugin-trigger-dev`.
 
-want it installed but switched off until you need it? install at project scope, then disable it there. flip it on whenever you want:
+want it on every machine but costing no tokens until you need it? install once at user scope, switch it off, and turn it on per project (this is how we run it):
 
 ```sh
+claude plugin install trigger-dev --marketplace yigitkonur/plugin-trigger-dev --scope user
+claude plugin disable trigger-dev@plugin-trigger-dev --scope user
+# later, inside a project that uses trigger.dev:
+claude plugin enable  trigger-dev@plugin-trigger-dev --scope project   # then /reload-plugins, or restart
 claude plugin disable trigger-dev@plugin-trigger-dev --scope project
-claude plugin enable  trigger-dev@plugin-trigger-dev --scope project
 ```
+
+checked live through herdr on claude code 2.1.307: with it off a fresh session lists no `trigger-dev:` skills; after `enable --scope project` and `/reload-plugins` the session reloaded with the plugin's skills, hooks and mcp server (20 skills, 20 hooks, 1 mcp server vs 12 skills, 3 hooks, 0 mcp when off); after `disable` a fresh session lists none again. the project switch only touches that folder's `.claude/settings.json`.
 
 already inside claude code? same thing, two steps:
 
