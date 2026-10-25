@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.4 - 2026-10-25
+
+- ci: switch to the shared release.py + release.yml (runs after ci is green on main) (0434225)
+
 ## 0.2.3
 
 _2026-10-25, automatic release from the commits since v0.2.2._
