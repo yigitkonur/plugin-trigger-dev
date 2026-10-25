@@ -4,6 +4,24 @@ on:
     branches: [main]
   pull_request:
 jobs:
+  manifests:   # kit:manifests:start
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with: { python-version: "3.12" }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: { node-version: 22 }
+      - name: Install Claude Code CLI (for plugin validate)
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Manifests, versions, install policy, kit copies, rendered blocks
+        run: python3 scripts/kit/check-manifests.py --validate
+      - name: Secret scan (tree and history)
+        run: python3 scripts/kit/secret-scan.py --tree --history
+      - name: Local markdown links
+        run: python3 scripts/kit/check-links.py
+  # kit:manifests:end
   checks:
     runs-on: ubuntu-latest
     steps:
@@ -20,9 +38,6 @@ jobs:
           node tests/replay.test.mjs
           node tests/marker.test.mjs
           node tests/codex.test.mjs
-      - name: Claude, Codex and marketplace versions are equal
-        run: |
-          node -e 'const r=f=>JSON.parse(require("fs").readFileSync(f,"utf8"));const v=[r(".claude-plugin/plugin.json").version,r(".codex-plugin/plugin.json").version,...r(".claude-plugin/marketplace.json").plugins.map(p=>p.version)];console.log(v.join(" "));process.exit(new Set(v).size===1?0:1)'
       - name: Generated files are up to date
         run: |
           node scripts/build-hooks.mjs --check
@@ -40,7 +55,3 @@ jobs:
           echo '{"compilerOptions":{"target":"ES2022","module":"ESNext","moduleResolution":"Bundler","strict":true,"jsx":"react-jsx","esModuleInterop":true,"skipLibCheck":true,"noEmit":true,"types":[]},"include":["manual-config.ts","polyglot-subpackage/src","polyglot-subpackage/trigger.config.ts","realtime"]}' > tsconfig.json
           npm i --silent --no-audit --no-fund @trigger.dev/sdk@latest @trigger.dev/build@latest @trigger.dev/react-hooks@latest react@19 @types/react@19 typescript@5
           npx tsc -p tsconfig.json
-      - name: Plugin spec validates
-        run: |
-          npm i -g @anthropic-ai/claude-code
-          claude plugin validate --strict .

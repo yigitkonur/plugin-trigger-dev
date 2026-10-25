@@ -2,94 +2,93 @@
 
 tl;dr: a claude code (and codex) plugin that makes the agent actually good at [trigger.dev](https://trigger.dev). that means background jobs, cron pipelines, long workflows with waits and approvals, realtime progress uis and ai chat agents. it's not the official skills with a new label. it fingerprints your project, figures out what you're building, picks the right primitive and says why, links the doc behind every call it makes, and checks the code while it's being written.
 
+<!-- kit:install:start -->
 ## install
 
-the one-liner (it's the `--marketplace` flag from `claude plugin install --help`: it adds this repo as a marketplace and installs in one go):
+Every plugin of ours is installed **once, globally, and off**, then **turned on per project**. Nothing runs and no tokens are spent in chats that don't switch it on. It works the same in Claude Code and Codex.
+
+### 1. install it globally
+
+**Claude Code**
 
 ```sh
-claude plugin install trigger-dev --marketplace yigitkonur/plugin-trigger-dev
+claude plugin marketplace add yigitkonur/plugin-trigger-dev
+claude plugin install trigger-dev@plugin-trigger-dev -s user          # stays off: defaultEnabled is false in the manifest
 ```
 
-want it only for one repo? run it from that repo with project scope:
+**Codex** (0.163+)
 
 ```sh
-claude plugin install trigger-dev --marketplace yigitkonur/plugin-trigger-dev --scope project
+codex plugin marketplace add yigitkonur/plugin-trigger-dev
+codex plugin add trigger-dev@plugin-trigger-dev
+codex-plugin-project.sh global-off trigger-dev@plugin-trigger-dev     # Codex has no enable/disable command; this keeps it off everywhere
 ```
 
-restart claude code (or open a new session) and you're set. tested on claude code 2.1.307: `Successfully installed plugin: trigger-dev@plugin-trigger-dev`.
-
-want it on every machine but costing no tokens until you need it? install once at user scope, switch it off, and turn it on per project (this is how we run it):
+All our plugins, both hosts, plus the `plugin` command and the 6-hourly update job, in one line:
 
 ```sh
-claude plugin install trigger-dev --marketplace yigitkonur/plugin-trigger-dev --scope user
-claude plugin disable trigger-dev@plugin-trigger-dev --scope user
-# later, inside a project that uses trigger.dev:
-claude plugin enable  trigger-dev@plugin-trigger-dev --scope project   # then /reload-plugins, or restart
-claude plugin disable trigger-dev@plugin-trigger-dev --scope project
+curl -fsSL https://raw.githubusercontent.com/yigitkonur/plugin-kit/main/install.sh | sh -s -- --all
 ```
 
-checked live through herdr on claude code 2.1.307: with it off a fresh session lists no `trigger-dev:` skills; after `enable --scope project` and `/reload-plugins` the session reloaded with the plugin's skills, hooks and mcp server (20 skills, 20 hooks, 1 mcp server vs 12 skills, 3 hooks, 0 mcp when off); after `disable` a fresh session lists none again. the project switch only touches that folder's `.claude/settings.json`.
-
-already inside claude code? same thing, two steps:
-
-```
-/plugin marketplace add yigitkonur/plugin-trigger-dev
-/plugin install trigger-dev@plugin-trigger-dev
-```
-
-update or remove:
+### 2. turn it on in a project
 
 ```sh
-claude plugin update trigger-dev@plugin-trigger-dev --scope project
-claude plugin uninstall trigger-dev@plugin-trigger-dev --scope project
+cd your-project
+plugin on trigger-dev    # Claude Code and Codex, this folder only
+plugin off trigger-dev   # undo
+plugin                   # or pick from a list (TUI)
 ```
 
-**keeping it current.** every merge to `main` that changes what the plugin ships (a `feat:` or `fix:` commit that touches the plugin itself, not just docs, tests or ci) gets a new version: a release workflow bumps it, tags it and publishes the release. claude code only auto-updates marketplaces it ships with, so for this one you switch it on yourself: `/plugin` → marketplaces → plugin-trigger-dev → enable auto-update, or in `~/.claude/settings.json`:
-
-```json
-{
-  "extraKnownMarketplaces": {
-    "plugin-trigger-dev": {
-      "source": { "source": "github", "repo": "yigitkonur/plugin-trigger-dev" },
-      "autoUpdate": true
-    }
-  }
-}
-```
-
-ngl, the docs promise a refresh a few minutes after a session starts, but in two tests (short sessions) it never fired, so don't lean on it. the sure way, any time (works for disabled project installs too):
+By hand, without the `plugin` command:
 
 ```sh
-claude plugin marketplace update plugin-trigger-dev
-claude plugin update trigger-dev@plugin-trigger-dev --scope project   # run from the project, then restart or /reload-plugins
+claude plugin enable trigger-dev@plugin-trigger-dev --scope project      # undo: claude plugin disable trigger-dev@plugin-trigger-dev --scope project
+codex-plugin-project.sh on trigger-dev@plugin-trigger-dev . --trust      # undo: codex-plugin-project.sh off trigger-dev@plugin-trigger-dev
 ```
 
-want it hands-off? run those two commands from a launchd/cron job every few hours, once per project.
+Restart `claude` / `codex` in that folder afterwards.
+Codex reads a folder's `.codex/config.toml` only when the folder is trusted; `--trust` adds that, and it also enables the folder's hooks and rules, so use it for your own projects only. `plugin` and `codex-plugin-project.sh` come from [plugin-kit](https://github.com/yigitkonur/plugin-kit) (the one-line installer above).
 
-**staying in sync with trigger.dev itself.** trigger.dev ships every few days, so a weekly job (github actions plus an optional local launchd job, `scripts/maintenance/install-weekly.sh`) compares the newest sdk, cli, mcp tools and release notes with what the plugin was last checked against (`references/upstream.json`) and says what changed and which files it touches. how that loop works is in [AGENTS.md](AGENTS.md#keeping-up-with-upstream). the plugin itself always installs and recommends the latest version, never a pin.
+### 3. updates
 
-**heads up on scope.** `--scope project` is the move for repos that use trigger.dev. at user scope the four skill descriptions and the trigger.dev mcp tool names load in every repo you open, about 1,000 tokens per `claude plugin details trigger-dev`. at project scope other repos pay nothing.
+A plugin updates only when its `version` changes, and this repo's `release` workflow bumps it on every shipped change. Machines pick it up with `plugin update`, or by themselves with the 6-hourly job (`plugin autoupdate install`). By hand:
+
+```sh
+claude plugin marketplace update plugin-trigger-dev && claude plugin update trigger-dev@plugin-trigger-dev
+codex plugin marketplace upgrade plugin-trigger-dev        # then start a new session
+```
+
+No GitHub SSH key on the machine? `export CLAUDE_CODE_PLUGIN_PREFER_HTTPS=1` (`plugin install` sets it in Claude's settings for you).
+
+### 4. uninstall
+
+```sh
+claude plugin uninstall trigger-dev@plugin-trigger-dev -s user
+claude plugin marketplace remove plugin-trigger-dev
+codex plugin remove trigger-dev@plugin-trigger-dev
+codex plugin marketplace remove plugin-trigger-dev
+```
+<!-- kit:install:end -->
+
+### what you can expect
+
+checked live through herdr on claude code 2.1.307: with it off a fresh session lists no `trigger-dev:` skills; after the project switch and `/reload-plugins` the session reloaded with the plugin's skills, hooks and mcp server (20 skills, 20 hooks, 1 mcp server vs 12 skills, 3 hooks, 0 mcp when off); switched off again, a fresh session lists none. the project switch only touches that folder's `.claude/settings.json`.
+
+at user scope the four skill descriptions and the trigger.dev mcp tool names would load in every repo you open, about 1,000 tokens per `claude plugin details trigger-dev`. that is why it stays off globally and only the projects that use trigger.dev switch it on.
+
+### needs and steering
 
 **needs:** claude code 2.1.295 or later, and node 18 or later. node runs the edit checks, the prod guard and `audit`; without it they skip quietly.
 
-**steering level** (add `--config steering=quiet` to the install, or run `/plugin configure trigger-dev@plugin-trigger-dev`): `full` is the default and runs every hook, `quiet` keeps only the prod guard, `off` turns the hooks off.
+**steering level** (run `/plugin configure trigger-dev@plugin-trigger-dev`, or pass `--config steering=quiet` when installing by hand): `full` is the default and runs every hook, `quiet` keeps only the prod guard, `off` turns the hooks off.
 
-## codex
+### staying in sync with trigger.dev itself
+
+trigger.dev ships every few days, so a weekly job (github actions plus an optional local launchd job, `scripts/maintenance/install-weekly.sh`) compares the newest sdk, cli, mcp tools and release notes with what the plugin was last checked against (`references/upstream.json`) and says what changed and which files it touches. how that loop works is in [AGENTS.md](AGENTS.md#keeping-up-with-upstream). the plugin itself always installs and recommends the latest version, never a pin.
+
+### in codex
 
 same repo, same skills, same version. the codex copy has the skills, the official mcp server (`trigger.<tool>`), the session facts, the edit tripwire (it reads `apply_patch`) and the prod guard. it has no plugin agents (codex has none), so the audit and diagnose steps that use them run inline. checked live on codex-cli 0.163.0: the guard blocked `npx trigger.dev@latest deploy` with no `--env`, the tripwire named `handleError` in an `apply_patch`, and `trigger.search_docs` returned docs.
-
-```sh
-# install once, off everywhere (this is how we run it; codex has no enable/disable command, the helper edits the config files)
-codex plugin marketplace add yigitkonur/plugin-trigger-dev
-codex plugin add trigger-dev@plugin-trigger-dev
-curl -fsSL https://raw.githubusercontent.com/yigitkonur/plugin-trigger-dev/main/scripts/codex-plugin-project.sh -o ~/.local/bin/codex-plugin-project.sh && chmod +x ~/.local/bin/codex-plugin-project.sh
-codex-plugin-project.sh global-off trigger-dev@plugin-trigger-dev
-# on for one project (--trust marks the folder trusted, which codex needs before it reads the project's .codex/config.toml, and which also enables that project's hooks, so only for your own projects)
-codex-plugin-project.sh on  trigger-dev@plugin-trigger-dev . --trust
-codex-plugin-project.sh off trigger-dev@plugin-trigger-dev
-# update
-codex plugin marketplace upgrade plugin-trigger-dev
-```
 
 the first time codex loads the plugin's hooks it asks you to review them (tui: "hooks need review", trust all). `codex plugin list` says `installed, enabled` in the project and `installed, disabled` elsewhere.
 

@@ -29,7 +29,7 @@ Read with Grep for one key; never load whole. Paths are relative to `https://tri
 | chat: sub-agents/sandbox; sub-agents; sub agents; code sandbox; skills; side channels; delegation | ai-chat/patterns/sub-agents, ai-chat/patterns/code-sandbox, ai-chat/patterns/skills, ai-chat/side-channels | L | 4.5.0 |  | — |
 | chat: test & ship; chat testing; mockChatAgent; chat mcp; chat changelog; test chat agent | ai-chat/testing, ai-chat/mcp, ai-chat/changelog | L | 4.5.0 |  | — |
 | operations; operations; observability; query; trql; reports; health; alerts; replay; bulk actions; dashboards | observability/query, reports, observability/dashboards, troubleshooting-alerts, replaying, bulk-actions | L |  |  | — |
-| tooling; mcp; mcp tools; cli; cli introduction; building with ai; skills | mcp-tools, cli-introduction, building-with-ai, skills | L |  |  | see [07](07-mcp-vs-cli.md) |
+| tooling; mcp; mcp tools; cli; cli introduction; building with ai; skills | mcp-tools, cli-introduction, building-with-ai, skills | L |  |  | see [mcp vs cli](mcp-vs-cli.md) |
 | Parallel waits are not supported | troubleshooting#parallel-waits-are-not-supported | L |  |  | TSK-01 |
 | Parent finishes before children | troubleshooting#when-triggering-subtasks-the-parent-task-finishes-too-soon | L |  |  | TSK-03 |
 | COULD_NOT_FIND_EXECUTOR | troubleshooting#could_not_find_executor | L |  |  | TSK-07 |
