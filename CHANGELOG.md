@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.0 - 2026-10-25
+
+- feat: run in Codex too, off by default on both hosts (#3) (e685b78)
+
 ## 0.3.1 - 2026-10-25
 
 - chore: reconcile baseline with Trigger.dev 4.8.1 (#2) (35e9c57)
