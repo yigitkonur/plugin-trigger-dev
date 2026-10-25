@@ -39,7 +39,7 @@ claude plugin update trigger-dev@plugin-trigger-dev --scope project
 claude plugin uninstall trigger-dev@plugin-trigger-dev --scope project
 ```
 
-**auto-update.** claude code only auto-updates marketplaces it ships with; a third-party one like this is off by default. every merge to `main` that changes what the plugin ships (a `feat:` or `fix:` commit that touches the plugin itself, not just docs, tests or ci) gets a new version: a release workflow bumps it, tags it and publishes the release. so switching auto-update on means installed copies pick up releases on their own, and `/reload-plugins` applies them in the running session. switch it on with `/plugin` → marketplaces → plugin-trigger-dev → enable auto-update, or in `~/.claude/settings.json`:
+**keeping it current.** every merge to `main` that changes what the plugin ships (a `feat:` or `fix:` commit that touches the plugin itself, not just docs, tests or ci) gets a new version: a release workflow bumps it, tags it and publishes the release. claude code only auto-updates marketplaces it ships with, so for this one you switch it on yourself: `/plugin` → marketplaces → plugin-trigger-dev → enable auto-update, or in `~/.claude/settings.json`:
 
 ```json
 {
@@ -52,7 +52,14 @@ claude plugin uninstall trigger-dev@plugin-trigger-dev --scope project
 }
 ```
 
-or update by hand any time with `claude plugin update trigger-dev@plugin-trigger-dev --scope project`.
+ngl, the docs promise a refresh a few minutes after a session starts, but in two tests (short sessions) it never fired, so don't lean on it. the sure way, any time (works for disabled project installs too):
+
+```sh
+claude plugin marketplace update plugin-trigger-dev
+claude plugin update trigger-dev@plugin-trigger-dev --scope project   # run from the project, then restart or /reload-plugins
+```
+
+want it hands-off? run those two commands from a launchd/cron job every few hours, once per project.
 
 **heads up on scope.** `--scope project` is the move for repos that use trigger.dev. at user scope the four skill descriptions and the trigger.dev mcp tool names load in every repo you open, about 1,000 tokens per `claude plugin details trigger-dev`. at project scope other repos pay nothing.
 
