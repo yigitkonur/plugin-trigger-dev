@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0 - 2026-10-25
+
+- feat: reconcile with Trigger.dev 4.8.1, always-latest rule, upstream tracking (4844d0b)
+
 ## 0.2.4 - 2026-10-25
 
 - ci: switch to the shared release.py + release.yml (runs after ci is green on main) (0434225)
