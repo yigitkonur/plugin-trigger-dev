@@ -9,7 +9,8 @@ Why: Claude Code updates an installed plugin only when its computed version chan
 first), so every shipped change must bump it, and the bump must reach every place the version is written.
 
 Level (auto): commits since the last release tag, merges and release commits left out. A commit counts only if it
-changed at least one SHIPPED file (everything except docs, tests, evals, CI and root markdown/license files; see IGNORED).
+changed at least one SHIPPED file: in a repo whose marketplace points at subfolders (source "./plugins/<name>") that is anything
+under those folders; otherwise everything except docs, tests, evals, CI and root markdown/license files (see IGNORED_*).
   feat -> minor; fix, perf -> patch; `type!:` or "BREAKING CHANGE" -> major (minor while the major is 0).
   docs, ci, chore, test, style, build, refactor -> no release.
   A commit with no conventional prefix counts as a patch.
@@ -106,12 +107,29 @@ def last_release_tag(root):
     return best
 
 
-def shipped(path):
+def plugin_dirs(root):
+    """Directories the marketplace ships when every plugin lives in a subfolder (./plugins/<name>); otherwise None (the repo root ships)."""
+    dirs = []
+    for rel in manifests(root):
+        if not rel.endswith("marketplace.json"):
+            continue
+        for pl in read_json(root, rel).get("plugins", []):
+            src = pl.get("source")
+            if not isinstance(src, str) or os.path.normpath(src) in (".", ""):
+                return None
+            dirs.append(os.path.normpath(src).replace(os.sep, "/") + "/")
+    return tuple(dirs) or None
+
+
+def shipped(path, dirs=None):
+    if dirs:
+        return path.startswith(dirs) or path.startswith(".claude-plugin/")
     return not (path.startswith(IGNORED_DIRS) or IGNORED_ROOT.match(path))
 
 
 def commits_since(root):
     base = last_release_tag(root)
+    dirs = plugin_dirs(root)
     rng = "%s..HEAD" % base if base else "HEAD"
     raw = git(root, "log", "--no-merges", "--name-only", "--format=%x1e%H%x1f%s%x1f%b%x1f", rng)
     out = []
@@ -124,7 +142,7 @@ def commits_since(root):
         if subject.startswith("chore(release)"):
             continue
         paths = [f for f in files.split("\n") if f.strip()]
-        out.append({"sha": sha, "subject": subject, "body": body, "shipped": any(shipped(p) for p in paths)})
+        out.append({"sha": sha, "subject": subject, "body": body, "shipped": any(shipped(p, dirs) for p in paths)})
     return base, out
 
 
