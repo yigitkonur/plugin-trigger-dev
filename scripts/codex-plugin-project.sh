@@ -23,7 +23,7 @@ hdr = '[plugins."%s"]' % pid
 m = re.search(r'^' + re.escape(hdr) + r'[ \t]*\n((?:(?!\[).*\n?)*)', s, re.M)
 if m:
     body = m.group(1)
-    nb = re.sub(r'^enabled[ \t]*=.*$', 'enabled = ' + val, body, flags=re.M) if re.search(r'^enabled[ \t]*=', body, re.M) else 'enabled = %s\n' % val + body
+    nb = re.sub(r'^[ \t]*enabled[ \t]*=.*$', 'enabled = ' + val, body, flags=re.M) if re.search(r'^[ \t]*enabled[ \t]*=', body, re.M) else 'enabled = %s\n' % val + body
     s = s[:m.start(1)] + nb + s[m.end(1):]
 else:
     s = s.rstrip("\n") + ("\n\n" if s.strip() else "") + hdr + "\nenabled = %s\n" % val
