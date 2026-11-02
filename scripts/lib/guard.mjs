@@ -10,11 +10,12 @@ const DOC = {
   env: "https://trigger.dev/docs/cli-env-commands",
   runs: "https://trigger.dev/docs/cli-runs-commands",
   tasks: "https://trigger.dev/docs/cli-tasks-commands",
+  webhooks: "https://trigger.dev/docs/cli-webhooks-commands",
   mcp: "https://trigger.dev/docs/mcp-tools",
   keys: "https://trigger.dev/docs/apikeys",
 };
 
-const SUBCOMMANDS = new Set(["deploy", "promote", "env", "runs", "dev", "init", "login", "logout", "whoami", "update", "preview", "report", "projects", "list-profiles", "switch", "mcp", "install-mcp", "workers", "analyze", "typecheck", "tasks"]);
+const SUBCOMMANDS = new Set(["deploy", "promote", "env", "runs", "dev", "init", "login", "logout", "whoami", "update", "preview", "report", "projects", "list-profiles", "switch", "mcp", "install-mcp", "workers", "analyze", "typecheck", "tasks", "webhooks"]);
 const GLOBAL_VALUE_FLAGS = new Set(["--profile", "--api-url", "-a", "--log-level", "-l"]);
 const ENV_ASSIGN = /^[A-Za-z_][A-Za-z0-9_]*=/;
 const RUNNER_FIRST = /^(npx|pnpx|pnpm|yarn|bun|bunx|npm|node|env|sudo|time|command|nohup|exec|corepack|volta|dotenv|dotenvx|doppler|infisical|op|cross-env)$/;
@@ -119,6 +120,10 @@ export function cliFinding({ sub, args }) {
   const first = args.find((a) => !a.startsWith("-"));
   if (sub === "tasks" && first === "trigger" && !hasHelp(args) && explicitEnvValue(args) === "prod") {
     return { what: "trigger tasks trigger --env prod", doc: DOC.tasks, envs: "", why: "runs your production task with real side effects", ask: true };
+  }
+  // Replacing a signing secret cuts the provider off until it is updated; `--env` defaults to prod, so this asks even with an explicit env (the MCP tools do the same).
+  if (sub === "webhooks" && (first === "set-secret" || first === "generate-secret") && !hasHelp(args)) {
+    return { what: `trigger webhooks ${first}`, doc: DOC.webhooks, envs: "", why: "replaces a webhook endpoint's signing secret (prod when --env is omitted)", ask: true };
   }
   if (hasHelp(args) || hasExplicitEnv(args)) return null;
   if (sub === "deploy") {

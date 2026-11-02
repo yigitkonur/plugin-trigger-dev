@@ -5,7 +5,7 @@ Generated from `scripts/rules/rules.json` by `node scripts/rules/render-catalog.
 Severity: **E** error (broken or unsafe) · **W** warning (likely wrong or costly) · **I** info.
 Detection: **S** script · **S+J** script locates, an agent confirms · **J** judgment · **L** live data.
 Tier: **hook** = checked after every edit (precision ≥ 95%); **audit** = checked by `/trigger-dev:audit`.
-`auto` = the audit may apply the fix; everything else is flag-only. 135 rules, 15 hook tier.
+`auto` = the audit may apply the fix; everything else is flag-only. 136 rules, 15 hook tier.
 
 ## MIG: stale APIs and migration
 
@@ -23,6 +23,7 @@ Tier: **hook** = checked after every edit (precision ≥ 95%); **audit** = check
 | MIG-10 | I | S | audit | trigger.config leaves runtime unset or set to node, so tasks follow the current Node.js LTS | pin a runtime such as node-24 (node-22 and node-26 are also available) when reproducible builds matter | https://trigger.dev/docs/config/config-file |
 | MIG-11 | W | S | audit | an OpenTelemetry exporter pinned to 0.52.x; SDK 4 uses 0.203.x | move the @opentelemetry exporter packages to 0.203.x and pass endpoint and headers as constructor arguments instead of OTEL_* env vars | https://trigger.dev/docs/config/config-file |
 | MIG-12 | W | S | audit | uses a task API that SDK 4 renamed or deprecated (toolTask, ai.tool, metadata.stream) | schemaTask with ai.toolExecute instead of toolTask/ai.tool; streams.pipe instead of metadata.stream | https://trigger.dev/docs/migrating-from-v3 |
+| MIG-13 | W | S | audit | trigger.config uses the deprecated legacy Bun runtime; deploys that use it are rejected from January 5, 2027 | switch to runtime "bun-1.4" (Bun-only image, no Node.js binary) or to node-24 | https://trigger.dev/docs/config/config-file |
 
 ## TSK: task authoring and reliability
 

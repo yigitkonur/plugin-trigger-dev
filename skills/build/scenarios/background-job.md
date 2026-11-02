@@ -6,7 +6,7 @@
 - `tasks.trigger<typeof task>("id", payload, options)` with `import type` — because the type-only import keeps task code out of the app bundle.
 - `idempotencyKeys.create([businessIds])` as `{ idempotencyKey }` — because double-clicks and webhook redelivery would otherwise start a second run.
 - Alternative: `yourTask.trigger()` from same-repo server code — because it validates `schemaTask` payloads at trigger time.
-- Rejected: `triggerAndWait` in the app — because it is an error outside task code (TSK-04); for a result, subscribe via `runs.subscribeToRun` or Realtime.
+- Rejected: `triggerAndWait` in the app — because it is an error outside task code (TSK-04); for a result, subscribe via `runs.subscribeToRun` (the loop ends when the run completes since 4.8.2; `stopOnCompletion: false` keeps it open) or Realtime.
 - Hooks: `catchError` to decide a retry or report, `onStartAttempt` for per-attempt work, `onSuccess`/`onFailure`, and `tasks.middleware` with `locals` for setup and teardown — because the 4.7 types deprecate `handleError`, `onStart`, `init` and `cleanup`.
 - Rejected: value import of task modules — because it bundles task code into the app (RT-12).
 - A task that links to its own run (a Slack message, an email) builds the URL from `${process.env.TRIGGER_DASHBOARD_URL}/runs/${ctx.run.id}` (SDK ≥ 4.8.0; works on any instance, never hard-code the dashboard host).

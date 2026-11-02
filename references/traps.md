@@ -34,7 +34,7 @@ The block above is read by the weekly freshness job: it counts these names in th
 | Prisma extension without `mode` | `mode` is required since 4.1.1: `legacy` runs `prisma generate` for you, `modern` and `engine-only` need your own generate step | | CFG-02 · https://trigger.dev/docs/config/extensions/prismaExtension |
 | extensions run in `trigger dev` | most (`puppeteer`, `playwright`, `additionalPackages`) only affect deployed builds; `pythonExtension` also moves scripts in dev | test the build with `deploy --dry-run` | https://trigger.dev/docs/config/extensions/overview |
 | `ffmpeg` extension alone | also mark `fluent-ffmpeg` external | | CFG-03 · https://trigger.dev/docs/config/extensions/ffmpeg |
-| `runtime: "node"` is pinned | `node` floats with LTS; pin `node-24` for reproducibility; `bun` is experimental and the CLI still needs Node | | MIG-10 · https://trigger.dev/docs/config/config-file |
+| `runtime: "node"` is pinned | `node` floats with LTS; pin `node-24` for reproducibility; Bun is experimental: `bun` / `bun-legacy` (Bun 1.3 beside Node.js) is deprecated since 4.8.3 and deploys using it are rejected from January 5, 2027, so use `bun-1.4` (Bun-only image, no Node.js binary) | | MIG-10 · MIG-13 · https://trigger.dev/docs/config/config-file |
 | hard-coded `retries.enabledInDev: false` | the docs disagree on the init default; state it, don't assume it | | https://trigger.dev/docs/errors-retrying |
 
 ## Tasks, hooks and triggering
@@ -86,6 +86,7 @@ The block above is read by the weekly freshness job: it counts these names in th
 
 | Old (or wrong) | Current | Why / evidence | Rule |
 |---|---|---|---|
+| self-host `EVENT_REPOSITORY_DEFAULT_STORE=clickhouse` | `clickhouse_v2`; the legacy store is retired in 4.8.2 and older events stay hidden until copied (follow the self-hosting guide) | | https://trigger.dev/docs/self-hosting/docker |
 | `trigger deploy` in scripts and CI with no `--env` | pass `--env` explicitly (the default is prod) | | DEP-10 · https://trigger.dev/docs/cli-deploy-commands |
 | one `TRIGGER_ACCESS_TOKEN` for every environment | a key per environment ("Deploy only" preset on Pro/Enterprise) | | DEP-02 · https://trigger.dev/docs/github-actions |
 | preview workflow on `opened`/`synchronize` only | add `closed` so preview branches are archived | | DEP-03 |

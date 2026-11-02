@@ -11,6 +11,7 @@ Read with Grep for one key; never load whole. Paths are relative to `https://tri
 | human-in-the-loop-and-callbacks; human in the loop; approval; callback; wait token; waitpoint; external event | wait-for-token, realtime/react-hooks/use-wait-token, webhooks/waiters, webhooks/human-in-the-loop | L |  |  | webhook waiters need SDK 4.8.0 |
 | progress-ui; progress; progress bar; realtime; useRealtimeRun; metadata; live updates; react hooks; streams ui | realtime/overview, runs/metadata, realtime/auth, realtime/react-hooks/subscribe, tasks/streams, realtime/react-hooks/streams, limits#realtime-connections | L |  |  | metadata 256 KB |
 | heavy-compute; heavy compute; build extension; extensions; puppeteer; playwright; ffmpeg; python; native; machine; browser; media | config/extensions/overview, machines, runs/heartbeats, config/extensions/playwright, config/extensions/lightpanda, config/extensions/additionalPackages, config/extensions/audioWaveform | L |  |  | most extensions affect deployed builds only; `pythonExtension` also moves scripts in dev |
+| webhook secret cli; webhooks set-secret; webhooks generate-secret; signing secret from terminal | cli-webhooks-commands, webhooks/connect | L | 4.8.3 |  | pipes or env file, never prints the secret; `--env` defaults to prod, pass `--previous-secret-ttl` in scripts |
 | webhook-driven; webhook; webhooks; incoming webhook; stripe webhook; github webhook | webhooks/overview, webhooks/sources, webhooks/connect, webhooks/filters, webhooks/deliveries, idempotency, self-hosting/env/webapp#webhooks | L | 4.8.0 |  | hosted endpoints; below 4.8.0 use your own route + `idempotency`; self-host: off until the operator enables it |
 | polyglot-caller; polyglot; python; go; ruby; php; rest api; management api; non-typescript; other language; trigger from python | management/tasks/trigger, management/runs/retrieve, management/authentication, apikeys, config/extensions/pythonExtension |  |  |  | management pages are web-only |
 | ai-pipeline; ai pipeline; llm; prompts; ai sdk; structured output; ai task | tasks/schemaTask, ai/prompts, ai/observability, tasks/streams, errors-retrying | L |  |  | — |
@@ -70,7 +71,8 @@ Read with Grep for one key; never load whole. Paths are relative to `https://tri
 | dev branches; trigger dev --branch; worktrees | deployment/dev-branches | L |  |  | parallel sessions need a branch each |
 | preview branches; preview deploy | deployment/preview-branches, cli-preview-archive | L |  | cloud |  |
 | api keys; secret key; presets | apikeys | L |  |  | key presets need Pro/Enterprise; cloud |
-| login; whoami; profiles; switch | cli-login-commands, cli-whoami-commands, cli-list-profiles-commands, cli-switch | L |  |  | resumable login: --no-browser --no-wait |
+| login; whoami; profiles; switch | cli-login-commands, cli-whoami-commands, cli-list-profiles-commands, cli-switch | L |  |  | resumable login: --no-browser --no-wait, then `--code <code>` (CLI 4.8.3+; the browser shows the code) |
+| oidc; aws credentials in a task; openid connect; short-lived cloud credentials | oidc | L | 4.8.3 | cloud | private beta, contact Trigger.dev for access; the stable path is stored cloud keys in env vars |
 | init; trigger.dev init; setup | quick-start, manual-setup, cli-init-commands | L |  |  |  |
 | private networking | private-networking/overview, private-networking/aws-console-setup, private-networking/troubleshooting | L |  | cloud plan |  |
 | run tests; test a task; dashboard test | run-tests | L |  |  |  |
