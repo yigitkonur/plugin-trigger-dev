@@ -29,7 +29,7 @@ export const fulfillOrder = webhook({
   },
 });
 ```
-Then deploy (or `trigger dev`), copy the URL from the Webhooks page into the provider, and set the signing secret (MCP `set_webhook_secret` / `generate_webhook_secret`, or the dashboard). Check arrival with `list_webhook_deliveries`.
+Then deploy (or `trigger dev`), copy the URL from the Webhooks page into the provider, and set the signing secret (CLI `webhooks set-secret` / `webhooks generate-secret` from 4.8.3, which store it without printing it; MCP `set_webhook_secret` / `generate_webhook_secret`; or the dashboard). Check arrival with `list_webhook_deliveries`.
 
 **Fallback shape (own route, SDK < 4.8 or own domain):**
 ```ts
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
 - Route triggers before the signature check, so forged events can start runs.
 - Route passes no provider event id as `idempotencyKey`, so redeliveries can start duplicate runs (WH-06)
 - Endpoint "Needs secret" rejects every delivery; check with MCP `list_webhook_endpoints` (WH-03)
-- The signing secret never goes in code or chat: `generate_webhook_secret` returns it once, and the guard always asks before `set_webhook_secret` or `generate_webhook_secret`
+- The signing secret never goes in code or chat: `generate_webhook_secret` returns it once, and the guard always asks before `set_webhook_secret` or `generate_webhook_secret` (and the CLI `webhooks set-secret` / `generate-secret`, whose `--env` defaults to prod; in scripts pass `--previous-secret-ttl`, and prefer `--to-env` over `--print` so the value stays out of the transcript)
 - Custom source (`webhooks.custom`) without `idempotencyField` derives its key from body, timestamp and signature, which can change on retry (WH-02)
 - Event types are compile-time only, and filters aren't security: a throwing filter still routes the event, so validate in the handler (WH-04)
 

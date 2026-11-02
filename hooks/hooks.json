@@ -86,6 +86,17 @@
           },
           {
             "type": "command",
+            "if": "Bash(*trigger webhooks *)",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/trigger-ctx.mjs",
+              "guard"
+            ],
+            "timeout": 5,
+            "onFailure": "continue"
+          },
+          {
+            "type": "command",
             "if": "PowerShell(*trigger*)",
             "command": "node",
             "args": [

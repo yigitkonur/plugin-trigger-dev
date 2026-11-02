@@ -12,7 +12,7 @@
 
 **Order of work:**
 1. Declare every tool, with its `toModelOutput`, on `chat.agent({ tools })`.
-2. Make the sub-agent a `chat.agent` and call it through `AgentChat`, with a server-derived `conversationId`.
+2. Make the sub-agent a `chat.agent` and call it through `AgentChat`, with a server-derived `conversationId`. To show the sub-agent's work live, return `chat.forwardSubAgent(stream, { toolCallId })` from the tool (SDK ≥ 4.8.2): each chunk is written to the parent chat once and the tool resolves with the final message, while yielding `stream.messages()` snapshots resends the whole message every time.
 3. Cap parallelism per session with `concurrencyLimit`, `perKey`, `concurrencyKey` in `triggerConfig`, and `concurrencyLimits.override`.
 4. Define skills with `skills.define` and `.local()` at module scope; attach them with `chat.skills.set` in `onBoot`.
 5. Sandbox: warm in `onTurnStart` without blocking; keep the run id in `chat.local` (initialised in `onBoot`); dispose in `onChatSuspend`, with `onComplete` as the safety net.

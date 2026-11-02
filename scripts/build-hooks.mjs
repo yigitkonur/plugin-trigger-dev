@@ -13,7 +13,7 @@ const base = { timeout: 5, onFailure: "continue" };
 const node = (iff, ...args) => ({ type: "command", ...(iff ? { if: iff } : {}), command: "node", args: [ENGINE, ...args], ...base });
 const gate = (iff, args) => ({ type: "command", if: iff, command: `${GATE} ${args}`, ...base });
 
-const cliRules = ["Bash(*trigger.dev*)", "Bash(*trigger deploy*)", "Bash(*trigger promote*)", "Bash(*trigger env *)", "Bash(*trigger runs *)"];
+const cliRules = ["Bash(*trigger.dev*)", "Bash(*trigger deploy*)", "Bash(*trigger promote*)", "Bash(*trigger env *)", "Bash(*trigger runs *)", "Bash(*trigger webhooks *)"];
 const aliasRules = ["npm run *", "pnpm *", "yarn *", "bun *"];
 
 const hooks = {

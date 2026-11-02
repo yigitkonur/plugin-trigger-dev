@@ -30,8 +30,8 @@ export function parseIndex(text) {
 }
 
 const STOP = new Set(["sdk", "trigger", "dev", "triggerdev", "task", "tasks", "how", "to", "the", "a", "in", "with", "use", "using", "for", "and", "of", "do", "i", "my"]);
-// No docs page is beta as of SDK 4.8.0 (webhooks went generally available). A future beta page goes in this pattern.
-const BETA_PAGE = /^$^/;
+// Pages the docs label beta or private beta. Webhooks went generally available in 4.8.0; OIDC (4.8.3) is private beta on Cloud.
+const BETA_PAGE = /^oidc$/;
 
 const IDENT = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/;
 const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

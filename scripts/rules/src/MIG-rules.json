@@ -120,7 +120,32 @@
         ],
         "good": [
           "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  runtime: \"node-24\",\n  dirs: [\"./src/trigger\"],\n});",
-          "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  runtime: \"bun\",\n  dirs: [\"./src/trigger\"],\n});"
+          "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  runtime: \"bun-1.4\",\n  dirs: [\"./src/trigger\"],\n});"
+        ]
+      }
+    },
+    {
+      "id": "MIG-13",
+      "family": "MIG",
+      "severity": "warning",
+      "tier": "audit",
+      "detect": "S",
+      "scope": "config",
+      "match": {
+        "type": "regex",
+        "pattern": "\\bruntime\\s*:\\s*[\"']bun(?:-legacy)?[\"']"
+      },
+      "message": "trigger.config uses the deprecated legacy Bun runtime; deploys that use it are rejected from January 5, 2027",
+      "fix": "switch to runtime \"bun-1.4\" (Bun-only image, no Node.js binary) or to node-24",
+      "fix_mode": "flag-only",
+      "doc": "https://trigger.dev/docs/config/config-file",
+      "examples": {
+        "bad": [
+          "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  runtime: \"bun\",\n  dirs: [\"./src/trigger\"],\n});",
+          "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  runtime: \"bun-legacy\",\n  dirs: [\"./src/trigger\"],\n});"
+        ],
+        "good": [
+          "import { defineConfig } from \"@trigger.dev/sdk\";\n\nexport default defineConfig({\n  project: \"proj_example\",\n  runtime: \"bun-1.4\",\n  dirs: [\"./src/trigger\"],\n});"
         ]
       }
     },
