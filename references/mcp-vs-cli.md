@@ -15,7 +15,7 @@ The Trigger.dev MCP server (`npx trigger.dev@latest mcp`, shipped by this plugin
 | Need | Primary | Fallback (in order) |
 |---|---|---|
 | Look up an API | local pinned `.mdx` → MCP `search_docs` (no login) → web `.md` (`trigger-ctx docs <topic>`) | `https://trigger.dev/docs/llms.txt` |
-| Log in | CLI resumable login: `login --no-browser --no-wait`, the user approves in a browser, then `login --no-browser` | none; a human step |
+| Log in | CLI resumable login: `login --no-browser --no-wait`, the user approves in a browser, then `login --no-browser` (a login idle for 7 days expires from 4.8.4: the CLI and MCP server start a new login instead of an auth error, and in CI the CLI says to log in again; self-host `CLI_LOGIN_IDLE_TIMEOUT_DAYS`, `0` turns it off for new logins) | none; a human step. For CI deploys use trusted publishing (`deploy --auth-method oidc`, `deployment/trusted-publishing`) or an environment key |
 | Which account / API URL | CLI `whoami` (answers "You must login first" in seconds when logged out) | MCP `whoami` once logged in; it can hang without a login |
 | Create or choose a project | MCP `list_orgs` / `list_projects`; CLI `projects create` | dashboard |
 | Initialise a repo | CLI `init -y --project-ref … --runtime …` from the package directory | MCP `initialize_project`; manual setup (https://trigger.dev/docs/manual-setup) |

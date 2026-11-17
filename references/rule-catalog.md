@@ -5,7 +5,7 @@ Generated from `scripts/rules/rules.json` by `node scripts/rules/render-catalog.
 Severity: **E** error (broken or unsafe) · **W** warning (likely wrong or costly) · **I** info.
 Detection: **S** script · **S+J** script locates, an agent confirms · **J** judgment · **L** live data.
 Tier: **hook** = checked after every edit (precision ≥ 95%); **audit** = checked by `/trigger-dev:audit`.
-`auto` = the audit may apply the fix; everything else is flag-only. 136 rules, 15 hook tier.
+`auto` = the audit may apply the fix; everything else is flag-only. 137 rules, 15 hook tier.
 
 ## MIG: stale APIs and migration
 
@@ -129,6 +129,7 @@ Tier: **hook** = checked after every edit (precision ≥ 95%); **audit** = check
 | CHT-23 | E | J | audit | A value from clientData (set by the browser) decides an authorisation or trust check here. | Derive the identity and permissions server-side from the session or a database lookup; signals the browser cannot be trusted to send come from a trusted edge proxy. | https://trigger.dev/docs/ai-chat/patterns/trusted-edge-signals |
 | CHT-24 | W | S | audit | This file still has route-handler chat plumbing (resumable-stream, toUIMessageStreamResponse, or convertToModelMessages in run); chat.agent does these steps itself. | Delete the route handler and the resumable-stream setup; the runtime does convertToModelMessages and toUIMessageStreamResponse. | https://trigger.dev/docs/ai-chat/migrating-from-a-route-handler |
 | CHT-25 | I | S | audit | This test imports the agent module before @trigger.dev/sdk/ai/test, or calls mockChatAgent without closing the harness. | Import @trigger.dev/sdk/ai/test before the agent module, and close the harness in a try/finally (or afterEach). | https://trigger.dev/docs/ai-chat/testing |
+| CHT-26 | W | J | audit | A chat context loader appends the browser's incomingMessages unfiltered; from 4.8.4 the agent takes only user messages and answers to its own tool calls, and the runtime merges the answers itself. | Append only the user's messages: [...branch, ...incomingMessages.filter((m) => m.role === "user")]. | https://trigger.dev/docs/ai-chat/transcript-storage |
 
 ## WH: webhooks (hosted endpoints need SDK 4.8.0, except WH-06)
 
@@ -162,7 +163,7 @@ Tier: **hook** = checked after every edit (precision ≥ 95%); **audit** = check
 
 | ID | Sev | Det | Tier | Rule | Fix | Doc |
 |---|---|---|---|---|---|---|
-| DEP-01 | E | S | audit | This workflow runs a trigger.dev deploy and sets no TRIGGER_ACCESS_TOKEN. | Add a per-environment token secret and map it to TRIGGER_ACCESS_TOKEN in the deploy step's env. | https://trigger.dev/docs/github-actions |
+| DEP-01 | E | S | audit | This workflow runs a trigger.dev deploy and sets no TRIGGER_ACCESS_TOKEN (and does not use trusted publishing: --auth-method oidc or id-token: write). | Add a per-environment token secret and map it to TRIGGER_ACCESS_TOKEN in the deploy step's env, or use trusted publishing (permissions: id-token: write and deploy --auth-method oidc, CLI 4.8.4+). | https://trigger.dev/docs/github-actions |
 | DEP-02 | W | S | audit | One TRIGGER_ACCESS_TOKEN secret is used while this workflow deploys to two --env targets. | Store one token per environment and map each to TRIGGER_ACCESS_TOKEN in its own job. | https://trigger.dev/docs/github-actions |
 | DEP-03 | E | S | audit | This workflow deploys --env preview on pull_request, but pull_request.types has no closed, so preview branches are not archived when PRs close or merge. | Add closed to pull_request.types. | https://trigger.dev/docs/deployment/preview-branches |
 | DEP-04 | W | S | audit | The pull_request workflow passes ${{ github.sha }} as --external-id; on pull_request that is the merge commit, not the commit the app was built from. | Use github.event.pull_request.head.sha as the --external-id value. | https://trigger.dev/docs/github-actions |

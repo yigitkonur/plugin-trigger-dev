@@ -25,7 +25,7 @@ write("src/dup/a.ts", 'import { task } from "@trigger.dev/sdk";\nexport const a 
 write("src/dup/b.ts", 'import { task } from "@trigger.dev/sdk";\nexport const b = task({ id: "same-id", run: async () => {} });\n');
 write("src/queue/q.ts", 'import { tasks } from "@trigger.dev/sdk";\nawait tasks.trigger("x", {}, { queue: "never-declared" });\n');
 write("src/browser/b.ts", 'import { task } from "@trigger.dev/sdk";\nimport puppeteer from "puppeteer";\nexport const s = task({ id: "shot", run: async () => { const b = await puppeteer.launch(); } });\n');
-write("package.json", '{ "name": "seed", "dependencies": { "@trigger.dev/sdk": "4.7.4" } }\n');
+write("package.json", '{ "name": "seed", "dependencies": { "@trigger.dev/sdk": "4.8.5" } }\n');
 write("trigger.config.ts", 'import { defineConfig } from "@trigger.dev/sdk";\nexport default defineConfig({ project: "proj_seedseedseedseeds", dirs: ["./nope"], maxDuration: 300 });\n');
 write("pkg/skew/package.json", '{ "dependencies": { "@trigger.dev/sdk": "4.7.4", "@trigger.dev/build": "4.6.0" } }\n');
 

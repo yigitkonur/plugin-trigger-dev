@@ -30,8 +30,8 @@ export function parseIndex(text) {
 }
 
 const STOP = new Set(["sdk", "trigger", "dev", "triggerdev", "task", "tasks", "how", "to", "the", "a", "in", "with", "use", "using", "for", "and", "of", "do", "i", "my"]);
-// Pages the docs label beta or private beta. Webhooks went generally available in 4.8.0; OIDC (4.8.3) is private beta on Cloud.
-const BETA_PAGE = /^oidc$/;
+// Pages the docs label beta. The webhooks overview and its public-beta page say "public beta for every organization" (the API may change before general availability); OIDC left private beta (its docs carry no beta note since 4.8.4).
+const BETA_PAGE = /^webhooks\/(?:overview|public-beta)$/;
 
 const IDENT = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/;
 const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

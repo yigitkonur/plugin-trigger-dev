@@ -18,7 +18,7 @@ Numbers that change a design choice, each with its source. Plan-dependent values
 | Streams | 28-day retention, 300 MiB per stream; empty streams are deleted | long waits with no writes lose the stream | https://trigger.dev/docs/tasks/streams |
 | Chat records | about 1 MiB (`ChatChunkTooLargeError`) | persist big tool outputs, emit an id | https://trigger.dev/docs/ai-chat/patterns/large-payloads |
 | Schedules (Cloud Free) | not more often than hourly; new schedules get a 60-minute spreading window | paid plans: `window: "0m"` for the exact minute; Free treats it as the 60-minute minimum | https://trigger.dev/docs/tasks/scheduled |
-| Plan-dependent | environment concurrency, queue sizes, schedule counts, preview branches, realtime connections, log retention, query lookback, API-key presets | ask only when the recommendation depends on it | https://trigger.dev/docs/limits |
+| Plan-dependent | environment concurrency, queue sizes, schedule counts, preview branches, realtime connections, log retention, query lookback | ask only when the recommendation depends on it | https://trigger.dev/docs/limits |
 
 ## Machine presets: relative cost (Cloud list prices)
 
