@@ -70,7 +70,7 @@ Read with Grep for one key; never load whole. Paths are relative to `https://tri
 | limits; payload size; rate limits | limits | L |  |  | numbers: references/limits.md |
 | dev branches; trigger dev --branch; worktrees | deployment/dev-branches | L |  |  | parallel sessions need a branch each |
 | preview branches; preview deploy | deployment/preview-branches, cli-preview-archive | L |  | cloud |  |
-| api keys; secret key; presets; custom access; ip allowlist; key expiry | apikeys, apikeys/custom-access | L |  |  | every preset is on every Cloud plan; presets, custom access, IP allowlist and key usage are Cloud-only (self-host: unrestricted keys only) |
+| api keys; secret key; presets; custom access; ip allowlist; key expiry | apikeys, apikeys/custom-access | L |  |  | every preset is on every Cloud plan; presets, custom access, saved presets and key usage are Cloud-only (self-host: unrestricted keys only); IP allowlists also work self-hosted behind a proxy that sets `X-Forwarded-For` |
 | login; whoami; profiles; switch | cli-login-commands, cli-whoami-commands, cli-list-profiles-commands, cli-switch | L |  |  | resumable login: --no-browser --no-wait, then `--code <code>` (CLI 4.8.3+; the browser shows the code) |
 | oidc; workload identity; aws credentials in a task; openid connect; short-lived cloud credentials; infisical | oidc, oidc/aws, oidc/anthropic, oidc/infisical, oidc/custom, oidc/azure, oidc/gcp, oidc/vault, oidc/doppler | L | 4.8.3 | cloud | no stored cloud keys; redeploy after upgrading the CLI; dev runs cannot mint tokens; `awsCredentialProvider` `sessionTags` and `infisicalAccessToken` need 4.8.4 |
 | init; trigger.dev init; setup | quick-start, manual-setup, cli-init-commands | L |  |  |  |

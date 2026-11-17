@@ -1015,7 +1015,8 @@
     "good": [
      "import type { TranscriptStorage } from \"@trigger.dev/sdk/ai\";\nexport const storage: TranscriptStorage = {\n  save: (ctx, changeset) => rows.save(ctx, changeset),\n  loadContext: async ({ chatId, clientData }, { incomingMessages }) => {\n    const branch = await rows.activeBranch(chatId, clientData.userId);\n    return [...branch, ...incomingMessages.filter((m) => m.role === \"user\")];\n  },\n};"
     ]
-   }
+   },
+   "applies_when": "sdk>=4.8.4"
   },
   {
    "id": "COST-01",

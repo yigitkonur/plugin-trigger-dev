@@ -9,7 +9,7 @@
   - Fallback below 4.8.0: a wait token completed by your own webhook route.
   - Rejected: `token.url` from browser code — server-to-server only, with no CORS headers.
 
-**Gates:** Webhook waiters need SDK ≥ 4.8.0 (private beta before; generally available since). Cloud limits vary by plan. The pinned wait-token pages show no version or cloud gate.
+**Gates:** Webhook waiters need SDK ≥ 4.8.0 (private beta before; a public beta open to every organization since, so the API may change before general availability; a wait token is the stable path). Cloud limits vary by plan. The pinned wait-token pages show no version or cloud gate.
 
 **Ask only if unknown:**
 - Is the callback from a webhook-capable provider, or from a person or your own service? Provider: webhook waiter (SDK ≥ 4.8.0); otherwise: wait token.

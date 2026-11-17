@@ -12,7 +12,8 @@
     "@trigger.dev/build",
     "@trigger.dev/react-hooks",
     "@trigger.dev/slack",
-    "@trigger.dev/linear"
+    "@trigger.dev/linear",
+    "@trigger.dev/convex"
   ],
   "releases": "triggerdotdev/trigger.dev"
 }
