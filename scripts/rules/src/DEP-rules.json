@@ -12,10 +12,10 @@
     "mask": "none",
     "flags": "m",
     "pattern": "^(?![ \\t]*#)[^\\n]*?\\btrigger(?:\\.dev)?(?:@[\\w.@-]+)?\\s+deploy\\b",
-    "unless": "TRIGGER_ACCESS_TOKEN"
+    "unless": "TRIGGER_ACCESS_TOKEN|--auth-method[=\\s]+oidc|id-token:\\s*write"
    },
-   "message": "This workflow runs a trigger.dev deploy and sets no TRIGGER_ACCESS_TOKEN.",
-   "fix": "Add a per-environment token secret and map it to TRIGGER_ACCESS_TOKEN in the deploy step's env.",
+   "message": "This workflow runs a trigger.dev deploy and sets no TRIGGER_ACCESS_TOKEN (and does not use trusted publishing: --auth-method oidc or id-token: write).",
+   "fix": "Add a per-environment token secret and map it to TRIGGER_ACCESS_TOKEN in the deploy step's env, or use trusted publishing (permissions: id-token: write and deploy --auth-method oidc, CLI 4.8.4+).",
    "fix_mode": "flag-only",
    "doc": "https://trigger.dev/docs/github-actions",
    "examples": {
@@ -24,7 +24,8 @@
     ],
     "good": [
      "name: deploy\non:\n  push:\n    branches: [main]\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env prod\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_PROD_ACCESS_TOKEN }}\n",
-     "name: ci\non: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      # npx trigger.dev@latest deploy --env prod (moved to deploy.yml)\n      - run: npm test\n"
+     "name: ci\non: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      # npx trigger.dev@latest deploy --env prod (moved to deploy.yml)\n      - run: npm test\n",
+     "name: deploy\non:\n  push:\n    branches: [main]\npermissions:\n  contents: read\n  id-token: write\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --auth-method oidc --native-build --env prod\n"
     ]
    }
   },

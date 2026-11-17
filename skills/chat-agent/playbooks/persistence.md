@@ -3,7 +3,7 @@
 
 **Decide:**
 - `storage: TranscriptStorage` when your database is the source of truth; platform snapshot when history only has to survive runs.
-- `loadContext` on the storage only when your database must decide the model's context (branching, rollback).
+- `loadContext` on the storage only when your database must decide the model's context (branching, rollback). Append only the user's messages from `incomingMessages` (`.filter((m) => m.role === "user")`): from 4.8.4 the agent accepts only user messages and answers to its own tool calls, and the runtime merges an answer onto the stored call itself.
 - Self-host snapshot only with `OBJECT_STORE_*` set; otherwise bring storage.
 - `onTurnComplete` only for live session state (the access token) the transcript does not cover; the resume cursors reach `save` as `changeset.cursors`, so a `lastEventId` write there is redundant with `storage`.
 - `hydrateMessages` never in new code: deprecated; it switches off runtime transcript reads and writes.
@@ -27,6 +27,7 @@
 
 **Pitfalls → rules:**
 - `storage` set together with `hydrateMessages`: startup error (CHT-08).
+- `loadContext` returning `[...branch, ...incomingMessages]` unfiltered: client tool parts reach the conversation the runtime would otherwise merge itself (CHT-26).
 - Unwrapped `chat.createLoadTranscriptAction(`: any signed-in user can read any chat (CHT-12).
 - Start or token action without an owner check: exposes other users' session tokens (CHT-05).
 - Hook-based persistence (no `storage`): message write and `lastEventId` in separate awaits, so a refresh between them duplicates the turn; with `storage`, cursors written outside `save`'s transaction do the same (CHT-13).

@@ -311,6 +311,32 @@
      "import { describe, expect, it } from 'vitest';\nimport { myChatAgent } from './my-chat.js';\n\ndescribe('my chat', () => {\n  it('exists', () => {\n    expect(myChatAgent).toBeDefined();\n  });\n});\n"
     ]
    }
+  },
+  {
+   "id": "CHT-26",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\.\\.\\.\\s*incomingMessages\\b(?!\\s*\\.\\s*filter\\b)|\\breturn\\s+incomingMessages\\s*;",
+    "require": "\\bchat\\.agent\\s*\\(|\\bTranscriptStorage\\b|\\bloadContext\\b"
+   },
+   "judge": "Confirm the hit is inside a loadContext (or a hydrateMessages) that builds the model's context for a chat.agent. The hook's incomingMessages is what the browser sent. From 4.8.4 the runtime merges a tool approval or tool output onto the stored call it answers, so appending those messages as they are adds nothing and puts client input into the conversation. Fine: `[...branch, ...incomingMessages.filter((m) => m.role === \"user\")]`. Not fine: an unfiltered spread or `return incomingMessages`. Ignore spreads of incomingMessages in code that is not a context loader.",
+   "message": "A chat context loader appends the browser's incomingMessages unfiltered; from 4.8.4 the agent takes only user messages and answers to its own tool calls, and the runtime merges the answers itself.",
+   "fix": "Append only the user's messages: [...branch, ...incomingMessages.filter((m) => m.role === \"user\")].",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/transcript-storage",
+   "examples": {
+    "bad": [
+     "import type { TranscriptStorage } from \"@trigger.dev/sdk/ai\";\nexport const storage: TranscriptStorage = {\n  save: (ctx, changeset) => rows.save(ctx, changeset),\n  loadContext: async ({ chatId, clientData }, { incomingMessages }) => {\n    const branch = await rows.activeBranch(chatId, clientData.userId);\n    return [...branch, ...incomingMessages];\n  },\n};"
+    ],
+    "good": [
+     "import type { TranscriptStorage } from \"@trigger.dev/sdk/ai\";\nexport const storage: TranscriptStorage = {\n  save: (ctx, changeset) => rows.save(ctx, changeset),\n  loadContext: async ({ chatId, clientData }, { incomingMessages }) => {\n    const branch = await rows.activeBranch(chatId, clientData.userId);\n    return [...branch, ...incomingMessages.filter((m) => m.role === \"user\")];\n  },\n};"
+    ]
+   }
   }
  ]
 }

@@ -61,7 +61,7 @@ The block above is read by the weekly freshness job: it counts these names in th
 | Old (or wrong) | Current | Why / evidence | Rule |
 |---|---|---|---|
 | `auth.createPublicToken()` with no scopes | pass `scopes`; the bare token has no permissions | | RT-02 · https://trigger.dev/docs/realtime/auth |
-| a "Trigger only" API-key preset for everyone | presets need Pro/Enterprise; Free, Hobby and self-host have unrestricted keys only | | https://trigger.dev/docs/apikeys |
+| an unrestricted API key for a backend that only triggers tasks | the narrowest preset ("Trigger only"), or custom access when none fits; every preset is on every Cloud plan, self-host has unrestricted keys only | docs said Pro/Enterprise until 4.8.4 | https://trigger.dev/docs/apikeys |
 | `useRun` with polling | `useRealtimeRun` | | RT-05 · https://trigger.dev/docs/realtime/react-hooks/swr |
 | hooks docs list only run hooks | there are tag and batch hooks, `refreshAccessToken`, a 1 h auto-token and 28-day stream retention | | https://trigger.dev/docs/realtime/react-hooks/subscribe |
 
@@ -73,6 +73,7 @@ The block above is read by the weekly freshness job: it counts these names in th
 | token and start-session actions without an ownership check | authorise the `chatId` against the signed-in user in **both** actions | otherwise any user can reach another user's chat | CHT-05 · https://trigger.dev/docs/ai-chat/quick-start |
 | `chat.local` initialised in `onChatStart` | initialise in `onBoot` (runs on every fresh worker, including continuations) | | CHT-04 · https://trigger.dev/docs/ai-chat/lifecycle-hooks#onboot |
 | `hydrateMessages` as the persistence model | `storage: TranscriptStorage`; `hydrateMessages` is deprecated | | CHT-08 · https://trigger.dev/docs/ai-chat/migrating-from-hydrate-messages |
+| `loadContext` returning `[...branch, ...incomingMessages]` | `[...branch, ...incomingMessages.filter((m) => m.role === "user")]`; from 4.8.4 the agent takes only user messages and answers to its own tool calls, and the runtime merges an answer onto the stored call | passing the rest through adds nothing and puts client input into the conversation | CHT-26 · https://trigger.dev/docs/ai-chat/transcript-storage |
 | `onAction` returning a `streamText` result, string or message | return nothing or `chat.turn()` | | CHT-11 · https://trigger.dev/docs/ai-chat/actions |
 | `await` the message write in `onTurnStart` | `chat.deferBeforeOutput()` | | CHT-09 · https://trigger.dev/docs/ai-chat/background-injection |
 | "never give the human-in-the-loop tool an `execute`" | questions: no `execute`; approvals: `needsApproval` plus `execute` (AI SDK 6+) | | CHT-16 · https://trigger.dev/docs/ai-chat/patterns/human-in-the-loop |
@@ -88,7 +89,7 @@ The block above is read by the weekly freshness job: it counts these names in th
 |---|---|---|---|
 | self-host `EVENT_REPOSITORY_DEFAULT_STORE=clickhouse` | `clickhouse_v2`; the legacy store is retired in 4.8.2 and older events stay hidden until copied (follow the self-hosting guide) | | https://trigger.dev/docs/self-hosting/docker |
 | `trigger deploy` in scripts and CI with no `--env` | pass `--env` explicitly (the default is prod) | | DEP-10 · https://trigger.dev/docs/cli-deploy-commands |
-| one `TRIGGER_ACCESS_TOKEN` for every environment | a key per environment ("Deploy only" preset on Pro/Enterprise) | | DEP-02 · https://trigger.dev/docs/github-actions |
+| one `TRIGGER_ACCESS_TOKEN` for every environment | a key per environment ("Deploy only" preset), or trusted publishing from GitHub Actions (CLI 4.8.4, no stored key, `--auth-method oidc`) | | DEP-02 · https://trigger.dev/docs/github-actions · https://trigger.dev/docs/deployment/trusted-publishing |
 | preview workflow on `opened`/`synchronize` only | add `closed` so preview branches are archived | | DEP-03 |
 | `--external-id ${{ github.sha }}` on pull requests | use the PR head sha | | DEP-04 · https://trigger.dev/docs/deployment/atomic-deployment |
 | `syncVercelEnvVars` with the Vercel integration | remove it; the integration syncs | | DEP-07 · https://trigger.dev/docs/vercel-integration |

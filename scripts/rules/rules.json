@@ -992,6 +992,32 @@
    }
   },
   {
+   "id": "CHT-26",
+   "family": "CHT",
+   "severity": "warning",
+   "tier": "audit",
+   "detect": "J",
+   "scope": "code",
+   "match": {
+    "type": "regex",
+    "pattern": "\\.\\.\\.\\s*incomingMessages\\b(?!\\s*\\.\\s*filter\\b)|\\breturn\\s+incomingMessages\\s*;",
+    "require": "\\bchat\\.agent\\s*\\(|\\bTranscriptStorage\\b|\\bloadContext\\b"
+   },
+   "judge": "Confirm the hit is inside a loadContext (or a hydrateMessages) that builds the model's context for a chat.agent. The hook's incomingMessages is what the browser sent. From 4.8.4 the runtime merges a tool approval or tool output onto the stored call it answers, so appending those messages as they are adds nothing and puts client input into the conversation. Fine: `[...branch, ...incomingMessages.filter((m) => m.role === \"user\")]`. Not fine: an unfiltered spread or `return incomingMessages`. Ignore spreads of incomingMessages in code that is not a context loader.",
+   "message": "A chat context loader appends the browser's incomingMessages unfiltered; from 4.8.4 the agent takes only user messages and answers to its own tool calls, and the runtime merges the answers itself.",
+   "fix": "Append only the user's messages: [...branch, ...incomingMessages.filter((m) => m.role === \"user\")].",
+   "fix_mode": "flag-only",
+   "doc": "https://trigger.dev/docs/ai-chat/transcript-storage",
+   "examples": {
+    "bad": [
+     "import type { TranscriptStorage } from \"@trigger.dev/sdk/ai\";\nexport const storage: TranscriptStorage = {\n  save: (ctx, changeset) => rows.save(ctx, changeset),\n  loadContext: async ({ chatId, clientData }, { incomingMessages }) => {\n    const branch = await rows.activeBranch(chatId, clientData.userId);\n    return [...branch, ...incomingMessages];\n  },\n};"
+    ],
+    "good": [
+     "import type { TranscriptStorage } from \"@trigger.dev/sdk/ai\";\nexport const storage: TranscriptStorage = {\n  save: (ctx, changeset) => rows.save(ctx, changeset),\n  loadContext: async ({ chatId, clientData }, { incomingMessages }) => {\n    const branch = await rows.activeBranch(chatId, clientData.userId);\n    return [...branch, ...incomingMessages.filter((m) => m.role === \"user\")];\n  },\n};"
+    ]
+   }
+  },
+  {
    "id": "COST-01",
    "family": "COST",
    "severity": "warning",
@@ -1124,10 +1150,10 @@
     "mask": "none",
     "flags": "m",
     "pattern": "^(?![ \\t]*#)[^\\n]*?\\btrigger(?:\\.dev)?(?:@[\\w.@-]+)?\\s+deploy\\b",
-    "unless": "TRIGGER_ACCESS_TOKEN"
+    "unless": "TRIGGER_ACCESS_TOKEN|--auth-method[=\\s]+oidc|id-token:\\s*write"
    },
-   "message": "This workflow runs a trigger.dev deploy and sets no TRIGGER_ACCESS_TOKEN.",
-   "fix": "Add a per-environment token secret and map it to TRIGGER_ACCESS_TOKEN in the deploy step's env.",
+   "message": "This workflow runs a trigger.dev deploy and sets no TRIGGER_ACCESS_TOKEN (and does not use trusted publishing: --auth-method oidc or id-token: write).",
+   "fix": "Add a per-environment token secret and map it to TRIGGER_ACCESS_TOKEN in the deploy step's env, or use trusted publishing (permissions: id-token: write and deploy --auth-method oidc, CLI 4.8.4+).",
    "fix_mode": "flag-only",
    "doc": "https://trigger.dev/docs/github-actions",
    "examples": {
@@ -1136,7 +1162,8 @@
     ],
     "good": [
      "name: deploy\non:\n  push:\n    branches: [main]\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --env prod\n        env:\n          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_PROD_ACCESS_TOKEN }}\n",
-     "name: ci\non: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      # npx trigger.dev@latest deploy --env prod (moved to deploy.yml)\n      - run: npm test\n"
+     "name: ci\non: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      # npx trigger.dev@latest deploy --env prod (moved to deploy.yml)\n      - run: npm test\n",
+     "name: deploy\non:\n  push:\n    branches: [main]\npermissions:\n  contents: read\n  id-token: write\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npx trigger.dev@latest deploy --auth-method oidc --native-build --env prod\n"
     ]
    }
   },
