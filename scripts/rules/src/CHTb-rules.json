@@ -182,7 +182,7 @@
     "unless": "\\\"@ai-sdk/otel\\\"\\s*:"
    },
    "message": "ai 7 is in package.json without @ai-sdk/otel; AI SDK 7 emits model-call spans from that adapter, so they are missing from the run trace.",
-   "fix": "Install @ai-sdk/otel next to ai@7.",
+   "fix": "Install @ai-sdk/otel next to ai@7 and register it once with a static import: registerTelemetry(new OpenTelemetry()).",
    "fix_mode": "flag-only",
    "doc": "https://trigger.dev/docs/ai-chat/reference",
    "examples": {

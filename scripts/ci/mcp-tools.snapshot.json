@@ -97,6 +97,14 @@
     "name": {
      "type": "string",
      "required": false
+    },
+    "query": {
+     "type": "string",
+     "required": false
+    },
+    "signal": {
+     "type": "object",
+     "required": false
     }
    }
   },
@@ -987,6 +995,22 @@
      "required": false
     },
     "region": {
+     "type": "string",
+     "required": false
+    },
+    "queue": {
+     "type": "string",
+     "required": false
+    },
+    "batch": {
+     "type": "string",
+     "required": false
+    },
+    "schedule": {
+     "type": "string",
+     "required": false
+    },
+    "bulkAction": {
      "type": "string",
      "required": false
     }

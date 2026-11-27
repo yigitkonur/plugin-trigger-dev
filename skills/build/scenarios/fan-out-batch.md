@@ -12,7 +12,7 @@
 - `concurrencyLimit({ name, total })` — because one named cap shared across tasks guards one external API.
 - `idempotencyKeys.create(id)` in each item's `options` — because a retried parent otherwise re-triggers every child.
 
-**Gates:** batches of 1,000 items, items up to 3 MB, and `AsyncIterable` input need SDK ≥ 4.3.1 (500 items before). The batch token bucket and batch processing concurrency are Cloud plan tiers (`limits.mdx`); the pinned docs give no self-host values. No beta features.
+**Gates:** an object `concurrencyKey` (`{ default: sessionId, [orgLimit.name]: orgId }`, one key per named limit) needs SDK ≥ 4.8.6; a string keys every `perKey` bound (`concurrency#concurrency-keys-and-per-tenant-limits`). Batches of 1,000 items, items up to 3 MB, and `AsyncIterable` input need SDK ≥ 4.3.1 (500 items before). The batch token bucket and batch processing concurrency are Cloud plan tiers (`limits.mdx`); the pinned docs give no self-host values. No beta features.
 
 **Ask only if unknown:** Does the parent need child outputs? Yes → `batchTriggerAndWait`; no → `batchTrigger`. Is fairness per tenant or one shared external API? Tenant → `concurrencyKey` with `perKey`; shared API → `concurrencyLimit`.
 
