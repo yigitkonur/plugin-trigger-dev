@@ -42,7 +42,7 @@
 
 **Gates:**
 - `chat.agent` needs `@trigger.dev/sdk` ≥ 4.5.0 (GA July 2026).
-- Approvals need AI SDK ≥ 6; `ai@7` needs `@ai-sdk/otel` only if you want model-call spans (CHT-21).
+- Approvals need AI SDK ≥ 6; `ai@7` needs `@ai-sdk/otel` installed and registered with a static import (`registerTelemetry(new OpenTelemetry())`) only if you want model-call spans (CHT-21; `ai/observability`).
 - Self-host needs `OBJECT_STORE_*` for snapshots (CHT-20).
 
 **Docs:** https://trigger.dev/docs/ai-chat/overview · https://trigger.dev/docs/ai-chat/quick-start · https://trigger.dev/docs/ai-chat/backend · https://trigger.dev/docs/ai-chat/frontend · https://trigger.dev/docs/ai-chat/lifecycle-hooks · https://trigger.dev/docs/ai-chat/server-chat · https://trigger.dev/docs/ai-chat/client-protocol · https://trigger.dev/docs/ai-chat/transcript-storage · https://trigger.dev/docs/ai-chat/upgrade-guide · https://trigger.dev/docs/ai-chat/testing · https://trigger.dev/docs/ai-chat/mcp · https://trigger.dev/docs/ai-chat/patterns/oom-resilience

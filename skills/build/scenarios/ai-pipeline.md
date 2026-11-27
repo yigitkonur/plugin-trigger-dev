@@ -12,9 +12,9 @@
 - `experimental_telemetry: { isEnabled: true }` on each call — because every generation becomes a run-trace span and `llm_metrics` gives cost. (A `chat.agent`'s `streamText` has it on by default since 4.8.0.)
 - `telemetry: { spanProcessors: [...] }` in `trigger.config.ts` (SDK ≥ 4.7.5) — when prompts or outputs hold personal data, because your processors redact or drop span content before it leaves the worker, for Trigger.dev and for your own exporters (`ai-chat/patterns/redacting-telemetry`).
 
-**Gates:** version: on AI SDK 7, generation spans need `@ai-sdk/otel` installed and registered once (optional tracing; AI SDK 6 needs nothing). Beta: none in this card. Cloud-only: none stated; prompt resolve calls the Trigger.dev API (self-host: `TRIGGER_API_URL`).
+**Gates:** version: on AI SDK 7, generation spans need `@ai-sdk/otel` installed and registered once with a static import (`registerTelemetry(new OpenTelemetry())`; AI SDK 6 needs nothing), and prompt-version linking does not reach the span yet (traced, not linked; `ai/prompts`). Beta: none in this card. Cloud-only: none stated; prompt resolve calls the Trigger.dev API (self-host: `TRIGGER_API_URL`).
 
-**Ask only if unknown:** Which AI SDK major is installed? (7 adds the optional `@ai-sdk/otel` tracing step.) Must production output stay pinned to one prompt version? (Yes: `resolve(vars, { version: N })`. No: a dashboard override changes prod with no deploy.)
+**Ask only if unknown:** Which AI SDK major is installed? (7 adds the optional `@ai-sdk/otel` install-and-register tracing step.) Must production output stay pinned to one prompt version? (Yes: `resolve(vars, { version: N })`. No: a dashboard override changes prod with no deploy.)
 
 **Minimal shape:**
 ```ts
@@ -39,6 +39,6 @@ export const summariseTool = tool({ description: summarise.description ?? "", in
 - Bad input or unusable model output burns retries; throw `AbortTaskRunError` for permanent failures and plain `Error` for transient ones (TSK-09, COST-02).
 - Whole documents in the payload bloat runs; pass a reference and load the text inside the task (TSK-19).
 - A dashboard prompt override changes prod output with no deploy; `resolve(vars, { version: N })` takes priority over it (no rule id).
-- AI SDK 7 without `@ai-sdk/otel` emits no generation spans (CHT-21).
+- AI SDK 7 without `@ai-sdk/otel` installed and registered emits no generation spans (CHT-21); once registered it traces every call unless `telemetry: { isEnabled: false }`.
 
 **Docs:** https://trigger.dev/docs/tasks/schemaTask · https://trigger.dev/docs/ai/prompts · https://trigger.dev/docs/ai/observability · https://trigger.dev/docs/tasks/streams · https://trigger.dev/docs/errors-retrying

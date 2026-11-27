@@ -78,6 +78,6 @@ Read with Grep for one key; never load whole. Paths are relative to `https://tri
 | run tests; test a task; dashboard test | run-tests | L |  |  |  |
 | tasks trigger; trigger from terminal; cli trigger; smoke test a task | cli-tasks-commands | L | 4.7.5 |  | `--wait` prints output, exit 1 on failure |
 | dashboards as code; query.dashboards; custom dashboard; widgets | observability/dashboards, observability/query | L | 4.7.5 |  | MCP `create_dashboard`, `set_dashboard_widgets` |
-| alerts mcp; create_alert; resolve_alert; list_alerts; alert capabilities; query alert; alert on a query | troubleshooting-alerts, mcp-tools | L |  |  | MCP `list_alert_capabilities` first; alerts on a query result (4.8.1+) have no docs page and no MCP create |
+| alerts mcp; create_alert; resolve_alert; list_alerts; alert capabilities; query alert; alert on a query | troubleshooting-alerts, mcp-tools | L |  |  | MCP `list_alert_capabilities` first; alerts on a query result (4.8.1+) have no docs page; MCP `create_alert` takes `custom.query` with `query` and `signal` from 4.8.9 |
 | telemetry; spanProcessors; redact telemetry; otel | ai-chat/patterns/redacting-telemetry, ai/observability, config/config-file | L | 4.7.5 |  | `telemetry.spanProcessors`; chat `telemetry` option |
 | replay; bulk actions | replaying, bulk-actions, runs/bulk-actions | L |  |  |  |

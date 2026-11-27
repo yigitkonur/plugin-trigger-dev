@@ -4,7 +4,7 @@
 **Primitives:**
 - `npx trigger.dev@latest deploy --external-id <sha>` — because the id is opaque to Trigger.dev, so a re-run of the same commit reuses its build and runs pin to that deployment.
 - `TRIGGER_EXTERNAL_DEPLOYMENT_ID` in the app — because pinning needs the app to send the same id with every trigger.
-- `TRIGGER_ACCESS_TOKEN` per environment — because the key must belong to the environment the deploy targets.
+- `TRIGGER_ACCESS_TOKEN` per environment — because the key must belong to the environment the deploy targets. Use an environment API key, not a personal access token (it expires on its creation date) or a copied CLI login (idle 7 days expires it).
 - Trusted publishing from GitHub Actions: `permissions: id-token: write` and `deploy --auth-method oidc --native-build --env <e>` (the same flag on `promote` and `preview archive`) — because the job needs no stored Trigger.dev key; the repository and environment are trusted once in the dashboard (Security > Trusted publishing). Use it instead of a token when the pipeline is GitHub Actions on Cloud.
 - Always write `--env <name>` (or `--prod`) on `deploy` and `promote`, because the CLI (≥ 4.7.5) names the target and, when `TRIGGER_ACCESS_TOKEN` is an environment API key, uses that key's environment for an omitted `--env`; older CLIs assume prod.
 - `deploy --env preview` — because each PR gets a preview branch that archives when the PR closes.
